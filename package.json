@@ -1,0 +1,30 @@
+{
+  "name": "phon-audio",
+  "version": "0.1.0",
+  "description": "Phon.Audio — a deterministic compatibility engine for full audio signal chains (source → DAC → preamp → amp → speaker, plus cables and room context).",
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "node --import tsx --test test/*.test.ts",
+    "demo": "tsx examples/demo.ts"
+  },
+  "keywords": [
+    "audio",
+    "audiophile",
+    "hifi",
+    "impedance",
+    "amplifier",
+    "speaker",
+    "synergy"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.19.20",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
