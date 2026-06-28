@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useFavorites } from "@/hooks/useFavorites";
 import type {
   UIComponent, ChainEntry, ContextSettings, SystemReport,
   ComponentCategory,
@@ -199,6 +200,9 @@ export default function ChainBuilder({
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [chainName, setChainName] = useState("");
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [expandedMfrs, setExpandedMfrs] = useState<Set<string>>(new Set());
 
   // Index catalog by id for quick lookup
   const catalogById = Object.fromEntries(catalog.map((c) => [c.id, c]));
@@ -384,14 +388,18 @@ export default function ChainBuilder({
   };
 
   // Two-level grouping: category → manufacturer → components
-  const byCategory: Partial<Record<ComponentCategory, Record<string, UIComponent[]>>> = {};
-  for (const c of catalog) {
-    const cat = c.category;
-    const mfr = c.manufacturer ?? "Other";
-    if (!byCategory[cat]) byCategory[cat] = {};
-    if (!byCategory[cat]![mfr]) byCategory[cat]![mfr] = [];
-    byCategory[cat]![mfr].push(c);
-  }
+  const byCategory = useMemo(() => {
+    const result: Partial<Record<ComponentCategory, Record<string, UIComponent[]>>> = {};
+    const items = showFavoritesOnly ? catalog.filter(c => isFavorite(c.id)) : catalog;
+    for (const c of items) {
+      const cat = c.category;
+      const mfr = c.manufacturer ?? "Other";
+      if (!result[cat]) result[cat] = {};
+      if (!result[cat]![mfr]) result[cat]![mfr] = [];
+      result[cat]![mfr].push(c);
+    }
+    return result;
+  }, [catalog, showFavoritesOnly, isFavorite]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -424,8 +432,27 @@ export default function ChainBuilder({
             borderBottom: "1px solid #e8d5b7",
             marginBottom: "8px",
             fontFamily: "var(--pa-font-ui)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}>
             Components
+            <button
+              onClick={() => setShowFavoritesOnly(prev => !prev)}
+              title={showFavoritesOnly ? "Show all" : "Show favorites only"}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                color: showFavoritesOnly ? "#d97706" : "#d4b896",
+                padding: "0 2px",
+                lineHeight: 1,
+                transition: "color 0.15s",
+              }}
+            >
+              {showFavoritesOnly ? "\u2665" : "\u2661"}
+            </button>
           </div>
           {catalog.length === 0 ? (
             <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)" }}>Loading catalog…</p>
@@ -479,46 +506,83 @@ export default function ChainBuilder({
                           <span>{mfr}</span>
                           <span style={{ color: "#d97706", fontSize: "0.72rem" }}>{isMfrOpen ? "\u25BC" : "\u25B6"}</span>
                         </div>
-                        {isMfrOpen && (
-                          <div style={{ background: "#fef9f0" }}>
-                            {catMfrs[mfr].map((c) => (
-                              <div
-                                key={c.id}
-                                onClick={() => addComponent(c)}
-                                title={c.note ?? c.name}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  padding: "7px 16px 7px 28px",
-                                  fontSize: "0.78rem",
-                                  color: "#7c5a3a",
-                                  cursor: "pointer",
-                                  borderBottom: "1px solid #f5e8d0",
-                                  fontFamily: "var(--pa-font-ui)",
-                                }}
-                              >
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                  {c.name}
-                                </span>
-                                <span style={{
-                                  fontSize: "0.58rem",
-                                  letterSpacing: "0.06em",
-                                  textTransform: "uppercase",
-                                  color: "#b45309",
-                                  background: "#fef3c7",
-                                  padding: "1px 5px",
-                                  borderRadius: "3px",
-                                  border: "1px solid #fcd34d",
-                                  flexShrink: 0,
-                                  fontFamily: "var(--pa-font-ui)",
-                                }}>
-                                  {CATEGORY_BADGE[c.category]}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {isMfrOpen && (() => {
+                          const mfrKey = `${cat}::${mfr}`;
+                          const allComps = catMfrs[mfr];
+                          const isExpanded = expandedMfrs.has(mfrKey);
+                          const visible = isExpanded ? allComps : allComps.slice(0, 5);
+                          const remaining = allComps.length - 5;
+                          return (
+                            <div style={{ background: "#fef9f0" }}>
+                              {visible.map((c) => (
+                                <div
+                                  key={c.id}
+                                  onClick={() => addComponent(c)}
+                                  title={c.note ?? c.name}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    padding: "7px 16px 7px 28px",
+                                    fontSize: "0.78rem",
+                                    color: "#7c5a3a",
+                                    cursor: "pointer",
+                                    borderBottom: "1px solid #f5e8d0",
+                                    fontFamily: "var(--pa-font-ui)",
+                                  }}
+                                >
+                                  <span
+                                    onClick={e => { e.stopPropagation(); toggleFavorite(c.id); }}
+                                    style={{
+                                      fontSize: "0.72rem",
+                                      color: isFavorite(c.id) ? "#d97706" : "#d4b896",
+                                      cursor: "pointer",
+                                      flexShrink: 0,
+                                      lineHeight: 1,
+                                      transition: "color 0.15s",
+                                    }}
+                                    title={isFavorite(c.id) ? "Remove from favorites" : "Add to favorites"}
+                                  >
+                                    {isFavorite(c.id) ? "\u2665" : "\u2661"}
+                                  </span>
+                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                                    {c.name}
+                                  </span>
+                                  <span style={{
+                                    fontSize: "0.58rem",
+                                    letterSpacing: "0.06em",
+                                    textTransform: "uppercase",
+                                    color: "#b45309",
+                                    background: "#fef3c7",
+                                    padding: "1px 5px",
+                                    borderRadius: "3px",
+                                    border: "1px solid #fcd34d",
+                                    flexShrink: 0,
+                                    fontFamily: "var(--pa-font-ui)",
+                                  }}>
+                                    {CATEGORY_BADGE[c.category]}
+                                  </span>
+                                </div>
+                              ))}
+                              {remaining > 0 && !isExpanded && (
+                                <div
+                                  onClick={() => setExpandedMfrs(prev => new Set(prev).add(mfrKey))}
+                                  style={{
+                                    fontSize: "0.72rem",
+                                    color: "#d97706",
+                                    padding: "6px 16px 6px 28px",
+                                    cursor: "pointer",
+                                    fontFamily: "var(--pa-font-ui)",
+                                    fontWeight: 500,
+                                    borderBottom: "1px solid #f5e8d0",
+                                  }}
+                                >
+                                  +{remaining} more
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

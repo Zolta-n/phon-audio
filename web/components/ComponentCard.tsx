@@ -18,7 +18,11 @@ function portSummary(c: UIComponent): string {
   return parts.join(" \u00B7 ");
 }
 
-export default function ComponentCard({ component }: { component: UIComponent }) {
+export default function ComponentCard({ component, isFavorite, onToggleFavorite }: {
+  component: UIComponent;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
+}) {
   const badge = CATEGORY_BADGE[component.category] ?? "?";
   const color = CAT_COLOR[component.category] ?? "#7a5c3a";
   const summary = portSummary(component);
@@ -35,6 +39,7 @@ export default function ComponentCard({ component }: { component: UIComponent })
         gap: "8px",
         cursor: "pointer",
         transition: "border-color 0.2s, box-shadow 0.2s",
+        position: "relative",
       }}
         onMouseEnter={e => {
           e.currentTarget.style.borderColor = "#d97706";
@@ -45,6 +50,28 @@ export default function ComponentCard({ component }: { component: UIComponent })
           e.currentTarget.style.boxShadow = "none";
         }}
       >
+        {onToggleFavorite && (
+          <button
+            onClick={e => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(component.id); }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              background: "none",
+              border: "none",
+              fontSize: "1.1rem",
+              cursor: "pointer",
+              color: isFavorite ? "#d97706" : "var(--pa-muted)",
+              opacity: isFavorite ? 1 : 0.5,
+              padding: "2px",
+              lineHeight: 1,
+              transition: "color 0.15s, opacity 0.15s",
+            }}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isFavorite ? "\u2665" : "\u2661"}
+          </button>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{
             fontSize: "0.6rem",
