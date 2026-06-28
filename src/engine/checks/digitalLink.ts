@@ -12,10 +12,12 @@ export function digitalLink(
   inp: DigitalIn,
   cable?: DigitalCable,
 ): CheckResult {
-  const sharedFormats = out.formats.filter((f) => inp.formats.includes(f));
-  const formatOk = sharedFormats.length > 0;
-  const srOk = inp.maxSampleRateKhz >= out.maxSampleRateKhz;
-  const bitOk = inp.maxBitDepth >= out.maxBitDepth;
+  const outFormats = out.formats ?? [];
+  const inpFormats = inp.formats ?? [];
+  const sharedFormats = outFormats.filter((f) => inpFormats.includes(f));
+  const formatOk = outFormats.length === 0 || inpFormats.length === 0 || sharedFormats.length > 0;
+  const srOk = !inp.maxSampleRateKhz || !out.maxSampleRateKhz || inp.maxSampleRateKhz >= out.maxSampleRateKhz;
+  const bitOk = !inp.maxBitDepth || !out.maxBitDepth || inp.maxBitDepth >= out.maxBitDepth;
   const lengthOk =
     !cable || cable.maxLengthM === undefined || cable.lengthM <= cable.maxLengthM;
 
@@ -24,7 +26,7 @@ export function digitalLink(
       id: "digital_link",
       label: "Digital compatibility",
       verdict: "fail",
-      explanation: `No common format: source offers ${out.formats.join("/")}, DAC accepts ${inp.formats.join("/")}.`,
+      explanation: `No common format: source offers ${outFormats.join("/")}, DAC accepts ${inpFormats.join("/")}.`,
     };
   }
   if (!srOk || !bitOk) {

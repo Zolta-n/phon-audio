@@ -66,7 +66,7 @@ export function ampPowerAtImpedance(
   powerW: { ohm: number; watts: number }[],
   impedanceOhm: number,
 ): number {
-  if (powerW.length === 0) return NaN;
+  if (!powerW || powerW.length === 0) return NaN;
   // Exact match first.
   const exact = powerW.find((p) => p.ohm === impedanceOhm);
   if (exact) return exact.watts;

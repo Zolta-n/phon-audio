@@ -85,13 +85,22 @@ function CableConnector({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 pl-10 py-1">
-      <div className="w-px h-4 bg-slate-300" />
-      <span className="text-slate-400 text-xs">↓</span>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingLeft: "40px", padding: "4px 0 4px 40px" }}>
+      <div style={{ width: "1px", height: "16px", background: "var(--pa-border)" }} />
+      <span style={{ color: "var(--pa-muted)", fontSize: "0.75rem" }}>↓</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-600 cursor-pointer"
+        style={{
+          fontSize: "0.75rem",
+          border: "1px solid var(--pa-border)",
+          borderRadius: "4px",
+          padding: "4px 8px",
+          background: "var(--pa-bg)",
+          color: "var(--pa-text)",
+          cursor: "pointer",
+          fontFamily: "var(--pa-font-ui)",
+        }}
       >
         {CABLE_DEFS.map((c) => (
           <option key={c.id} value={c.id}>{c.label}</option>
@@ -115,39 +124,46 @@ function ContextForm({
     max: number,
     step: number,
     unit: string,
-  ) => (
-    <div style={{ marginBottom: "18px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
-        <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--pa-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-          {label}
-        </label>
-        <span style={{ fontSize: "0.82rem", fontWeight: 500, color: "var(--pa-text)", fontFamily: "var(--font-lora), serif" }}>
-          {ctx[key]}{unit}
-        </span>
+    ticks?: (string | number)[],
+  ) => {
+    const pct = ((ctx[key] - min) / (max - min)) * 100;
+    const tickLabels = ticks ?? [min, Math.round((min + max) / 2), max];
+    return (
+      <div style={{ marginBottom: "18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+          <span style={{ fontSize: "0.78rem", color: "#7c5a3a", fontFamily: "var(--pa-font-ui)" }}>
+            {label}
+          </span>
+          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#92400e", fontFamily: "var(--pa-font-ui)" }}>
+            {ctx[key]}{unit}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={ctx[key]}
+          onChange={(e) => onChange({ ...ctx, [key]: parseFloat(e.target.value) })}
+          style={{ width: "100%", cursor: "pointer", margin: "2px 0", "--pct": `${pct}%` } as React.CSSProperties}
+        />
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 2px", marginTop: "2px" }}>
+          {tickLabels.map((t, i) => (
+            <span key={i} style={{ fontSize: "0.55rem", color: "#b45309", fontFamily: "var(--pa-font-ui)" }}>
+              {typeof t === "number" ? `${t}${unit}` : t}
+            </span>
+          ))}
+        </div>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={ctx[key]}
-        onChange={(e) => onChange({ ...ctx, [key]: parseFloat(e.target.value) })}
-        style={{ width: "100%", cursor: "pointer", margin: "2px 0" }}
-      />
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.6rem", color: "var(--pa-muted)", opacity: 0.65, marginTop: "1px" }}>
-        <span>{min}{unit}</span>
-        <span>{Math.round((min + max) / 2)}{unit}</span>
-        <span>{max}{unit}</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
-      {slider("Target SPL", "targetSplDb", 60, 100, 1, " dB")}
-      {slider("Headroom", "crestFactorDb", 6, 30, 1, " dB")}
-      {slider("Distance", "distanceM", 0.5, 8, 0.5, " m")}
-      {slider("Room gain", "roomGainDb", 0, 12, 1, " dB")}
+      {slider("Target SPL", "targetSplDb", 60, 100, 1, " dB", ["60", "70", "80", "90", "100"])}
+      {slider("Headroom", "crestFactorDb", 6, 30, 1, " dB", ["6", "12", "18", "24", "30"])}
+      {slider("Distance", "distanceM", 0.5, 8, 0.5, " m", ["0.5m", "2m", "4m", "6m", "8m"])}
+      {slider("Room gain", "roomGainDb", 0, 12, 1, " dB", ["0", "3", "6", "9", "12"])}
     </>
   );
 }
@@ -251,8 +267,8 @@ export default function ChainBuilder({
             id: entry.component.id,
             name: entry.component.name,
             category: entry.component.category,
-            inputs: entry.component.inputs,
-            outputs: entry.component.outputs,
+            inputs: entry.component.inputs ?? [],
+            outputs: entry.component.outputs ?? [],
           },
           ...(cableDef?.cable ? { cableToNext: cableDef.cable } : {}),
         };
@@ -303,24 +319,26 @@ export default function ChainBuilder({
 
         {/* ── Palette ── */}
         <aside style={{
-          background: "var(--pa-bg)",
+          background: "#fff8f0",
           borderRadius: "10px",
-          border: "1px solid var(--pa-border)",
-          padding: "16px",
+          border: "1.5px solid #e8d5b7",
+          padding: "16px 0",
           overflowY: "auto",
           maxHeight: "calc(100vh - 10rem)",
         }}>
-          <p style={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
+          <div style={{
+            fontSize: "0.65rem",
+            fontWeight: 600,
             textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: "var(--pa-muted)",
-            marginBottom: "12px",
-            fontFamily: "var(--font-playfair), Georgia, serif",
+            letterSpacing: "0.16em",
+            color: "#92400e",
+            padding: "0 16px 12px",
+            borderBottom: "1px solid #e8d5b7",
+            marginBottom: "8px",
+            fontFamily: "var(--pa-font-ui)",
           }}>
             Components
-          </p>
+          </div>
           {catalog.length === 0 ? (
             <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)" }}>Loading catalog…</p>
           ) : (
@@ -331,101 +349,85 @@ export default function ChainBuilder({
               const isCatOpen = openCategory === cat;
               return (
                 <div key={cat} style={{ marginBottom: "2px" }}>
-                  {/* Category header */}
-                  <button
+                  {/* Category type label */}
+                  <div style={{
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#92400e",
+                    padding: "10px 16px 6px",
+                    fontWeight: 700,
+                    fontFamily: "var(--pa-font-ui)",
+                    cursor: "pointer",
+                  }}
                     onClick={() => setOpenCategory(isCatOpen ? null : cat)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "6px 8px",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      borderBottom: "1px solid var(--pa-border)",
-                      marginBottom: "2px",
-                    }}
                   >
-                    <span style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: "var(--pa-accent)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      fontFamily: "var(--font-lora), serif",
-                    }}>
-                      {CATEGORY_LABELS[cat]}
+                    {CATEGORY_LABELS[cat]}
+                    <span style={{ float: "right", color: "#d97706", fontSize: "0.72rem" }}>
+                      {isCatOpen ? "\u25BC" : "\u25B6"}
                     </span>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--pa-accent)" }}>{isCatOpen ? "−" : "+"}</span>
-                  </button>
+                  </div>
                   {/* Manufacturer list under this category */}
                   {isCatOpen && mfrNames.map((mfr) => {
                     const isMfrOpen = openManufacturer === `${cat}::${mfr}`;
                     return (
-                      <div key={mfr} style={{ paddingLeft: "4px" }}>
-                        <button
+                      <div key={mfr}>
+                        {/* Brand header */}
+                        <div
                           onClick={() => setOpenManufacturer(prev => prev === `${cat}::${mfr}` ? null : `${cat}::${mfr}`)}
                           style={{
-                            width: "100%",
-                            textAlign: "left",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            padding: "5px 8px",
-                            background: "transparent",
-                            border: "none",
+                            padding: "9px 16px",
                             cursor: "pointer",
-                            fontSize: "0.78rem",
-                            color: isMfrOpen ? "var(--pa-text)" : "var(--pa-muted)",
-                            fontFamily: "var(--font-lora), serif",
+                            fontSize: "0.82rem",
+                            color: isMfrOpen ? "#92400e" : "#5c3a1e",
                             fontWeight: isMfrOpen ? 600 : 400,
+                            letterSpacing: "0.03em",
+                            fontFamily: "var(--pa-font-ui)",
                           }}
                         >
                           <span>{mfr}</span>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, opacity: 0.6 }}>{isMfrOpen ? "−" : "+"}</span>
-                        </button>
+                          <span style={{ color: "#d97706", fontSize: "0.72rem" }}>{isMfrOpen ? "\u25BC" : "\u25B6"}</span>
+                        </div>
                         {isMfrOpen && (
-                          <div style={{ paddingLeft: "8px", paddingBottom: "4px" }}>
+                          <div style={{ background: "#fef9f0" }}>
                             {catMfrs[mfr].map((c) => (
-                              <button
+                              <div
                                 key={c.id}
                                 onClick={() => addComponent(c)}
                                 title={c.note ?? c.name}
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: "6px",
-                                  width: "100%",
-                                  textAlign: "left",
-                                  background: "var(--pa-surface)",
-                                  border: "1px solid var(--pa-border)",
-                                  borderRadius: "4px",
-                                  padding: "5px 8px",
-                                  fontSize: "0.76rem",
-                                  color: "var(--pa-text)",
-                                  marginBottom: "2px",
+                                  gap: "8px",
+                                  padding: "7px 16px 7px 28px",
+                                  fontSize: "0.78rem",
+                                  color: "#7c5a3a",
                                   cursor: "pointer",
-                                  fontFamily: "var(--font-lora), serif",
+                                  borderBottom: "1px solid #f5e8d0",
+                                  fontFamily: "var(--pa-font-ui)",
                                 }}
                               >
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                                  {c.name}
+                                </span>
                                 <span style={{
-                                  fontSize: "0.6rem",
-                                  fontWeight: 700,
-                                  background: CAT_COLOR_BADGE[c.category] ?? "var(--pa-accent)",
-                                  color: "#fff",
+                                  fontSize: "0.58rem",
+                                  letterSpacing: "0.06em",
+                                  textTransform: "uppercase",
+                                  color: "#b45309",
+                                  background: "#fef3c7",
                                   padding: "1px 5px",
                                   borderRadius: "3px",
+                                  border: "1px solid #fcd34d",
                                   flexShrink: 0,
-                                  letterSpacing: "0.04em",
+                                  fontFamily: "var(--pa-font-ui)",
                                 }}>
                                   {CATEGORY_BADGE[c.category]}
                                 </span>
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {c.name}
-                                </span>
-                              </button>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -440,24 +442,23 @@ export default function ChainBuilder({
 
         {/* ── Chain ── */}
         <section style={{
-          background: "var(--pa-bg)",
+          background: "#fff8f0",
           borderRadius: "10px",
-          border: "1px solid var(--pa-border)",
-          padding: "16px",
+          border: "1.5px solid #e8d5b7",
+          padding: "20px",
           display: "flex",
           flexDirection: "column",
         }}>
-          <p style={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: "var(--pa-muted)",
+          <div style={{
+            fontFamily: "Georgia, serif",
+            fontSize: "1rem",
+            color: "#3d2200",
+            borderBottom: "1px solid #e8d5b7",
+            paddingBottom: "12px",
             marginBottom: "12px",
-            fontFamily: "var(--font-playfair), Georgia, serif",
           }}>
-            Chain
-          </p>
+            Signal Chain
+          </div>
 
           {/* Graphical chain diagram — always visible */}
           {chain.length > 0 ? (
@@ -480,7 +481,7 @@ export default function ChainBuilder({
               marginBottom: "12px",
               color: "var(--pa-muted)",
               fontSize: "0.85rem",
-              fontFamily: "var(--font-lora), serif",
+              fontFamily: "var(--pa-font-ui)",
             }}>
               ← Add components from the panel to build your chain
             </div>
@@ -509,7 +510,7 @@ export default function ChainBuilder({
                       padding: "2px 8px",
                       borderRadius: "3px",
                       flexShrink: 0,
-                      fontFamily: "var(--font-lora), serif",
+                      fontFamily: "var(--pa-font-ui)",
                       letterSpacing: "0.04em",
                     }}>
                       {CATEGORY_BADGE[entry.component.category]}
@@ -521,7 +522,7 @@ export default function ChainBuilder({
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontFamily: "var(--font-lora), serif",
+                      fontFamily: "var(--pa-font-ui)",
                     }}>
                       {entry.component.name}
                     </span>
@@ -586,7 +587,7 @@ export default function ChainBuilder({
                 borderRadius: "4px",
                 border: "none",
                 cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-lora), serif",
+                fontFamily: "var(--pa-font-ui)",
               }}
             >
               {evaluating ? "Evaluating…" : "Evaluate"}
@@ -601,7 +602,7 @@ export default function ChainBuilder({
                 padding: "8px 16px",
                 borderRadius: "4px",
                 cursor: "pointer",
-                fontFamily: "var(--font-lora), serif",
+                fontFamily: "var(--pa-font-ui)",
               }}
             >
               Speaker demo
@@ -616,7 +617,7 @@ export default function ChainBuilder({
                 padding: "8px 16px",
                 borderRadius: "4px",
                 cursor: "pointer",
-                fontFamily: "var(--font-lora), serif",
+                fontFamily: "var(--pa-font-ui)",
               }}
             >
               HP demo
@@ -631,7 +632,7 @@ export default function ChainBuilder({
                 borderRadius: "4px",
                 border: "1px solid var(--pa-border)",
                 cursor: "pointer",
-                fontFamily: "var(--font-lora), serif",
+                fontFamily: "var(--pa-font-ui)",
               }}
             >
               Clear
@@ -641,9 +642,9 @@ export default function ChainBuilder({
 
         {/* ── Context + Evaluate ── */}
         <aside style={{
-          background: "var(--pa-bg)",
+          background: "#fff8f0",
           borderRadius: "10px",
-          border: "1px solid var(--pa-border)",
+          border: "1.5px solid #e8d5b7",
           padding: "16px",
           overflowY: "auto",
           maxHeight: "calc(100vh - 10rem)",
@@ -655,7 +656,7 @@ export default function ChainBuilder({
             style={{
               width: "100%",
               marginBottom: "16px",
-              background: evaluating || chain.length < 2 ? "var(--pa-border)" : "var(--pa-accent)",
+              background: evaluating || chain.length < 2 ? "#e8d5b7" : "#d97706",
               color: "#fff",
               fontSize: "0.9rem",
               fontWeight: 700,
@@ -663,76 +664,45 @@ export default function ChainBuilder({
               borderRadius: "5px",
               border: "none",
               cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-lora), serif",
+              fontFamily: "var(--pa-font-ui)",
               letterSpacing: "0.06em",
               textTransform: "uppercase",
             }}
           >
-            {evaluating ? "Evaluating…" : "Evaluate Chain"}
+            {evaluating ? "Evaluating\u2026" : "Evaluate Chain"}
           </button>
 
-          <p style={{
-            fontSize: "0.68rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            color: "var(--pa-muted)",
-            marginBottom: "12px",
-            fontFamily: "var(--font-lora), serif",
+          <div style={{
+            fontFamily: "Georgia, serif",
+            fontSize: "0.95rem",
+            color: "#3d2200",
+            borderBottom: "1px solid #e8d5b7",
+            paddingBottom: "12px",
+            marginBottom: "16px",
           }}>
-            Listening Context
-          </p>
+            Room Settings
+          </div>
           <ContextForm ctx={ctx} onChange={setCtx} />
 
           {/* Compatibility check summary */}
           {report && (
             <div style={{ marginTop: "16px" }}>
-              {/* Score badge */}
+              {/* Compatibility card */}
               <div style={{
-                background: "var(--pa-accent)",
+                background: "#fef3e2",
+                border: "1.5px solid #fcd34d",
                 borderRadius: "8px",
-                padding: "16px",
-                textAlign: "center",
+                padding: "12px",
                 marginBottom: "12px",
               }}>
-                <div style={{
-                  fontSize: "2.5rem",
-                  fontWeight: 700,
-                  color: "#fff",
-                  fontFamily: "var(--font-playfair), Georgia, serif",
-                  lineHeight: 1,
-                }}>
-                  {computeScore(report)}
-                </div>
                 <div style={{
                   fontSize: "0.65rem",
-                  color: "rgba(255,255,255,0.8)",
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  marginTop: "4px",
-                  fontFamily: "var(--font-lora), serif",
-                }}>
-                  out of 100 — {scoreLabel(computeScore(report))}
-                </div>
-              </div>
-
-              {/* Key checks */}
-              <div style={{
-                border: "1px solid var(--pa-border)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                marginBottom: "12px",
-              }}>
-                <div style={{
-                  padding: "8px 12px",
-                  background: "var(--pa-surface)",
-                  borderBottom: "1px solid var(--pa-border)",
-                  fontSize: "0.68rem",
+                  color: "#92400e",
+                  marginBottom: "10px",
                   fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--pa-muted)",
-                  fontFamily: "var(--font-lora), serif",
+                  fontFamily: "var(--pa-font-ui)",
                 }}>
                   Compatibility Check
                 </div>
@@ -741,48 +711,72 @@ export default function ChainBuilder({
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    padding: "7px 12px",
-                    borderBottom: idx < getTopChecks(report).length - 1 ? "1px solid var(--pa-border)" : "none",
-                    fontSize: "0.78rem",
-                    fontFamily: "var(--font-lora), serif",
+                    padding: "5px 0",
+                    borderBottom: idx < getTopChecks(report).length - 1 ? "1px solid rgba(252,211,77,0.3)" : "none",
+                    fontSize: "0.72rem",
+                    fontFamily: "var(--pa-font-ui)",
                   }}>
-                    <span style={{ color: "var(--pa-text)" }}>{chk.label}</span>
+                    <span style={{ color: "#7c5a3a" }}>{chk.label}</span>
                     <span style={{
                       fontWeight: 600,
-                      color: chk.verdict === "pass" ? "#4a7a3a" : chk.verdict === "fail" ? "#c0392b" : "#9b5010",
+                      color: chk.verdict === "pass" ? "#16a34a" : chk.verdict === "fail" ? "#c0392b" : "#d97706",
                     }}>
-                      {chk.valueStr} {chk.verdict === "pass" ? "✓" : chk.verdict === "fail" ? "✕" : "⚡"}
+                      {chk.valueStr} {chk.verdict === "pass" ? "\u2713" : chk.verdict === "fail" ? "\u2715" : "\u26A1"}
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* Score badge */}
+              <div style={{
+                background: "linear-gradient(135deg, #d97706, #b45309)",
+                borderRadius: "8px",
+                padding: "12px",
+                textAlign: "center",
+                color: "#fff",
+                marginBottom: "12px",
+              }}>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: "2.2rem", lineHeight: 1 }}>
+                  {computeScore(report)}
+                </div>
+                <div style={{
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  opacity: 0.85,
+                  marginTop: "4px",
+                  fontFamily: "var(--pa-font-ui)",
+                }}>
+                  out of 100 — {scoreLabel(computeScore(report))}
+                </div>
               </div>
 
               {/* Save + Share buttons */}
               <div style={{ display: "flex", gap: "8px" }}>
                 <button style={{
                   flex: 1,
-                  background: "var(--pa-accent)",
+                  background: "#d97706",
                   color: "#fff",
                   border: "none",
-                  borderRadius: "4px",
+                  borderRadius: "7px",
                   padding: "9px",
-                  fontSize: "0.82rem",
+                  fontSize: "0.8rem",
                   fontWeight: 600,
                   cursor: "pointer",
-                  fontFamily: "var(--font-lora), serif",
+                  fontFamily: "var(--pa-font-ui)",
                 }}>
                   Save
                 </button>
                 <button style={{
                   flex: 1,
-                  background: "transparent",
-                  color: "var(--pa-text)",
-                  border: "1px solid var(--pa-border)",
-                  borderRadius: "4px",
+                  background: "#fff8f0",
+                  color: "#92400e",
+                  border: "1.5px solid #e8d5b7",
+                  borderRadius: "7px",
                   padding: "9px",
-                  fontSize: "0.82rem",
+                  fontSize: "0.8rem",
                   cursor: "pointer",
-                  fontFamily: "var(--font-lora), serif",
+                  fontFamily: "var(--pa-font-ui)",
                 }}>
                   Share
                 </button>
@@ -822,7 +816,7 @@ export default function ChainBuilder({
                 letterSpacing: "0.1em",
                 color: "var(--pa-muted)",
                 marginBottom: "16px",
-                fontFamily: "var(--font-playfair), Georgia, serif",
+                fontFamily: "var(--pa-font-ui)",
               }}>
                 Results
               </p>

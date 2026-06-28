@@ -51,8 +51,8 @@ function resolveLink(
   to: Component,
 ): { domain: SignalDomain; out: Port; in: Port } | undefined {
   for (const domain of DOMAIN_PRIORITY) {
-    const out = from.outputs.find((p) => p.domain === domain);
-    const inp = to.inputs.find((p) => p.domain === domain);
+    const out = (from.outputs ?? []).find((p) => p.domain === domain);
+    const inp = (to.inputs ?? []).find((p) => p.domain === domain);
     if (out && inp) return { domain, out, in: inp };
   }
   return undefined;

@@ -27,7 +27,7 @@ export default async function BuilderPage({
         <p style={{
           fontSize: "0.85rem",
           color: "rgba(253,246,236,0.5)",
-          fontFamily: "var(--font-lora), serif",
+          fontFamily: "var(--pa-font-ui)",
         }}>
           Add components, set listening context, then evaluate your signal chain.
         </p>

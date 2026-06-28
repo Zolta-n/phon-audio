@@ -17,6 +17,9 @@ export function speakerPowerHeadroom(
   amp: SpeakerOut,
   context: ListeningContext,
 ): CheckResult {
+  if (!speaker?.sensitivityDb_2_83V_1m || !speaker?.nominalImpedanceOhm || !amp?.powerW) {
+    return { id: "speaker_power_headroom", label: "Power / headroom", verdict: "info", explanation: "Incomplete specs — cannot calculate power headroom." };
+  }
   const distanceM = context.distanceM ?? 1;
   const roomGainDb = context.roomGainDb ?? 0;
   const peakSpl = context.targetSplDb + context.crestFactorDb;
@@ -51,6 +54,9 @@ export function speakerPowerHeadroom(
 
 /** Amp must be stable into the speaker's minimum impedance dip. */
 export function speakerImpedanceStability(speaker: SpeakerLoad, amp: SpeakerOut): CheckResult {
+  if (!speaker?.minImpedanceOhm || !amp?.ratedMinImpedanceOhm) {
+    return { id: "impedance_stability", label: "Impedance stability", verdict: "info", explanation: "Impedance data not available." };
+  }
   const ok = speaker.minImpedanceOhm >= amp.ratedMinImpedanceOhm;
   return {
     id: "impedance_stability",
@@ -74,6 +80,9 @@ export function dampingFactor(
   amp: SpeakerOut,
   cable?: SpeakerCable,
 ): CheckResult {
+  if (!speaker?.nominalImpedanceOhm || !amp?.outputImpedanceOhm) {
+    return { id: "damping_factor", label: "Damping factor", verdict: "info", explanation: "Impedance data not available." };
+  }
   const cableR = cable ? speakerCableResistanceOhm(cable.awg, cable.lengthM) : 0;
   const df = speaker.nominalImpedanceOhm / (amp.outputImpedanceOhm + cableR);
   const verdict = df >= 20 ? "pass" : df >= 8 ? "info" : "warn";
@@ -95,6 +104,9 @@ export function dampingFactor(
 
 /** Compare amp clean power to speaker power handling. */
 export function powerHandling(speaker: SpeakerLoad, amp: SpeakerOut): CheckResult {
+  if (!amp?.powerW || !speaker?.powerHandlingW || !speaker?.nominalImpedanceOhm) {
+    return { id: "power_handling", label: "Power handling", verdict: "info", explanation: "Power specs not available." };
+  }
   const ampPowerW = ampPowerAtImpedance(amp.powerW, speaker.nominalImpedanceOhm);
   const ratio = ampPowerW / speaker.powerHandlingW;
   let verdict: CheckResult["verdict"] = "pass";

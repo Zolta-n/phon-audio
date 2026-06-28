@@ -12,59 +12,27 @@ export default function RoomCanvas({ distanceM, hasSpeakers, hasHeadphones }: Ro
     return (
       <div style={{ textAlign: "center", padding: "24px 0" }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>🎧</div>
-        <p style={{ fontSize: "0.7rem", color: "var(--pa-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "var(--font-lora), serif" }}>
+        <p style={{ fontSize: "0.7rem", color: "var(--pa-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "var(--pa-font-ui)" }}>
           Headphone chain
         </p>
       </div>
     );
   }
 
-  // Viewbox coords
-  const VW = 440;
-  const VH = 300;
-  const cx = VW / 2;
+  const VW = 680;
+  const VH = 230;
 
-  // Trapezoid: narrow top (front wall w/ speakers), wide bottom (back wall)
-  // Listener sits at centre, depth driven by distanceM
-  const frontW = 160;
-  const backW  = 380;
-  const frontY = 55;
-  const backY  = 260;
+  // Listener position (fraction of floor depth)
+  const frac = Math.min(distanceM / 6, 0.9);
+  // Floor spans Y 100..210, listener moves between them
+  const floorTop = 100;
+  const floorBot = 210;
+  const listenY = floorTop + (floorBot - floorTop) * frac;
 
-  const flx = cx - frontW / 2;   // front-left x
-  const frx = cx + frontW / 2;   // front-right x
-  const blx = cx - backW  / 2;   // back-left x
-  const brx = cx + backW  / 2;   // back-right x
-
-  // Listener position — fraction from front to back capped
-  const frac = Math.min(distanceM / 8, 0.88);
-  const listenY = frontY + (backY - frontY) * frac;
-  // Interpolate x-center stay at cx
-  const listenX = cx;
-
-  // Speaker positions — inside the room, against the front wall
-  const spkOffset = 28;           // how far inset from the corner
-  const spkLx = flx + spkOffset;
-  const spkRx = frx - spkOffset;
-  const spkY  = frontY + 2;      // just below the front wall line
-
-  // Speaker SVG sub-render
-  const Speaker = ({ sx, sy, label }: { sx: number; sy: number; label: string }) => (
-    <g>
-      {/* Cabinet */}
-      <rect x={sx - 10} y={sy} width={20} height={34} rx={3} fill="#1a0f00" />
-      {/* Woofer cone + surround */}
-      <circle cx={sx} cy={sy + 12} r={8} fill="#2a1a08" stroke="#c96f12" strokeWidth={2} />
-      <circle cx={sx} cy={sy + 12} r={4}  fill="#c96f12" />
-      <circle cx={sx} cy={sy + 12} r={1.5} fill="#fdf6ec" />
-      {/* Tweeter */}
-      <circle cx={sx} cy={sy + 26} r={4}  fill="#2a1a08" stroke="#7a5c3a" strokeWidth={1} />
-      <circle cx={sx} cy={sy + 26} r={1.5} fill="#7a5c3a" />
-      {/* L/R label */}
-      <text x={sx} y={sy + 46} textAnchor="middle" fontSize="10" fontWeight="600"
-        fill="#7a5c3a" fontFamily="var(--font-lora), serif">{label}</text>
-    </g>
-  );
+  // Speaker left/right X positions (near back wall)
+  const spkLx = 90;
+  const spkRx = 590;
+  const chairX = 340;
 
   return (
     <div>
@@ -73,69 +41,69 @@ export default function RoomCanvas({ distanceM, hasSpeakers, hasHeadphones }: Ro
         letterSpacing: "0.14em",
         textTransform: "uppercase",
         color: "var(--pa-accent)",
-        fontFamily: "var(--font-lora), serif",
+        fontFamily: "var(--pa-font-ui)",
         marginBottom: "8px",
-        fontWeight: 600,
+        fontWeight: 700,
       }}>
         Room acoustics — isometric view
       </p>
-      <svg
-        width="100%"
-        viewBox={`0 0 ${VW} ${VH}`}
-        style={{ display: "block" }}
-      >
-        {/* Room floor */}
-        <polygon
-          points={`${flx},${frontY} ${frx},${frontY} ${brx},${backY} ${blx},${backY}`}
-          fill="#f5efe4"
-          stroke="#c4a882"
-          strokeWidth={1.5}
-        />
+      <svg width="100%" viewBox={`0 0 ${VW} ${VH}`} style={{ display: "block" }}>
+        <defs>
+          <linearGradient id="floorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fde8c0" stopOpacity={0.6} />
+            <stop offset="100%" stopColor="#fcd34d" stopOpacity={0.2} />
+          </linearGradient>
+          <filter id="spkrShadow">
+            <feDropShadow dx="2" dy="3" stdDeviation="3" floodColor="#d97706" floodOpacity={0.2} />
+          </filter>
+        </defs>
 
-        {/* Side walls (lines along edges) */}
-        <line x1={flx} y1={frontY} x2={blx} y2={backY} stroke="#c4a882" strokeWidth={1} />
-        <line x1={frx} y1={frontY} x2={brx} y2={backY} stroke="#c4a882" strokeWidth={1} />
-
-        {/* Front wall */}
-        <line x1={flx} y1={frontY} x2={frx} y2={frontY} stroke="#2d1a0a" strokeWidth={3} />
-
+        {/* Floor */}
+        <polygon points="100,210 580,210 640,100 40,100" fill="url(#floorGrad)" stroke="#e8d5b7" strokeWidth={1.5} />
         {/* Back wall */}
-        <line x1={blx} y1={backY} x2={brx} y2={backY} stroke="#c4a882" strokeWidth={1} />
+        <polygon points="40,100 640,100 640,30 40,30" fill="rgba(254,243,226,0.5)" stroke="#e8d5b7" strokeWidth={1.5} />
+        {/* Ceiling line */}
+        <line x1="40" y1="30" x2="640" y2="30" stroke="#d4b896" strokeWidth={1} />
 
-        {/* Subtle floor grid */}
-        {[0.25, 0.5, 0.75].map((t, i) => {
-          const lx = flx + (blx - flx) * t;
-          const rx = frx + (brx - frx) * t;
-          const fy = frontY + (backY - frontY) * t;
-          return <line key={i} x1={lx} y1={fy} x2={rx} y2={fy} stroke="#ddd0b8" strokeWidth={0.5} strokeDasharray="3,4" />;
-        })}
+        {/* Left Speaker */}
+        <rect x={spkLx - 20} y="50" width="40" height="70" rx={6} fill="#3d2200" stroke="#d97706" strokeWidth={2} filter="url(#spkrShadow)" />
+        <ellipse cx={spkLx} cy="75" rx="13" ry="13" fill="#2d1a0a" stroke="#d97706" strokeWidth={1.5} />
+        <ellipse cx={spkLx} cy="75" rx="6" ry="6" fill="#92400e" />
+        <ellipse cx={spkLx} cy="100" rx="7" ry="7" fill="#2d1a0a" stroke="#a87940" strokeWidth={1} />
+        <text x={spkLx} y="130" textAnchor="middle" fill="#d97706" fontSize="8" fontFamily="monospace">L</text>
 
-        {/* Speakers */}
-        <Speaker sx={spkLx} sy={spkY} label="L" />
-        <Speaker sx={spkRx} sy={spkY} label="R" />
+        {/* Right Speaker */}
+        <rect x={spkRx - 20} y="50" width="40" height="70" rx={6} fill="#3d2200" stroke="#d97706" strokeWidth={2} filter="url(#spkrShadow)" />
+        <ellipse cx={spkRx} cy="75" rx="13" ry="13" fill="#2d1a0a" stroke="#d97706" strokeWidth={1.5} />
+        <ellipse cx={spkRx} cy="75" rx="6" ry="6" fill="#92400e" />
+        <ellipse cx={spkRx} cy="100" rx="7" ry="7" fill="#2d1a0a" stroke="#a87940" strokeWidth={1} />
+        <text x={spkRx} y="130" textAnchor="middle" fill="#d97706" fontSize="8" fontFamily="monospace">R</text>
 
-        {/* Dashed lines: speakers to listener */}
-        <line x1={spkLx} y1={spkY + 20} x2={listenX - 5} y2={listenY - 14}
-          stroke="#c96f12" strokeWidth={1.2} strokeDasharray="5,4" opacity={0.5} />
-        <line x1={spkRx} y1={spkY + 20} x2={listenX + 5} y2={listenY - 14}
-          stroke="#c96f12" strokeWidth={1.2} strokeDasharray="5,4" opacity={0.5} />
-
-        {/* Listener silhouette */}
-        {/* Body */}
-        <ellipse cx={listenX} cy={listenY + 8} rx={9} ry={12} fill="#5c3a20" opacity={0.8} />
+        {/* Listening chair */}
+        {/* Chair back */}
+        <rect x={chairX - 20} y={listenY - 5} width="40" height="42" rx={8} fill="#5c3a1e" stroke="#a87940" strokeWidth={1.5} />
+        {/* Chair seat */}
+        <ellipse cx={chairX} cy={listenY + 40} rx="22" ry="10" fill="#5c3a1e" stroke="#a87940" strokeWidth={1.5} />
         {/* Head */}
-        <circle cx={listenX} cy={listenY - 10} r={9} fill="#5c3a20" opacity={0.8} />
-        {/* Ears */}
-        <circle cx={listenX - 9} cy={listenY - 10} r={2.5} fill="#4a2e14" opacity={0.7} />
-        <circle cx={listenX + 9} cy={listenY - 10} r={2.5} fill="#4a2e14" opacity={0.7} />
+        <circle cx={chairX} cy={listenY - 18} r="16" fill="#3d2200" stroke="#a87940" strokeWidth={1.5} />
+        {/* Ear position (dashed circle) */}
+        <circle cx={chairX} cy={listenY - 18} r="8" fill="none" stroke="#d97706" strokeWidth={1.5} strokeDasharray="3,2" />
 
-        {/* Distance label */}
-        <line x1={cx + 18} y1={spkY + 14} x2={cx + 18} y2={listenY}
-          stroke="#c96f12" strokeWidth={1} strokeDasharray="2,2" opacity={0.45} />
-        <text x={cx + 24} y={(spkY + 14 + listenY) / 2 + 4} fontSize="10" fontWeight="600"
-          fill="#c96f12" fontFamily="var(--font-lora), serif" opacity={0.9}>
-          {distanceM} m
-        </text>
+        {/* Sound arcs L (double) */}
+        <path d={`M ${spkLx + 20},70 Q ${(spkLx + chairX) / 2},80 ${chairX - 10},${listenY - 18}`} stroke="#d97706" strokeWidth={1} fill="none" strokeDasharray="6,4" opacity={0.4} />
+        <path d={`M ${spkLx + 20},70 Q ${(spkLx + chairX) / 2 - 20},100 ${chairX - 12},${listenY - 12}`} stroke="#d97706" strokeWidth={0.75} fill="none" strokeDasharray="6,4" opacity={0.25} />
+        {/* Sound arcs R (double) */}
+        <path d={`M ${spkRx - 20},70 Q ${(spkRx + chairX) / 2},80 ${chairX + 10},${listenY - 18}`} stroke="#d97706" strokeWidth={1} fill="none" strokeDasharray="6,4" opacity={0.4} />
+        <path d={`M ${spkRx - 20},70 Q ${(spkRx + chairX) / 2 + 20},100 ${chairX + 12},${listenY - 12}`} stroke="#d97706" strokeWidth={0.75} fill="none" strokeDasharray="6,4" opacity={0.25} />
+
+        {/* Dimension lines */}
+        <line x1={spkLx} y1="215" x2={chairX - 10} y2="215" stroke="#d4b896" strokeWidth={0.75} />
+        <line x1={spkLx} y1="210" x2={spkLx} y2="220" stroke="#d4b896" strokeWidth={0.75} />
+        <line x1={chairX} y1="210" x2={chairX} y2="220" stroke="#d4b896" strokeWidth={0.75} />
+        <text x={(spkLx + chairX) / 2} y="225" textAnchor="middle" fill="#a87940" fontSize="8" fontFamily="monospace">{distanceM} m</text>
+
+        {/* Top label */}
+        <text x="340" y="22" textAnchor="middle" fill="#a87940" fontSize="8" fontFamily="monospace" letterSpacing="1">ROOM — TOP/ISOMETRIC VIEW</text>
       </svg>
     </div>
   );

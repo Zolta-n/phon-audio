@@ -12,6 +12,9 @@ export function headphoneDrive(
   amp: HeadphoneOut,
   context: ListeningContext,
 ): CheckResult {
+  if (!hp?.sensitivity || !hp?.nominalImpedanceOhm || !amp?.maxVrms || !amp?.maxCurrentMa) {
+    return { id: "headphone_drive", label: "Drive capability", verdict: "info", explanation: "Incomplete specs — cannot calculate drive requirements." };
+  }
   const peakSpl = context.targetSplDb + context.crestFactorDb;
   const sensDbMw = toDbPerMw(hp.sensitivity, hp.nominalImpedanceOhm);
 
@@ -45,6 +48,9 @@ export function headphoneDrive(
  * impedance curve and shifts frequency response (worst on multi-driver/low-Z).
  */
 export function headphoneOutputImpedance(hp: HeadphoneLoad, amp: HeadphoneOut): CheckResult {
+  if (!hp?.nominalImpedanceOhm || !amp?.outputImpedanceOhm) {
+    return { id: "headphone_output_impedance", label: "Output-impedance ratio", verdict: "info", explanation: "Impedance data not available." };
+  }
   const ratio = hp.nominalImpedanceOhm / amp.outputImpedanceOhm;
   const verdict = ratio >= 8 ? "pass" : ratio >= 4 ? "warn" : "fail";
   return {

@@ -3,7 +3,7 @@ import type { Chain, Component } from "../types";
 
 /** Pull a numeric gainDb off whatever output port a component exposes. */
 function componentGainDb(component: Component): number {
-  for (const port of component.outputs) {
+  for (const port of component.outputs ?? []) {
     const s = port.specs as { gainDb?: number };
     if (typeof s.gainDb === "number") return s.gainDb;
   }

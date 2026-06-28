@@ -6,7 +6,10 @@ import type { InterconnectCable } from "../../types";
  * ~10× the upstream output impedance, or the source can't develop full voltage
  * into the load (bass rolloff / frequency-response shift).
  */
-export function impedanceBridging(outputZ: number, inputZ: number): CheckResult {
+export function impedanceBridging(outputZ: number | null | undefined, inputZ: number | null | undefined): CheckResult {
+  if (!outputZ || !inputZ) {
+    return { id: "impedance_bridging", label: "Impedance bridging", verdict: "info", explanation: "Impedance data not available for this link." };
+  }
   const ratio = inputZ / outputZ;
   const verdict = ratio >= 10 ? "pass" : ratio >= 5 ? "warn" : "fail";
   return {
@@ -29,13 +32,13 @@ export function impedanceBridging(outputZ: number, inputZ: number): CheckResult 
  * High-frequency rolloff from interconnect capacitance working against the
  * source's output impedance: f = 1 / (2π · Zout · C_total).
  */
-export function hfRolloff(outputZ: number, cable?: InterconnectCable): CheckResult {
-  if (!cable) {
+export function hfRolloff(outputZ: number | null | undefined, cable?: InterconnectCable): CheckResult {
+  if (!cable || !outputZ) {
     return {
       id: "hf_rolloff",
       label: "Cable HF rolloff",
       verdict: "info",
-      explanation: "No analog interconnect on this link — nothing to evaluate.",
+      explanation: !cable ? "No analog interconnect on this link — nothing to evaluate." : "Output impedance data not available.",
     };
   }
   const cTotalFarads = cable.capacitancePfPerM * cable.lengthM * 1e-12;
@@ -63,15 +66,18 @@ export function hfRolloff(outputZ: number, cable?: InterconnectCable): CheckResu
  * the downstream device needs for full output, without overloading its input?
  */
 export function gainStaging(
-  maxOutputVrms: number,
-  inputSensitivityVrms: number,
-  maxInputVrms?: number,
+  maxOutputVrms: number | null | undefined,
+  inputSensitivityVrms: number | null | undefined,
+  maxInputVrms?: number | null,
 ): CheckResult {
+  if (!maxOutputVrms || !inputSensitivityVrms) {
+    return { id: "gain_staging", label: "Gain staging", verdict: "info", explanation: "Gain data not available for this link." };
+  }
   const headroomDb = 20 * Math.log10(maxOutputVrms / inputSensitivityVrms);
   let verdict: CheckResult["verdict"] = "pass";
   let explanation = `Source can deliver ${headroomDb.toFixed(1)} dB over what the next stage needs for full output — good gain structure.`;
 
-  if (maxInputVrms !== undefined && maxOutputVrms > maxInputVrms) {
+  if (maxInputVrms != null && maxOutputVrms > maxInputVrms) {
     verdict = "warn";
     explanation = `Source max output (${maxOutputVrms} V) exceeds the downstream overload point (${maxInputVrms} V) — risk of input clipping at high settings.`;
   } else if (headroomDb < 0) {

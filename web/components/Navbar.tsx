@@ -30,16 +30,16 @@ export default function Navbar() {
           Phon<span style={{ color: "var(--pa-accent)" }}>.</span>Audio
         </Link>
         <nav style={{ display: "flex", gap: "36px", alignItems: "center" }}>
-          <Link href="/builder" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--font-lora), serif" }}>
+          <Link href="/builder" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Compatibility
           </Link>
-          <Link href="/" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--font-lora), serif" }}>
+          <Link href="/" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Components
           </Link>
-          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--font-lora), serif" }}>
+          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Learn
           </Link>
-          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--font-lora), serif" }}>
+          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Community
           </Link>
           <Link href="/builder" style={{
@@ -50,7 +50,7 @@ export default function Navbar() {
             textDecoration: "none",
             fontSize: "0.875rem",
             fontWeight: 500,
-            fontFamily: "var(--font-lora), serif",
+            fontFamily: "var(--pa-font-ui)",
             letterSpacing: "0.04em",
           }}>
             Build Your Chain
