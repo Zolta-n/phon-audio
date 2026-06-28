@@ -1,6 +1,7 @@
 "use client";
 
 import type { SystemReport, LinkReport, CheckResult, Verdict } from "@/types";
+import ParameterExplainer from "@/components/ParameterExplainer";
 
 const VERDICT_ICON: Record<Verdict, string>  = { pass: "✅", info: "ℹ️",  warn: "⚠️",  fail: "❌" };
 const VERDICT_BG:   Record<Verdict, string>  = {
@@ -22,6 +23,7 @@ function CheckRow({ result }: { result: CheckResult }) {
             ({result.value.toFixed(1)} {result.unit ?? ""} vs {result.threshold.toFixed(1)})
           </span>
         )}
+        <ParameterExplainer id={result.id} />
       </div>
     </div>
   );

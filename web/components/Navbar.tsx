@@ -36,7 +36,7 @@ export default function Navbar() {
           <Link href="/" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Components
           </Link>
-          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
+          <Link href="/learn" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
             Learn
           </Link>
           <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
