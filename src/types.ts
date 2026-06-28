@@ -29,6 +29,8 @@ export type ComponentCategory =
   | "dac"
   | "preamp"
   | "power_amp"
+  | "tube_amp_se"
+  | "tube_amp_pp"
   | "integrated"
   | "headphone_amp"
   | "speaker"

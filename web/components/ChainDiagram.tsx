@@ -4,7 +4,8 @@ import { CATEGORY_BADGE, CABLE_BY_ID } from "@/types";
 
 const CAT_COLOR: Record<string, string> = {
   source: "#7a5c3a", dac: "#d97706", preamp: "#b45309",
-  power_amp: "#7a3a08", integrated: "#8b4f20", headphone_amp: "#b45309",
+  power_amp: "#7a3a08", tube_amp_se: "#8b3a5c", tube_amp_pp: "#6b3a6b",
+  integrated: "#8b4f20", headphone_amp: "#b45309",
   speaker: "#16a34a", headphone: "#16a34a",
 };
 

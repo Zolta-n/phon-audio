@@ -9,7 +9,7 @@ Return a single JSON object matching this TypeScript interface (no prose, no mar
 {
   "id": "kebab-case-slug",
   "name": "Full Product Name",
-  "category": "dac" | "headphone_amp" | "preamp" | "power_amp" | "integrated" | "turntable" | "source" | "headphone" | "speaker",
+  "category": "dac" | "headphone_amp" | "preamp" | "power_amp" | "tube_amp_se" | "tube_amp_pp" | "integrated" | "turntable" | "source" | "headphone" | "speaker",
   "manufacturer": "Brand Name",
   "inputs": [
     {
@@ -367,6 +367,25 @@ ${pageTexts.join("\n\n")}`;
   }
 }
 
+/** Extract a human-readable product name from a URL slug */
+function productNameFromUrl(url: string): string {
+  try {
+    const segments = new URL(url).pathname.split("/").filter(s => s.length > 0);
+    // Walk backwards to find a meaningful slug (skip generic path words)
+    const generic = /^(products?|produkte?|shop|item|model|catalog|en|de|fr|es|it|ja|collection)s?$/i;
+    for (let i = segments.length - 1; i >= 0; i--) {
+      if (!generic.test(segments[i]) && segments[i].length > 2) {
+        return segments[i]
+          .replace(/[-_]/g, " ")
+          .replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
+    return segments[segments.length - 1] ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /** Guess manufacturer name from URL hostname */
 function manufacturerFromUrl(url: string): string {
   try {
@@ -391,34 +410,8 @@ function normalizedToComponent(raw: Record<string, any>): UIComponent {
   };
 }
 
-/** Scrape a single product URL and normalize via Claude API */
-export async function scrapeUrl(url: string): Promise<UIComponent> {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; PhonAudioBot/1.0; +https://phon-audio.com/bot)",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-  }
-  const html = await res.text();
-  const { title, specsText, fullText } = extractSpecs(html);
-
-  if (!specsText && !fullText) {
-    throw new Error("Could not extract any text from the page. The site may require JavaScript rendering.");
-  }
-
-  const manufacturer = manufacturerFromUrl(url);
-  const inputText = [
-    `Manufacturer: ${manufacturer}`,
-    `Product title: ${title}`,
-    `URL: ${url}`,
-    specsText ? `\nSpec section:\n${specsText}` : "",
-    `\nFull page text:\n${fullText}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
+/** Call Claude with text context and return a UIComponent */
+async function extractComponentWithClaude(inputText: string): Promise<UIComponent> {
   const client = new Anthropic();
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -445,4 +438,113 @@ export async function scrapeUrl(url: string): Promise<UIComponent> {
   }
 
   return normalizedToComponent(result);
+}
+
+/** Fallback: search the web for specs when the product page is unreachable */
+async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
+  const manufacturer = manufacturerFromUrl(url);
+  const product = productNameFromUrl(url);
+  const query = `${manufacturer} ${product}`.trim();
+
+  if (!query || query.length < 3) {
+    throw new Error("Could not determine product name from the URL.");
+  }
+
+  // Run targeted searches in parallel
+  const searches = [
+    `site:audiosciencereview.com "${query}"`,
+    `"${query}" specifications review measurements`,
+    `"${query}" specs impedance gain power output`,
+    `${query} review stereophile OR soundnews OR headfi OR audioholics`,
+  ];
+
+  const searchResults = await Promise.all(searches.map(q => webSearch(q)));
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const results of searchResults) {
+    for (const u of results) {
+      if (!seen.has(u)) { seen.add(u); urls.push(u); }
+    }
+  }
+
+  if (urls.length === 0) {
+    throw new Error(
+      `Could not reach ${new URL(url).hostname} and no alternative sources found for "${query}". Try Manual Entry instead.`
+    );
+  }
+
+  // Fetch up to 8 pages in parallel
+  const fetched = await Promise.all(urls.slice(0, 8).map(async (u) => {
+    const text = await fetchPageText(u);
+    return { url: u, text };
+  }));
+  const sources = fetched.filter(s => s.text.length > 200);
+
+  if (sources.length === 0) {
+    throw new Error(
+      `Could not reach ${new URL(url).hostname} and alternative sources were not accessible. Try Manual Entry instead.`
+    );
+  }
+
+  const inputText = [
+    `Manufacturer: ${manufacturer}`,
+    `Product: ${product}`,
+    `Original URL: ${url}`,
+    `\nData gathered from web reviews and spec pages:\n`,
+    ...sources.map(s => `--- Source: ${s.url} ---\n${s.text}`),
+  ].join("\n\n");
+
+  const component = await extractComponentWithClaude(inputText);
+
+  const sourceList = sources.slice(0, 3).map(s => s.url).join(", ");
+  component.note = [
+    component.note,
+    `Specs extracted from web sources (original site unreachable): ${sourceList}`,
+  ].filter(Boolean).join(" ");
+
+  return component;
+}
+
+/** Scrape a single product URL and normalize via Claude API */
+export async function scrapeUrl(url: string): Promise<UIComponent> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      signal: controller.signal,
+    });
+  } catch {
+    clearTimeout(timeout);
+    // Primary fetch failed — fall back to web search
+    return await scrapeViaWebSearch(url);
+  }
+  clearTimeout(timeout);
+  if (!res.ok) {
+    // Server returned an error — fall back to web search
+    return await scrapeViaWebSearch(url);
+  }
+  const html = await res.text();
+  const { title, specsText, fullText } = extractSpecs(html);
+
+  if (!specsText && !fullText) {
+    // Page loaded but had no extractable content (JS-rendered) — fall back
+    return await scrapeViaWebSearch(url);
+  }
+
+  const manufacturer = manufacturerFromUrl(url);
+  const inputText = [
+    `Manufacturer: ${manufacturer}`,
+    `Product title: ${title}`,
+    `URL: ${url}`,
+    specsText ? `\nSpec section:\n${specsText}` : "",
+    `\nFull page text:\n${fullText}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return await extractComponentWithClaude(inputText);
 }

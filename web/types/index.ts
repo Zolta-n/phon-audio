@@ -3,7 +3,8 @@
 
 export type SignalDomain = "digital" | "line" | "phono" | "speaker" | "headphone";
 export type ComponentCategory =
-  | "source" | "turntable" | "dac" | "preamp" | "power_amp" | "integrated"
+  | "source" | "turntable" | "dac" | "preamp" | "power_amp"
+  | "tube_amp_se" | "tube_amp_pp" | "integrated"
   | "headphone_amp" | "speaker" | "headphone";
 
 export interface PortSpec {
@@ -90,6 +91,8 @@ export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
   dac:          "DACs",
   preamp:       "Preamps",
   power_amp:    "Power Amps",
+  tube_amp_se:  "Tube Amps (SE)",
+  tube_amp_pp:  "Tube Amps (PP)",
   integrated:   "Integrated Amps",
   headphone_amp:"Headphone Amps",
   speaker:      "Speakers",
@@ -102,6 +105,8 @@ export const CATEGORY_BADGE: Record<ComponentCategory, string> = {
   dac:          "DAC",
   preamp:       "PRE",
   power_amp:    "AMP",
+  tube_amp_se:  "T-SE",
+  tube_amp_pp:  "T-PP",
   integrated:   "INT",
   headphone_amp:"HP-AMP",
   speaker:      "SPK",
@@ -109,7 +114,8 @@ export const CATEGORY_BADGE: Record<ComponentCategory, string> = {
 };
 
 export const CATEGORY_ORDER: ComponentCategory[] = [
-  "source", "turntable", "dac", "preamp", "power_amp", "integrated",
+  "source", "turntable", "dac", "preamp", "power_amp",
+  "tube_amp_se", "tube_amp_pp", "integrated",
   "headphone_amp", "speaker", "headphone",
 ];
 
@@ -121,11 +127,17 @@ export const CABLE_SUGGESTION: Partial<Record<string, string>> = {
   "source->integrated":    "coax",
   "dac->preamp":           "xlr-1m",
   "dac->power_amp":        "xlr-1m",
+  "dac->tube_amp_se":      "rca-1m",
+  "dac->tube_amp_pp":      "rca-1m",
   "dac->integrated":       "xlr-1m",
   "dac->headphone_amp":    "xlr-1m",
   "preamp->power_amp":     "xlr-1m",
+  "preamp->tube_amp_se":   "rca-1m",
+  "preamp->tube_amp_pp":   "rca-1m",
   "preamp->integrated":    "xlr-1m",
   "power_amp->speaker":    "speaker-12awg-3m",
+  "tube_amp_se->speaker":  "speaker-12awg-3m",
+  "tube_amp_pp->speaker":  "speaker-12awg-3m",
   "integrated->speaker":   "speaker-12awg-3m",
   "headphone_amp->headphone": "none",
 };

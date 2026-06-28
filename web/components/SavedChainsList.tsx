@@ -19,7 +19,8 @@ interface SavedChain {
 
 const BADGE_COLORS: Record<string, string> = {
   source: "#7a5c3a", turntable: "#6b4423", dac: "#c96f12", preamp: "#9b4f0a",
-  power_amp: "#7a3a08", integrated: "#8b4f20", headphone_amp: "#9b5010",
+  power_amp: "#7a3a08", tube_amp_se: "#8b3a5c", tube_amp_pp: "#6b3a6b",
+  integrated: "#8b4f20", headphone_amp: "#9b5010",
   speaker: "#4a7a3a", headphone: "#3a5c7a",
 };
 
@@ -47,6 +48,15 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
         const date = new Date(chain.created_at).toLocaleDateString("en-US", {
           month: "short", day: "numeric", year: "numeric",
         });
+        const ctx = chain.context as { targetSplDb?: number; crestFactorDb?: number; distanceM?: number; roomGainDb?: number } | null;
+        const roomHints = ctx
+          ? [
+              ctx.targetSplDb != null && `${ctx.targetSplDb} dB SPL`,
+              ctx.crestFactorDb != null && `${ctx.crestFactorDb} dB headroom`,
+              ctx.distanceM != null && `${ctx.distanceM} m`,
+              ctx.roomGainDb != null && `+${ctx.roomGainDb} dB room gain`,
+            ].filter(Boolean).join(" \u00b7 ")
+          : "";
 
         return (
           <div key={chain.id} style={{
@@ -82,6 +92,11 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
                   </span>
                 ))}
               </div>
+              {roomHints && (
+                <div style={{ fontSize: "0.68rem", color: "#78716c", fontFamily: "var(--pa-font-ui)", marginTop: "4px" }}>
+                  {roomHints}
+                </div>
+              )}
               <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontFamily: "var(--pa-font-ui)", marginTop: "6px" }}>
                 {date}
                 {chain.is_public && <span style={{ marginLeft: "8px", color: "#d97706" }}>Public</span>}

@@ -73,7 +73,8 @@ function getTopChecks(report: SystemReport): Array<{ label: string; verdict: "pa
 
 const CAT_COLOR_BADGE: Partial<Record<ComponentCategory, string>> = {
   source: "#7a5c3a", dac: "#c96f12", preamp: "#9b4f0a",
-  power_amp: "#7a3a08", integrated: "#8b4f20", headphone_amp: "#9b5010",
+  power_amp: "#7a3a08", tube_amp_se: "#8b3a5c", tube_amp_pp: "#6b3a6b",
+  integrated: "#8b4f20", headphone_amp: "#9b5010",
   speaker: "#4a7a3a", headphone: "#3a5c7a",
 };
 
