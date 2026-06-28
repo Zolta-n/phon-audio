@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phon.Audio — Option B: Warm Studio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #faf8f5;
+      color: #3d2200;
+      min-width: 1280px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 66px;
+      background: rgba(26,15,0,0.92);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .nav-logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-family: Georgia, serif;
+      color: #faf5ee;
+      letter-spacing: 0.04em;
+    }
+    .nav-logo span { color: #d97706; }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: #a8916d;
+      text-decoration: none;
+      font-size: 0.875rem;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #faf5ee; }
+    .nav-cta {
+      background: #d97706;
+      color: #fff;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 60vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #1a0f00 0%, #3d2200 40%, #5c3a1e 70%, #2d1a0a 100%);
+    }
+    .hero-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(180,100,20,0.35);
+    }
+    /* Warm light rays */
+    .hero-rays {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 20%, rgba(217,119,6,0.18) 0%, transparent 70%);
+    }
+    .hero-content-wrap {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 80px;
+      padding: 80px 80px;
+      max-width: 1280px;
+      width: 100%;
+    }
+    .hero-text { flex: 1; max-width: 520px; }
+    .hero-eyebrow {
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #d97706;
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 3.5rem;
+      font-weight: normal;
+      line-height: 1.15;
+      color: #faf5ee;
+      margin-bottom: 22px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: #fbbf24;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #d4b896;
+      margin-bottom: 40px;
+      max-width: 400px;
+    }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-amber {
+      background: #d97706;
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s;
+    }
+    .btn-amber:hover { background: #b45309; }
+    .btn-outline-cream {
+      background: transparent;
+      color: #faf5ee;
+      border: 1.5px solid rgba(250,245,238,0.5);
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: border-color 0.2s;
+    }
+    .btn-outline-cream:hover { border-color: #faf5ee; }
+
+    /* Hero SVG illustration area */
+    .hero-visual { flex-shrink: 0; width: 360px; }
+
+    /* Trust line */
+    .hero-trust {
+      margin-top: 24px;
+      display: flex;
+      gap: 28px;
+      align-items: center;
+    }
+    .trust-item {
+      text-align: center;
+    }
+    .trust-num {
+      font-family: Georgia, serif;
+      font-size: 1.6rem;
+      color: #fbbf24;
+    }
+    .trust-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a8916d;
+      margin-top: 2px;
+    }
+    .trust-divider {
+      width: 1px;
+      height: 36px;
+      background: rgba(250,245,238,0.15);
+    }
+
+    /* ── BODY / SECTION BREAK ── */
+    .section-eyebrow {
+      text-align: center;
+      padding: 40px 40px 0;
+    }
+    .eyebrow-text {
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #92400e;
+      display: inline-block;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #d97706;
+    }
+
+    /* ── BUILDER ── */
+    .builder {
+      background: #faf8f5;
+      padding: 32px 40px 40px;
+      min-height: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .builder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .builder-title {
+      font-family: Georgia, serif;
+      font-size: 1.1rem;
+      color: #3d2200;
+      font-weight: normal;
+    }
+    .builder-tabs {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid #e8d5b7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .btab {
+      padding: 7px 18px;
+      font-size: 0.78rem;
+      color: #92400e;
+      cursor: pointer;
+      background: #fff8f0;
+      border-right: 1px solid #e8d5b7;
+      letter-spacing: 0.03em;
+    }
+    .btab:last-child { border-right: none; }
+    .btab.active { background: #d97706; color: #fff; }
+
+    .builder-columns {
+      display: grid;
+      grid-template-columns: 220px 1fr 240px;
+      gap: 14px;
+      flex: 1;
+    }
+
+    /* LEFT */
+    .sidebar-left {
+      background: #fff8f0;
+      border-radius: 10px;
+      border: 1.5px solid #e8d5b7;
+      padding: 16px 0;
+      overflow: hidden;
+    }
+    .sidebar-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #92400e;
+      padding: 0 16px 12px;
+      border-bottom: 1px solid #e8d5b7;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 16px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: #5c3a1e;
+      letter-spacing: 0.03em;
+      transition: background 0.15s;
+    }
+    .brand-header:hover { background: #fef3e2; }
+    .brand-header.expanded { color: #92400e; font-weight: 600; }
+    .chevron { color: #d97706; font-size: 0.72rem; }
+    .brand-items { background: #fef9f0; }
+    .brand-item {
+      padding: 7px 16px 7px 28px;
+      font-size: 0.78rem;
+      color: #7c5a3a;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-bottom: 1px solid #f5e8d0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-item:last-child { border-bottom: none; }
+    .brand-item:hover { background: #fde8c0; color: #92400e; }
+    .brand-item.active { color: #92400e; background: #fde8c0; border-left: 3px solid #d97706; padding-left: 25px; }
+    .item-badge {
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #b45309;
+      background: #fef3c7;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid #fcd34d;
+    }
+    .brand-type-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #92400e;
+      padding: 10px 16px 6px;
+      font-weight: 700;
+    }
+
+    /* CENTER */
+    .center-canvas {
+      background: #fff8f0;
+      border-radius: 10px;
+      border: 1.5px solid #e8d5b7;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .canvas-title {
+      font-family: Georgia, serif;
+      font-size: 1rem;
+      color: #3d2200;
+      border-bottom: 1px solid #e8d5b7;
+      padding-bottom: 12px;
+    }
+    .area-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #b45309;
+      margin-bottom: 8px;
+    }
+
+    /* RIGHT */
+    .sidebar-right {
+      background: #fff8f0;
+      border-radius: 10px;
+      border: 1.5px solid #e8d5b7;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .panel-title {
+      font-family: Georgia, serif;
+      font-size: 0.95rem;
+      color: #3d2200;
+      border-bottom: 1px solid #e8d5b7;
+      padding-bottom: 12px;
+    }
+
+    /* Horizontal sliders */
+    .hslider-group { display: flex; flex-direction: column; gap: 20px; }
+    .hslider-item { display: flex; flex-direction: column; gap: 6px; }
+    .hslider-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .hslider-label { font-size: 0.78rem; color: #7c5a3a; }
+    .hslider-val { font-size: 0.75rem; color: #92400e; font-weight: 600; }
+    .hslider-ticks {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 2px;
+      margin-top: 2px;
+    }
+    .tick-label { font-size: 0.55rem; color: #b45309; }
+
+    input[type=range].hslider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #d97706 var(--pct, 50%), #e8d5b7 var(--pct, 50%));
+      cursor: pointer;
+      outline: none;
+    }
+    input[type=range].hslider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #d97706;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(180,83,9,0.4);
+      cursor: pointer;
+    }
+    input[type=range].hslider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #d97706;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(180,83,9,0.4);
+      cursor: pointer;
+    }
+
+    /* Compat card */
+    .compat-card {
+      background: #fef3e2;
+      border: 1.5px solid #fcd34d;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .compat-card-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #92400e;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .compat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(252,211,77,0.3);
+    }
+    .compat-row:last-child { border-bottom: none; }
+    .compat-key { font-size: 0.72rem; color: #7c5a3a; }
+    .compat-val { font-size: 0.72rem; font-weight: 600; }
+    .compat-val.good { color: #16a34a; }
+    .compat-val.warn { color: #d97706; }
+
+    .score-badge {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      color: #fff;
+    }
+    .score-badge-num {
+      font-family: Georgia, serif;
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+    .score-badge-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    /* ── FOOTER ── */
+    .footer-note {
+      background: #3d2200;
+      border-top: 2px solid #d97706;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      font-size: 0.78rem;
+      color: #a8916d;
+      font-family: Georgia, serif;
+    }
+    .footer-note a {
+      color: #fbbf24;
+      text-decoration: none;
+      padding: 3px 10px;
+      border: 1px solid rgba(251,191,36,0.4);
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-family: sans-serif;
+    }
+    .footer-note a:hover { background: rgba(251,191,36,0.15); }
+    .footer-note a.current { background: rgba(251,191,36,0.2); border-color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Phon<span>.</span>Audio</div>
+  <ul class="nav-links">
+    <li><a href="#">Compatibility</a></li>
+    <li><a href="#">Components</a></li>
+    <li><a href="#">Learn</a></li>
+    <li><a href="#">Community</a></li>
+  </ul>
+  <button class="nav-cta">Build Your Chain</button>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-bg-overlay"></div>
+  <div class="hero-rays"></div>
+
+  <div class="hero-content-wrap">
+    <div class="hero-text">
+      <div class="hero-eyebrow">Audiophile Compatibility Engine</div>
+      <h1>Hear more.<br><em>Pair better.</em></h1>
+      <p class="hero-sub">The compatibility engine for serious audio systems. Every connection, every impedance, every watt — verified before you invest.</p>
+      <div class="hero-btns">
+        <button class="btn-amber">Build Your Chain</button>
+        <button class="btn-outline-cream">See how it works</button>
+      </div>
+
+      <div class="hero-trust">
+        <div class="trust-item">
+          <div class="trust-num">12k+</div>
+          <div class="trust-label">Components</div>
+        </div>
+        <div class="trust-divider"></div>
+        <div class="trust-item">
+          <div class="trust-num">340</div>
+          <div class="trust-label">Brands</div>
+        </div>
+        <div class="trust-divider"></div>
+        <div class="trust-item">
+          <div class="trust-num">Free</div>
+          <div class="trust-label">No signup</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero SVG: warm room illustration -->
+    <div class="hero-visual">
+      <svg width="360" height="300" viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="warmGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="warmBlur">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Room glow background -->
+        <ellipse cx="180" cy="160" rx="160" ry="120" fill="url(#warmGlow)"/>
+
+        <!-- Isometric room floor (trapezoid perspective) -->
+        <polygon points="60,230 300,230 340,120 20,120" fill="none" stroke="#a87940" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>
+        <!-- Floor fill -->
+        <polygon points="60,230 300,230 340,120 20,120" fill="rgba(92,58,30,0.3)"/>
+
+        <!-- Back wall line -->
+        <line x1="20" y1="120" x2="340" y2="120" stroke="#a87940" stroke-width="1.5" opacity="0.8"/>
+        <!-- Left wall -->
+        <line x1="20" y1="120" x2="60" y2="230" stroke="#a87940" stroke-width="1" opacity="0.5"/>
+        <!-- Right wall -->
+        <line x1="340" y1="120" x2="300" y2="230" stroke="#a87940" stroke-width="1" opacity="0.5"/>
+
+        <!-- Left speaker (isometric) -->
+        <rect x="38" y="90" width="30" height="50" rx="4" fill="#2d1a0a" stroke="#d97706" stroke-width="1.5"/>
+        <ellipse cx="53" cy="108" rx="9" ry="9" fill="#3d2200" stroke="#d97706" stroke-width="1"/>
+        <ellipse cx="53" cy="108" rx="4" ry="4" fill="#92400e"/>
+        <ellipse cx="53" cy="125" rx="5" ry="5" fill="#3d2200" stroke="#a87940" stroke-width="0.75"/>
+        <!-- Speaker label -->
+        <text x="53" y="148" text-anchor="middle" fill="#a87940" font-size="8" font-family="monospace">L</text>
+
+        <!-- Right speaker (isometric) -->
+        <rect x="292" y="90" width="30" height="50" rx="4" fill="#2d1a0a" stroke="#d97706" stroke-width="1.5"/>
+        <ellipse cx="307" cy="108" rx="9" ry="9" fill="#3d2200" stroke="#d97706" stroke-width="1"/>
+        <ellipse cx="307" cy="108" rx="4" ry="4" fill="#92400e"/>
+        <ellipse cx="307" cy="125" rx="5" ry="5" fill="#3d2200" stroke="#a87940" stroke-width="0.75"/>
+        <text x="307" y="148" text-anchor="middle" fill="#a87940" font-size="8" font-family="monospace">R</text>
+
+        <!-- Listening chair silhouette (perspective view) -->
+        <!-- Chair seat -->
+        <ellipse cx="180" cy="210" rx="28" ry="14" fill="#3d2200" stroke="#a87940" stroke-width="1.5"/>
+        <!-- Chair back -->
+        <rect x="162" y="178" width="36" height="34" rx="8" fill="#3d2200" stroke="#a87940" stroke-width="1.5"/>
+        <!-- Head silhouette -->
+        <circle cx="180" cy="165" r="14" fill="#2d1a0a" stroke="#a87940" stroke-width="1.5"/>
+        <!-- Ear position -->
+        <circle cx="180" cy="165" r="5" fill="none" stroke="#d97706" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Component stack (floating, isometric feel) -->
+        <!-- DAC box -->
+        <rect x="70" y="158" width="52" height="28" rx="4" fill="#1a0f00" stroke="#d97706" stroke-width="1.5"/>
+        <text x="96" y="169" text-anchor="middle" fill="#d97706" font-size="7" font-family="monospace" letter-spacing="0.5">DAC</text>
+        <text x="96" y="180" text-anchor="middle" fill="#a87940" font-size="7" font-family="sans-serif">Modi 5</text>
+
+        <!-- AMP box -->
+        <rect x="70" y="192" width="52" height="28" rx="4" fill="#1a0f00" stroke="#d97706" stroke-width="1.5"/>
+        <text x="96" y="203" text-anchor="middle" fill="#d97706" font-size="7" font-family="monospace" letter-spacing="0.5">AMP</text>
+        <text x="96" y="214" text-anchor="middle" fill="#a87940" font-size="7" font-family="sans-serif">Asgard X</text>
+
+        <!-- Curved connector lines from stack to speakers -->
+        <path d="M 122,162 C 155,130 190,118 270,115" stroke="#d97706" stroke-width="1.5" fill="none" stroke-dasharray="5,4" opacity="0.7" filter="url(#warmBlur)"/>
+        <path d="M 122,162 C 100,130 80,118 68,115" stroke="#d97706" stroke-width="1.5" fill="none" stroke-dasharray="5,4" opacity="0.7" filter="url(#warmBlur)"/>
+
+        <!-- Sound wave arcs from speakers to listener -->
+        <path d="M 68,118 Q 125,140 170,165" stroke="#fbbf24" stroke-width="1" fill="none" opacity="0.3"/>
+        <path d="M 68,118 Q 120,155 168,170" stroke="#fbbf24" stroke-width="0.75" fill="none" opacity="0.2"/>
+        <path d="M 292,118 Q 235,140 190,165" stroke="#fbbf24" stroke-width="1" fill="none" opacity="0.3"/>
+        <path d="M 292,118 Q 240,155 192,170" stroke="#fbbf24" stroke-width="0.75" fill="none" opacity="0.2"/>
+
+        <!-- Headphone icon above chair -->
+        <text x="215" y="148" fill="#a87940" font-size="28" text-anchor="middle" opacity="0.7">&#127911;</text>
+
+        <!-- Labels -->
+        <text x="180" y="20" text-anchor="middle" fill="#d97706" font-size="10" font-family="Georgia, serif" letter-spacing="1">Reference Listening Setup</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- Section intro -->
+<div class="section-eyebrow">
+  <span class="eyebrow-text">Chain Builder</span>
+</div>
+
+<!-- ═══════════════ BUILDER ═══════════════ -->
+<section class="builder">
+  <div class="builder-header">
+    <div class="builder-title">Your Signal Chain</div>
+    <div class="builder-tabs">
+      <div class="btab active">Chain</div>
+      <div class="btab">Room</div>
+      <div class="btab">Results</div>
+      <div class="btab">Export</div>
+    </div>
+  </div>
+
+  <div class="builder-columns">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-left">
+      <div class="sidebar-title">Components</div>
+
+      <div class="brand-type-label">DACs &amp; Sources</div>
+
+      <!-- Schiit - expanded -->
+      <div class="brand-header expanded">
+        <span>Schiit Audio</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="brand-items">
+        <div class="brand-item">Modi 5 <span class="item-badge">DAC</span></div>
+        <div class="brand-item active">Bifrost 2/64 <span class="item-badge">DAC</span></div>
+        <div class="brand-item">Modius <span class="item-badge">DAC</span></div>
+        <div class="brand-item">Yggdrasil <span class="item-badge">DAC</span></div>
+      </div>
+
+      <div class="brand-type-label">Headphone Amps</div>
+
+      <!-- JDS Labs - collapsed -->
+      <div class="brand-header">
+        <span>JDS Labs</span>
+        <span class="chevron">▶</span>
+      </div>
+
+      <!-- Audeze - collapsed -->
+      <div class="brand-header">
+        <span>Audeze</span>
+        <span class="chevron">▶</span>
+      </div>
+
+      <div class="brand-type-label">Headphones</div>
+
+      <!-- Meze - collapsed -->
+      <div class="brand-header">
+        <span>Meze Audio</span>
+        <span class="chevron">▶</span>
+      </div>
+
+      <!-- Focal - collapsed -->
+      <div class="brand-header">
+        <span>Focal</span>
+        <span class="chevron">▶</span>
+      </div>
+    </aside>
+
+    <!-- CENTER CANVAS -->
+    <main class="center-canvas">
+      <div class="canvas-title">Signal Chain</div>
+
+      <div class="area-label">Active signal path</div>
+
+      <!-- SVG Signal Chain - warm/premium style -->
+      <svg width="100%" height="195" viewBox="0 0 680 195" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="boxGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fff8f0"/>
+            <stop offset="100%" stop-color="#fef3e2"/>
+          </linearGradient>
+          <linearGradient id="boxGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fff4e6"/>
+            <stop offset="100%" stop-color="#fde8c0"/>
+          </linearGradient>
+          <filter id="warmShadow">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#d97706" flood-opacity="0.15"/>
+          </filter>
+          <marker id="arrowAmber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#d97706"/>
+          </marker>
+        </defs>
+
+        <!-- Box 1: DAC -->
+        <rect x="20" y="60" width="155" height="72" rx="8" fill="url(#boxGrad1)" stroke="#d97706" stroke-width="1.5" filter="url(#warmShadow)"/>
+        <rect x="20" y="60" width="155" height="24" rx="8" fill="#d97706"/>
+        <rect x="20" y="76" width="155" height="8" rx="0" fill="#d97706"/>
+        <text x="97" y="76" text-anchor="middle" fill="#fff" font-size="9" font-family="sans-serif" letter-spacing="1.5" font-weight="600">DAC</text>
+        <text x="97" y="104" text-anchor="middle" fill="#3d2200" font-size="12" font-family="Georgia, serif">Bifrost 2/64</text>
+        <text x="97" y="120" text-anchor="middle" fill="#92400e" font-size="9" font-family="monospace">AK4499EX · 24-bit</text>
+        <!-- OUT port -->
+        <circle cx="175" cy="96" r="6" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+        <text x="178" y="91" fill="#b45309" font-size="7">RCA</text>
+
+        <!-- Connector -->
+        <path d="M 181,96 Q 230,96 248,96" stroke="#d97706" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrowAmber)"/>
+        <circle cx="181" cy="96" r="3" fill="#d97706"/>
+        <text x="215" y="88" text-anchor="middle" fill="#92400e" font-size="8" font-family="monospace">–10 dBV</text>
+
+        <!-- Box 2: AMP -->
+        <rect x="248" y="48" width="165" height="96" rx="8" fill="url(#boxGrad2)" stroke="#d97706" stroke-width="2" filter="url(#warmShadow)"/>
+        <rect x="248" y="48" width="165" height="24" rx="8" fill="#b45309"/>
+        <rect x="248" y="64" width="165" height="8" rx="0" fill="#b45309"/>
+        <text x="330" y="64" text-anchor="middle" fill="#fff" font-size="9" font-family="sans-serif" letter-spacing="1.5" font-weight="600">HP AMP</text>
+        <text x="330" y="92" text-anchor="middle" fill="#3d2200" font-size="12" font-family="Georgia, serif">Asgard X</text>
+        <text x="330" y="108" text-anchor="middle" fill="#92400e" font-size="9" font-family="monospace">2.0W @ 32Ω</text>
+        <text x="330" y="120" text-anchor="middle" fill="#a87940" font-size="8" font-family="monospace">Class A · Low/Med/High gain</text>
+        <!-- IN port -->
+        <circle cx="248" cy="96" r="6" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+        <!-- OUT port -->
+        <circle cx="413" cy="96" r="6" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+        <text x="418" y="91" fill="#16a34a" font-size="7">6.35mm</text>
+
+        <!-- Connector -->
+        <path d="M 419,96 Q 460,96 476,96" stroke="#16a34a" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrowAmber)"/>
+        <circle cx="419" cy="96" r="3" fill="#16a34a"/>
+        <text x="448" y="88" text-anchor="middle" fill="#16a34a" font-size="8" font-family="monospace">matched</text>
+
+        <!-- Box 3: HEADPHONE -->
+        <rect x="476" y="56" width="185" height="80" rx="8" fill="url(#boxGrad1)" stroke="#16a34a" stroke-width="1.5" filter="url(#warmShadow)"/>
+        <rect x="476" y="56" width="185" height="24" rx="8" fill="#16a34a"/>
+        <rect x="476" y="72" width="185" height="8" rx="0" fill="#16a34a"/>
+        <text x="568" y="72" text-anchor="middle" fill="#fff" font-size="9" font-family="sans-serif" letter-spacing="1.5" font-weight="600">HEADPHONE</text>
+        <text x="568" y="100" text-anchor="middle" fill="#3d2200" font-size="12" font-family="Georgia, serif">Meze 109 PRO</text>
+        <text x="568" y="116" text-anchor="middle" fill="#92400e" font-size="9" font-family="monospace">40Ω · 110 dB/mW</text>
+        <!-- IN port -->
+        <circle cx="476" cy="96" r="6" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+
+        <!-- Compatibility badges -->
+        <rect x="28" y="140" width="130" height="26" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+        <text x="93" y="157" text-anchor="middle" fill="#16a34a" font-size="9" font-family="sans-serif">✓ Good output level</text>
+
+        <rect x="256" y="152" width="145" height="26" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+        <text x="328" y="169" text-anchor="middle" fill="#16a34a" font-size="9" font-family="sans-serif">✓ Impedance matched</text>
+
+        <rect x="484" y="144" width="160" height="26" rx="5" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+        <text x="564" y="161" text-anchor="middle" fill="#92400e" font-size="9" font-family="sans-serif">⚡ Check gain stage</text>
+      </svg>
+
+      <!-- Room / Isometric view -->
+      <div style="border-top:1px solid #e8d5b7; padding-top:14px;">
+        <div class="area-label">Room acoustics — isometric view</div>
+        <svg width="100%" height="230" viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="floorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fde8c0" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#fcd34d" stop-opacity="0.2"/>
+            </linearGradient>
+            <filter id="spkrShadow">
+              <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#d97706" flood-opacity="0.2"/>
+            </filter>
+          </defs>
+
+          <!-- Isometric room perspective -->
+          <!-- Floor -->
+          <polygon points="100,210 580,210 640,100 40,100" fill="url(#floorGrad)" stroke="#e8d5b7" stroke-width="1.5"/>
+          <!-- Back wall -->
+          <polygon points="40,100 640,100 640,30 40,30" fill="rgba(254,243,226,0.5)" stroke="#e8d5b7" stroke-width="1.5"/>
+          <!-- Ceiling line implied -->
+          <line x1="40" y1="30" x2="640" y2="30" stroke="#d4b896" stroke-width="1"/>
+
+          <!-- Left Speaker -->
+          <rect x="70" y="50" width="40" height="70" rx="6" fill="#3d2200" stroke="#d97706" stroke-width="2" filter="url(#spkrShadow)"/>
+          <ellipse cx="90" cy="75" rx="13" ry="13" fill="#2d1a0a" stroke="#d97706" stroke-width="1.5"/>
+          <ellipse cx="90" cy="75" rx="6" ry="6" fill="#92400e"/>
+          <ellipse cx="90" cy="100" rx="7" ry="7" fill="#2d1a0a" stroke="#a87940" stroke-width="1"/>
+          <text x="90" y="130" text-anchor="middle" fill="#d97706" font-size="8" font-family="monospace">L</text>
+
+          <!-- Right Speaker -->
+          <rect x="570" y="50" width="40" height="70" rx="6" fill="#3d2200" stroke="#d97706" stroke-width="2" filter="url(#spkrShadow)"/>
+          <ellipse cx="590" cy="75" rx="13" ry="13" fill="#2d1a0a" stroke="#d97706" stroke-width="1.5"/>
+          <ellipse cx="590" cy="75" rx="6" ry="6" fill="#92400e"/>
+          <ellipse cx="590" cy="100" rx="7" ry="7" fill="#2d1a0a" stroke="#a87940" stroke-width="1"/>
+          <text x="590" y="130" text-anchor="middle" fill="#d97706" font-size="8" font-family="monospace">R</text>
+
+          <!-- Listening chair -->
+          <!-- Chair back -->
+          <rect x="320" y="155" width="40" height="42" rx="8" fill="#5c3a1e" stroke="#a87940" stroke-width="1.5"/>
+          <!-- Chair seat -->
+          <ellipse cx="340" cy="200" rx="22" ry="10" fill="#5c3a1e" stroke="#a87940" stroke-width="1.5"/>
+          <!-- Head -->
+          <circle cx="340" cy="142" r="16" fill="#3d2200" stroke="#a87940" stroke-width="1.5"/>
+          <!-- Ear circle for listening position -->
+          <circle cx="340" cy="142" r="8" fill="none" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+          <!-- Sound arcs L -->
+          <path d="M 110,70 Q 220,80 330,142" stroke="#d97706" stroke-width="1" fill="none" stroke-dasharray="6,4" opacity="0.4"/>
+          <path d="M 110,70 Q 200,100 330,148" stroke="#d97706" stroke-width="0.75" fill="none" stroke-dasharray="6,4" opacity="0.25"/>
+          <!-- Sound arcs R -->
+          <path d="M 570,70 Q 460,80 350,142" stroke="#d97706" stroke-width="1" fill="none" stroke-dasharray="6,4" opacity="0.4"/>
+          <path d="M 570,70 Q 480,100 352,148" stroke="#d97706" stroke-width="0.75" fill="none" stroke-dasharray="6,4" opacity="0.25"/>
+
+          <!-- Dimension lines -->
+          <line x1="90" y1="215" x2="330" y2="215" stroke="#d4b896" stroke-width="0.75"/>
+          <line x1="90" y1="210" x2="90" y2="220" stroke="#d4b896" stroke-width="0.75"/>
+          <line x1="340" y1="210" x2="340" y2="220" stroke="#d4b896" stroke-width="0.75"/>
+          <text x="215" y="225" text-anchor="middle" fill="#a87940" font-size="8" font-family="monospace">2.8 m</text>
+
+          <!-- Label -->
+          <text x="340" y="22" text-anchor="middle" fill="#a87940" font-size="8" font-family="monospace" letter-spacing="1">ROOM — TOP/ISOMETRIC VIEW</text>
+        </svg>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="sidebar-right">
+      <div class="panel-title">Room Settings</div>
+
+      <div class="hslider-group">
+        <div class="hslider-item">
+          <div class="hslider-label-row">
+            <span class="hslider-label">Distance to speakers</span>
+            <span class="hslider-val">2.8 m</span>
+          </div>
+          <input type="range" class="hslider" min="0" max="100" value="56" style="--pct:56%">
+          <div class="hslider-ticks">
+            <span class="tick-label">1m</span>
+            <span class="tick-label">2m</span>
+            <span class="tick-label">3m</span>
+            <span class="tick-label">4m</span>
+            <span class="tick-label">5m</span>
+          </div>
+        </div>
+
+        <div class="hslider-item">
+          <div class="hslider-label-row">
+            <span class="hslider-label">Room gain</span>
+            <span class="hslider-val">+3 dB</span>
+          </div>
+          <input type="range" class="hslider" min="0" max="100" value="36" style="--pct:36%">
+          <div class="hslider-ticks">
+            <span class="tick-label">–3</span>
+            <span class="tick-label">0</span>
+            <span class="tick-label">+3</span>
+            <span class="tick-label">+6</span>
+            <span class="tick-label">+9</span>
+          </div>
+        </div>
+
+        <div class="hslider-item">
+          <div class="hslider-label-row">
+            <span class="hslider-label">Target SPL</span>
+            <span class="hslider-val">85 dB</span>
+          </div>
+          <input type="range" class="hslider" min="0" max="100" value="70" style="--pct:70%">
+          <div class="hslider-ticks">
+            <span class="tick-label">60</span>
+            <span class="tick-label">70</span>
+            <span class="tick-label">80</span>
+            <span class="tick-label">90</span>
+            <span class="tick-label">95</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compatibility -->
+      <div class="compat-card">
+        <div class="compat-card-title">Compatibility Check</div>
+        <div class="compat-row">
+          <span class="compat-key">Impedance</span>
+          <span class="compat-val good">40Ω ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Output power</span>
+          <span class="compat-val good">2.0W ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Noise floor</span>
+          <span class="compat-val good">–112 dB ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Gain staging</span>
+          <span class="compat-val warn">Review ⚡</span>
+        </div>
+      </div>
+
+      <div class="score-badge">
+        <div class="score-badge-num">94</div>
+        <div class="score-badge-label">out of 100 — Excellent pairing</div>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button style="flex:1; background:#d97706; color:#fff; border:none; padding:9px; border-radius:7px; font-size:0.8rem; cursor:pointer; font-weight:600;">Save</button>
+        <button style="flex:1; background:#fff8f0; color:#92400e; border:1.5px solid #e8d5b7; padding:9px; border-radius:7px; font-size:0.8rem; cursor:pointer;">Share</button>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<!-- FOOTER NOTE -->
+<div class="footer-note">
+  <span>← Option B of 3 — View other options:</span>
+  <a href="option-a.html">A</a>
+  <a href="option-b.html" class="current">B</a>
+  <a href="option-c.html">C</a>
+</div>
+
+</body>
+</html>

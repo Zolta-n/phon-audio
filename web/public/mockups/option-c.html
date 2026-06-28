@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phon.Audio — Option C: Blueprint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cyan: #06b6d4;
+      --cyan-light: #67e8f9;
+      --cyan-dim: #0e7490;
+      --ink: #0f172a;
+      --ink-mid: #334155;
+      --ink-light: #64748b;
+      --ink-faint: #94a3b8;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --border: #e2e8f0;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: var(--bg);
+      color: var(--ink);
+      min-width: 1280px;
+    }
+
+    .dot-grid {
+      background-image: radial-gradient(circle, #d0e4ff 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 58px;
+      background: var(--bg);
+      border-bottom: 2px solid var(--cyan);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      color: var(--ink);
+      letter-spacing: 0.06em;
+    }
+    .nav-logo span { color: var(--cyan); }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--ink-light);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--cyan); }
+    .nav-cta {
+      background: transparent;
+      color: var(--cyan);
+      border: 1.5px solid var(--cyan);
+      padding: 7px 18px;
+      font-size: 0.78rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: rgba(6,182,212,0.08); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 60vh;
+      background: var(--bg);
+      background-image: radial-gradient(circle, #d0e4ff 1px, transparent 1px);
+      background-size: 24px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 56px 80px 48px;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Hairline divider at very top of hero */
+    .hero-topline {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--cyan);
+      opacity: 0.4;
+    }
+
+    .hero-svg-wrap {
+      width: 100%;
+      max-width: 700px;
+      margin-bottom: 32px;
+    }
+
+    .hero-text {
+      text-align: center;
+      max-width: 600px;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 3px 12px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--cyan); }
+    .hero-sub {
+      font-size: 0.9rem;
+      color: var(--ink-light);
+      line-height: 1.7;
+      letter-spacing: 0.03em;
+      margin-bottom: 32px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      justify-content: center;
+    }
+    .btn-cyan {
+      background: var(--cyan);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 0.85rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-cyan:hover { background: var(--cyan-dim); }
+    .hero-note {
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em;
+    }
+
+    /* Hairline section divider */
+    .hairline {
+      height: 1px;
+      background: var(--cyan);
+      opacity: 0.4;
+      margin: 0;
+    }
+    .hairline-full {
+      height: 1px;
+      background: var(--cyan);
+      opacity: 0.3;
+    }
+
+    /* ── BUILDER ── */
+    .builder {
+      background: var(--bg);
+      background-image: radial-gradient(circle, #d0e4ff 1px, transparent 1px);
+      background-size: 24px 24px;
+      padding: 36px 40px 48px;
+      min-height: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .builder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--cyan);
+    }
+    .builder-title-wrap { display: flex; flex-direction: column; gap: 2px; }
+    .builder-module-name {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .builder-title {
+      font-size: 1rem;
+      color: var(--ink);
+      letter-spacing: 0.04em;
+    }
+    .builder-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--cyan);
+    }
+    .btab {
+      padding: 6px 16px;
+      font-size: 0.65rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      cursor: pointer;
+      border-right: 1px solid var(--cyan);
+      transition: background 0.15s;
+    }
+    .btab:last-child { border-right: none; }
+    .btab.active { background: var(--cyan); color: #fff; }
+
+    .builder-columns {
+      display: grid;
+      grid-template-columns: 200px 1fr 240px;
+      gap: 12px;
+      flex: 1;
+    }
+
+    /* LEFT */
+    .sidebar-left {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--cyan);
+      padding: 14px 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-title {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      padding: 0 14px 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.78rem;
+      color: var(--ink-mid);
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.12s;
+    }
+    .tree-item:hover { background: rgba(6,182,212,0.05); color: var(--cyan); }
+    .tree-item.expanded { color: var(--ink); font-weight: bold; }
+    .tree-arrow { color: var(--cyan); font-size: 0.7rem; }
+    .tree-sub {
+      background: rgba(6,182,212,0.03);
+      border-left: 1px solid rgba(6,182,212,0.2);
+      margin-left: 18px;
+    }
+    .tree-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px 5px 14px;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      cursor: pointer;
+      transition: color 0.12s;
+      letter-spacing: 0.02em;
+    }
+    .tree-sub-item:hover { color: var(--cyan); }
+    .tree-sub-item::before { content: '·'; color: var(--cyan); }
+    .cat-badge {
+      font-size: 0.55rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 1px 4px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 6px 0;
+    }
+
+    /* CENTER */
+    .center-canvas {
+      background: var(--bg);
+      background-image: radial-gradient(circle, #d0e4ff 1px, transparent 1px);
+      background-size: 24px 24px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .canvas-title {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .area-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 8px;
+    }
+
+    /* RIGHT */
+    .sidebar-right {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel-title {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    /* Sliders */
+    .slider-group { display: flex; flex-direction: column; gap: 18px; }
+    .slider-item { display: flex; flex-direction: column; gap: 6px; }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-readout {
+      font-size: 0.72rem;
+      color: var(--cyan);
+      letter-spacing: 0.05em;
+      min-width: 60px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .slider-label {
+      font-size: 0.7rem;
+      color: var(--ink-mid);
+      letter-spacing: 0.04em;
+    }
+
+    input[type=range].cslider {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 3px;
+      background: linear-gradient(to right, var(--cyan) var(--pct, 50%), #e2e8f0 var(--pct, 50%));
+      cursor: pointer;
+      outline: none;
+      border-radius: 0;
+    }
+    input[type=range].cslider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--bg);
+      border: 2px solid var(--cyan);
+      border-radius: 0;
+      cursor: pointer;
+    }
+    input[type=range].cslider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--bg);
+      border: 2px solid var(--cyan);
+      border-radius: 0;
+      cursor: pointer;
+    }
+    .tick-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 1px;
+    }
+    .tick { font-size: 0.55rem; color: var(--ink-faint); letter-spacing: 0; }
+
+    /* Compat table */
+    .compat-table {
+      border: 1px solid var(--border);
+    }
+    .compat-header {
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 5px 8px;
+    }
+    .compat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+    }
+    .compat-row:last-child { border-bottom: none; }
+    .compat-key { color: var(--ink-mid); }
+    .compat-val { font-family: 'Courier New', monospace; letter-spacing: 0.04em; }
+    .compat-val.good { color: #16a34a; }
+    .compat-val.warn { color: #d97706; }
+    .compat-val.ok { color: var(--cyan); }
+
+    .score-block {
+      border: 1px solid var(--cyan);
+      padding: 12px;
+      text-align: center;
+    }
+    .score-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .score-num {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .score-num span { font-size: 1rem; color: var(--ink-faint); }
+    .score-desc {
+      font-size: 0.65rem;
+      color: var(--ink-light);
+      margin-top: 4px;
+    }
+
+    /* ── FOOTER ── */
+    .footer-note {
+      background: var(--ink);
+      border-top: 1px solid var(--cyan);
+      padding: 14px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.04em;
+    }
+    .footer-note a {
+      color: var(--cyan);
+      text-decoration: none;
+      padding: 2px 8px;
+      border: 1px solid rgba(6,182,212,0.4);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+    }
+    .footer-note a:hover { background: rgba(6,182,212,0.1); }
+    .footer-note a.current { background: rgba(6,182,212,0.15); border-color: var(--cyan); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Phon<span>.</span>Audio</div>
+  <ul class="nav-links">
+    <li><a href="#">Compatibility</a></li>
+    <li><a href="#">Components</a></li>
+    <li><a href="#">Learn</a></li>
+    <li><a href="#">Community</a></li>
+  </ul>
+  <button class="nav-cta">Open Builder →</button>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="hero-topline"></div>
+
+  <!-- Large schematic SVG -->
+  <div class="hero-svg-wrap">
+    <svg width="100%" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowCyan" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#06b6d4"/>
+        </marker>
+        <marker id="arrowCyanSm" markerWidth="6" markerHeight="6" refX="5" refY="2" orient="auto">
+          <path d="M0,0 L0,4 L6,2 z" fill="#06b6d4"/>
+        </marker>
+      </defs>
+
+      <!-- ── BOX 1: DAC ── -->
+      <rect x="20" y="60" width="130" height="80" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
+      <!-- Header bar -->
+      <rect x="20" y="60" width="130" height="20" fill="#06b6d4" opacity="0.12"/>
+      <text x="85" y="73" text-anchor="middle" fill="#06b6d4" font-size="9" font-family="Courier New" letter-spacing="2" font-weight="bold">DAC</text>
+      <text x="85" y="95" text-anchor="middle" fill="#0f172a" font-size="10" font-family="Courier New">Modi 5</text>
+      <text x="85" y="110" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">AKM4493S</text>
+      <text x="85" y="124" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">24-bit / 192kHz</text>
+
+      <!-- Input port (left side) -->
+      <circle cx="20" cy="90" r="5" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+      <text x="5" y="87" fill="#06b6d4" font-size="6.5" font-family="Courier New" text-anchor="middle">USB</text>
+      <!-- Output port (right side) -->
+      <circle cx="150" cy="100" r="5" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+      <text x="158" y="97" fill="#06b6d4" font-size="6.5" font-family="Courier New">RCA</text>
+
+      <!-- Signal label at input -->
+      <text x="20" y="87" fill="#334155" font-size="7" font-family="Courier New" text-anchor="middle">●</text>
+
+      <!-- ── CONNECTOR 1 ── right-angle elbow -->
+      <!-- Horizontal segment from DAC out -->
+      <line x1="155" y1="100" x2="190" y2="100" stroke="#06b6d4" stroke-width="1.5" marker-end="none"/>
+      <!-- Elbow down -->
+      <line x1="190" y1="100" x2="190" y2="100" stroke="#06b6d4" stroke-width="1.5"/>
+      <!-- Horizontal to PRE input -->
+      <line x1="190" y1="100" x2="218" y2="100" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+      <!-- dBV annotation above wire -->
+      <text x="186" y="93" text-anchor="middle" fill="#334155" font-size="7.5" font-family="Courier New">–10dBV</text>
+      <!-- Dot at junction -->
+      <circle cx="155" cy="100" r="3" fill="#06b6d4"/>
+
+      <!-- ── BOX 2: PRE ── -->
+      <rect x="218" y="50" width="130" height="100" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
+      <rect x="218" y="50" width="130" height="20" fill="#06b6d4" opacity="0.12"/>
+      <text x="283" y="63" text-anchor="middle" fill="#06b6d4" font-size="9" font-family="Courier New" letter-spacing="2" font-weight="bold">PRE / INT</text>
+      <text x="283" y="87" text-anchor="middle" fill="#0f172a" font-size="10" font-family="Courier New">Asgard X</text>
+      <text x="283" y="102" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">Headphone Amp</text>
+      <text x="283" y="116" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">2.0W @ 32Ω</text>
+      <text x="283" y="128" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">Class A</text>
+      <!-- IN port left -->
+      <circle cx="218" cy="100" r="5" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+      <!-- OUT port right -->
+      <circle cx="348" cy="100" r="5" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+      <text x="356" y="97" fill="#06b6d4" font-size="6.5" font-family="Courier New">6.35</text>
+
+      <!-- ── CONNECTOR 2 ── right-angle elbow -->
+      <line x1="353" y1="100" x2="388" y2="100" stroke="#06b6d4" stroke-width="1.5"/>
+      <!-- Vertical elbow -->
+      <line x1="388" y1="100" x2="388" y2="100" stroke="#06b6d4" stroke-width="1.5"/>
+      <line x1="388" y1="100" x2="416" y2="100" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+      <text x="385" y="93" text-anchor="middle" fill="#334155" font-size="7.5" font-family="Courier New">+4dBu</text>
+      <circle cx="353" cy="100" r="3" fill="#06b6d4"/>
+
+      <!-- ── BOX 3: AMP ── (headphone, labeled AMP for schematic style) -->
+      <rect x="416" y="55" width="130" height="90" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
+      <rect x="416" y="55" width="130" height="20" fill="#06b6d4" opacity="0.12"/>
+      <text x="481" y="68" text-anchor="middle" fill="#06b6d4" font-size="9" font-family="Courier New" letter-spacing="2" font-weight="bold">HEADPHONE</text>
+      <text x="481" y="93" text-anchor="middle" fill="#0f172a" font-size="10" font-family="Courier New">Meze 109 PRO</text>
+      <text x="481" y="108" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">40Ω</text>
+      <text x="481" y="122" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">110 dB/mW</text>
+      <!-- IN port left -->
+      <circle cx="416" cy="100" r="5" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+
+      <!-- ── CONNECTOR 3 to SPK box ── -->
+      <line x1="546" y1="100" x2="586" y2="100" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+      <circle cx="546" cy="100" r="3" fill="#06b6d4"/>
+      <text x="566" y="93" text-anchor="middle" fill="#334155" font-size="7.5" font-family="Courier New">Ω match</text>
+
+      <!-- ── BOX 4: SPK / Output ── -->
+      <rect x="590" y="68" width="95" height="64" fill="none" stroke="#16a34a" stroke-width="1.5"/>
+      <rect x="590" y="68" width="95" height="20" fill="#16a34a" opacity="0.15"/>
+      <text x="637" y="81" text-anchor="middle" fill="#16a34a" font-size="9" font-family="Courier New" letter-spacing="2" font-weight="bold">OUTPUT</text>
+      <text x="637" y="101" text-anchor="middle" fill="#0f172a" font-size="9" font-family="Courier New">Ear canal</text>
+      <text x="637" y="116" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">87 dBSPL</text>
+      <!-- IN port -->
+      <circle cx="590" cy="100" r="5" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+
+      <!-- Ground symbols -->
+      <line x1="85" y1="140" x2="85" y2="152" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="79" y1="152" x2="91" y2="152" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="81" y1="155" x2="89" y2="155" stroke="#94a3b8" stroke-width="0.75"/>
+      <line x1="83" y1="158" x2="87" y2="158" stroke="#94a3b8" stroke-width="0.5"/>
+
+      <line x1="283" y1="150" x2="283" y2="162" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="277" y1="162" x2="289" y2="162" stroke="#94a3b8" stroke-width="1"/>
+      <line x1="279" y1="165" x2="287" y2="165" stroke="#94a3b8" stroke-width="0.75"/>
+      <line x1="281" y1="168" x2="285" y2="168" stroke="#94a3b8" stroke-width="0.5"/>
+
+      <!-- Overall title -->
+      <text x="350" y="190" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="Courier New" letter-spacing="1">SIGNAL CHAIN SCHEMATIC — phon.audio</text>
+
+      <!-- Annotation boxes / callouts -->
+      <!-- Callout on connector 1 -->
+      <rect x="162" y="106" width="56" height="14" fill="#f0fdfe" stroke="#06b6d4" stroke-width="0.75"/>
+      <text x="190" y="116" text-anchor="middle" fill="#06b6d4" font-size="6.5" font-family="Courier New">matched ✓</text>
+
+      <!-- Callout on connector 2 -->
+      <rect x="360" y="106" width="56" height="14" fill="#f0fdfe" stroke="#06b6d4" stroke-width="0.75"/>
+      <text x="388" y="116" text-anchor="middle" fill="#06b6d4" font-size="6.5" font-family="Courier New">matched ✓</text>
+    </svg>
+  </div>
+
+  <div class="hero-text">
+    <div class="hero-tag">v2.0 — Chain Intelligence Engine</div>
+    <h1>Signal chain<br><span>compatibility</span> engine.</h1>
+    <p class="hero-sub">Verify every connection before you buy. Impedance matching, gain staging, noise floor, and SPL — all computed from verified component data.</p>
+    <div class="hero-actions">
+      <button class="btn-cyan">Open chain builder →</button>
+      <span class="hero-note">No account required &nbsp;·&nbsp; 12,000+ components</span>
+    </div>
+  </div>
+</section>
+
+<div class="hairline"></div>
+
+<!-- ═══════════════ BUILDER ═══════════════ -->
+<section class="builder">
+  <div class="builder-header">
+    <div class="builder-title-wrap">
+      <div class="builder-module-name">Module / Chain-Builder</div>
+      <div class="builder-title">Signal Chain Analysis</div>
+    </div>
+    <div class="builder-tabs">
+      <div class="btab active">Chain</div>
+      <div class="btab">Room</div>
+      <div class="btab">Frequency</div>
+      <div class="btab">Export</div>
+    </div>
+  </div>
+
+  <div class="builder-columns">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-left">
+      <div class="sidebar-title">Components</div>
+
+      <div class="tree-item">
+        <span class="tree-arrow">▷</span> Schiit Audio
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- JDS Labs expanded -->
+      <div class="tree-item expanded">
+        <span class="tree-arrow">▾</span> JDS Labs
+      </div>
+      <div class="tree-sub">
+        <div class="tree-sub-item">Atom DAC 2 <span class="cat-badge">DAC</span></div>
+        <div class="tree-sub-item">Atom Amp 2 <span class="cat-badge">AMP</span></div>
+        <div class="tree-sub-item">Element IV <span class="cat-badge">DAC+AMP</span></div>
+        <div class="tree-sub-item">Ol DAC Mk2 <span class="cat-badge">DAC</span></div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="tree-item">
+        <span class="tree-arrow">▷</span> Audeze
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="tree-item">
+        <span class="tree-arrow">▷</span> Topping
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="tree-item">
+        <span class="tree-arrow">▷</span> Focal
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="tree-item">
+        <span class="tree-arrow">▷</span> Meze Audio
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div style="padding: 10px 14px 0; margin-top: auto;">
+        <div style="font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;">Filter by type</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <span style="font-size:0.6rem; border:1px solid var(--cyan); color:var(--cyan); padding:2px 6px; cursor:pointer;">[DAC]</span>
+          <span style="font-size:0.6rem; border:1px solid var(--border); color:var(--ink-faint); padding:2px 6px; cursor:pointer;">[AMP]</span>
+          <span style="font-size:0.6rem; border:1px solid var(--border); color:var(--ink-faint); padding:2px 6px; cursor:pointer;">[HP]</span>
+          <span style="font-size:0.6rem; border:1px solid var(--border); color:var(--ink-faint); padding:2px 6px; cursor:pointer;">[SPK]</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER CANVAS -->
+    <main class="center-canvas">
+      <div class="canvas-title">Signal Chain — Schematic View</div>
+
+      <div class="area-label">Active components</div>
+
+      <!-- Detailed schematic chain SVG with port symbols and right-angle elbows -->
+      <svg width="100%" height="210" viewBox="0 0 680 210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="bpArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#06b6d4"/>
+          </marker>
+          <marker id="bpArrowGreen" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/>
+          </marker>
+          <marker id="dimArrow" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto">
+            <path d="M6,0 L6,6 L0,3 z" fill="#94a3b8"/>
+          </marker>
+          <marker id="dimArrowR" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#94a3b8"/>
+          </marker>
+        </defs>
+
+        <!-- ── BOX 1: DAC ── -->
+        <rect x="10" y="55" width="148" height="90" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <!-- top label bar -->
+        <rect x="10" y="55" width="148" height="18" fill="rgba(6,182,212,0.1)"/>
+        <text x="84" y="67" text-anchor="middle" fill="#06b6d4" font-size="8.5" font-family="Courier New" letter-spacing="2" font-weight="bold">DAC</text>
+        <!-- component name -->
+        <text x="84" y="92" text-anchor="middle" fill="#0f172a" font-size="11" font-family="Courier New" font-weight="bold">Modi 5</text>
+        <text x="84" y="108" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">AKM4493S</text>
+        <text x="84" y="122" text-anchor="middle" fill="#64748b" font-size="7.5" font-family="Courier New">Output: –10 dBV RCA</text>
+
+        <!-- Input port - left side -->
+        <circle cx="10" cy="95" r="6" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <circle cx="10" cy="95" r="2" fill="#06b6d4"/>
+        <text x="2" y="83" fill="#334155" font-size="6.5" font-family="Courier New" text-anchor="middle">IN</text>
+
+        <!-- Output port - right side -->
+        <circle cx="158" cy="95" r="6" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <circle cx="158" cy="95" r="2" fill="#06b6d4" opacity="0.4"/>
+        <text x="166" y="83" fill="#334155" font-size="6.5" font-family="Courier New">OUT</text>
+
+        <!-- Wire from DAC out: horizontal right, then elbow down, then right to AMP in -->
+        <!-- horizontal seg -->
+        <line x1="164" y1="95" x2="200" y2="95" stroke="#06b6d4" stroke-width="1.5"/>
+        <!-- vertical elbow -->
+        <line x1="200" y1="95" x2="200" y2="95" stroke="#06b6d4" stroke-width="1.5"/>
+        <!-- horizontal to AMP in -->
+        <line x1="200" y1="95" x2="228" y2="95" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#bpArrow)"/>
+        <!-- label on wire -->
+        <text x="196" y="87" text-anchor="middle" fill="#334155" font-size="7.5" font-family="Courier New">–10dBV</text>
+        <!-- dot at junction -->
+        <circle cx="164" cy="95" r="3" fill="#06b6d4"/>
+
+        <!-- ── BOX 2: AMP ── -->
+        <rect x="228" y="40" width="165" height="110" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <rect x="228" y="40" width="165" height="18" fill="rgba(6,182,212,0.1)"/>
+        <text x="310" y="52" text-anchor="middle" fill="#06b6d4" font-size="8.5" font-family="Courier New" letter-spacing="2" font-weight="bold">HP AMP</text>
+        <text x="310" y="82" text-anchor="middle" fill="#0f172a" font-size="11" font-family="Courier New" font-weight="bold">Asgard X</text>
+        <text x="310" y="98" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">2.0W @ 32Ω · Class A</text>
+        <text x="310" y="113" text-anchor="middle" fill="#64748b" font-size="7.5" font-family="Courier New">Gain: Low / Med / High</text>
+        <text x="310" y="126" text-anchor="middle" fill="#64748b" font-size="7" font-family="Courier New">SNR: 112 dB</text>
+        <!-- IN port -->
+        <circle cx="228" cy="95" r="6" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <circle cx="228" cy="95" r="2" fill="#06b6d4"/>
+        <!-- OUT port -->
+        <circle cx="393" cy="95" r="6" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <circle cx="393" cy="95" r="2" fill="#06b6d4" opacity="0.4"/>
+        <text x="401" y="83" fill="#334155" font-size="6.5" font-family="Courier New">6.35mm</text>
+
+        <!-- Wire to headphone: right-angle elbow -->
+        <line x1="399" y1="95" x2="436" y2="95" stroke="#06b6d4" stroke-width="1.5"/>
+        <line x1="436" y1="95" x2="436" y2="95" stroke="#06b6d4" stroke-width="1.5"/>
+        <line x1="436" y1="95" x2="458" y2="95" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#bpArrow)"/>
+        <text x="427" y="87" text-anchor="middle" fill="#334155" font-size="7.5" font-family="Courier New">+4dBu</text>
+        <circle cx="399" cy="95" r="3" fill="#06b6d4"/>
+
+        <!-- ── BOX 3: HEADPHONE ── -->
+        <rect x="458" y="48" width="172" height="95" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <rect x="458" y="48" width="172" height="18" fill="rgba(6,182,212,0.1)"/>
+        <text x="544" y="60" text-anchor="middle" fill="#06b6d4" font-size="8.5" font-family="Courier New" letter-spacing="2" font-weight="bold">HEADPHONE</text>
+        <text x="544" y="87" text-anchor="middle" fill="#0f172a" font-size="11" font-family="Courier New" font-weight="bold">Meze 109 PRO</text>
+        <text x="544" y="103" text-anchor="middle" fill="#64748b" font-size="8" font-family="Courier New">40Ω · 110 dB/mW</text>
+        <text x="544" y="118" text-anchor="middle" fill="#64748b" font-size="7.5" font-family="Courier New">Dynamic · Open back</text>
+        <!-- IN port -->
+        <circle cx="458" cy="95" r="6" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+        <circle cx="458" cy="95" r="2" fill="#06b6d4"/>
+
+        <!-- Status annotations below boxes -->
+        <!-- DAC status -->
+        <rect x="10" y="152" width="148" height="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="0.75"/>
+        <text x="84" y="164" text-anchor="middle" fill="#16a34a" font-size="7.5" font-family="Courier New">✓ OUTPUT LEVEL OK</text>
+
+        <!-- AMP status -->
+        <rect x="228" y="157" width="165" height="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="0.75"/>
+        <text x="310" y="169" text-anchor="middle" fill="#16a34a" font-size="7.5" font-family="Courier New">✓ IMPEDANCE MATCHED</text>
+
+        <!-- HP status -->
+        <rect x="458" y="150" width="172" height="18" fill="rgba(217,119,6,0.08)" stroke="#d97706" stroke-width="0.75"/>
+        <text x="544" y="162" text-anchor="middle" fill="#d97706" font-size="7.5" font-family="Courier New">⚡ REVIEW GAIN STAGE</text>
+
+        <!-- Reference line across bottom -->
+        <line x1="10" y1="185" x2="670" y2="185" stroke="#e2e8f0" stroke-width="0.75" stroke-dasharray="4,4"/>
+        <text x="340" y="200" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="Courier New" letter-spacing="1">SIGNAL FLOW →</text>
+      </svg>
+
+      <!-- Room floor plan -->
+      <div style="border-top:1px solid #e2e8f0; padding-top:12px;">
+        <div class="area-label">Room layout — overhead plan (schematic)</div>
+        <svg width="100%" height="210" viewBox="0 0 680 210" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="dimA" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto">
+              <path d="M6,3 L0,0 L0,6 z" fill="#94a3b8"/>
+            </marker>
+            <marker id="dimB" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+              <path d="M0,3 L6,0 L6,6 z" fill="#94a3b8"/>
+            </marker>
+          </defs>
+
+          <!-- Room rectangle -->
+          <rect x="120" y="16" width="440" height="180" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
+
+          <!-- Grid lines inside room (very faint) -->
+          <line x1="120" y1="76" x2="560" y2="76" stroke="#d0e4ff" stroke-width="0.75"/>
+          <line x1="120" y1="136" x2="560" y2="136" stroke="#d0e4ff" stroke-width="0.75"/>
+          <line x1="267" y1="16" x2="267" y2="196" stroke="#d0e4ff" stroke-width="0.75"/>
+          <line x1="414" y1="16" x2="414" y2="196" stroke="#d0e4ff" stroke-width="0.75"/>
+
+          <!-- Left speaker (triangle pointing right = aimed inward) -->
+          <polygon points="138,30 158,44 138,58" fill="#06b6d4" opacity="0.7"/>
+          <rect x="120" y="28" width="18" height="32" fill="#0e7490" stroke="#06b6d4" stroke-width="1"/>
+          <text x="129" y="67" text-anchor="middle" fill="#06b6d4" font-size="7" font-family="Courier New">L</text>
+
+          <!-- Right speaker (triangle pointing left = aimed inward) -->
+          <polygon points="542,30 522,44 542,58" fill="#06b6d4" opacity="0.7"/>
+          <rect x="542" y="28" width="18" height="32" fill="#0e7490" stroke="#06b6d4" stroke-width="1"/>
+          <text x="551" y="67" text-anchor="middle" fill="#06b6d4" font-size="7" font-family="Courier New">R</text>
+
+          <!-- Listening position dot + crosshair -->
+          <circle cx="340" cy="170" r="10" fill="#fff" stroke="#06b6d4" stroke-width="1.5"/>
+          <line x1="340" y1="162" x2="340" y2="178" stroke="#06b6d4" stroke-width="1"/>
+          <line x1="332" y1="170" x2="348" y2="170" stroke="#06b6d4" stroke-width="1"/>
+          <text x="340" y="196" text-anchor="middle" fill="#64748b" font-size="6.5" font-family="Courier New">LISTEN POS</text>
+
+          <!-- Speaker aim lines (45° toe-in) -->
+          <line x1="138" y1="44" x2="334" y2="168" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6,4" opacity="0.4"/>
+          <line x1="542" y1="44" x2="346" y2="168" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6,4" opacity="0.4"/>
+
+          <!-- Dimension: front-to-listening horizontal -->
+          <!-- Horizontal dim line -->
+          <line x1="138" y1="200" x2="340" y2="200" stroke="#94a3b8" stroke-width="0.75" marker-start="url(#dimA)" marker-end="url(#dimB)"/>
+          <text x="240" y="208" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="Courier New">3.0m</text>
+
+          <!-- Vertical dim line (room depth) -->
+          <line x1="105" y1="16" x2="105" y2="196" stroke="#94a3b8" stroke-width="0.75" marker-start="url(#dimA)" marker-end="url(#dimB)"/>
+          <text x="98" y="108" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="Courier New" transform="rotate(-90,98,108)">4.5m</text>
+
+          <!-- Width dim line -->
+          <line x1="120" y1="10" x2="560" y2="10" stroke="#94a3b8" stroke-width="0.75" marker-start="url(#dimA)" marker-end="url(#dimB)"/>
+          <text x="340" y="9" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="Courier New">4.5m</text>
+
+          <!-- Front wall label -->
+          <text x="340" y="14" text-anchor="middle" fill="#334155" font-size="6.5" font-family="Courier New" dy="3">FRONT WALL</text>
+
+          <!-- Speaker separation dim -->
+          <line x1="138" y1="44" x2="542" y2="44" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,3"/>
+          <text x="340" y="40" text-anchor="middle" fill="#94a3b8" font-size="6.5" font-family="Courier New">spk separation: 3.0m</text>
+
+          <!-- Corner labels -->
+          <text x="122" y="26" fill="#94a3b8" font-size="6" font-family="Courier New">TL</text>
+          <text x="548" y="26" fill="#94a3b8" font-size="6" font-family="Courier New">TR</text>
+          <text x="122" y="194" fill="#94a3b8" font-size="6" font-family="Courier New">BL</text>
+          <text x="548" y="194" fill="#94a3b8" font-size="6" font-family="Courier New">BR</text>
+        </svg>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="sidebar-right">
+      <div class="panel-title">Room Parameters</div>
+
+      <div class="slider-group">
+        <div class="slider-item">
+          <div class="slider-label">Distance</div>
+          <div class="slider-row">
+            <input type="range" class="cslider" min="0" max="100" value="60" style="--pct:60%">
+            <span class="slider-readout">3.0 m</span>
+          </div>
+          <div class="tick-row">
+            <span class="tick">1m</span>
+            <span class="tick">2m</span>
+            <span class="tick">3m</span>
+            <span class="tick">4m</span>
+            <span class="tick">5m</span>
+          </div>
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-label">Room Gain</div>
+          <div class="slider-row">
+            <input type="range" class="cslider" min="0" max="100" value="33" style="--pct:33%">
+            <span class="slider-readout">0 dB</span>
+          </div>
+          <div class="tick-row">
+            <span class="tick">–6</span>
+            <span class="tick">–3</span>
+            <span class="tick">0</span>
+            <span class="tick">+3</span>
+            <span class="tick">+6</span>
+          </div>
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-label">Target SPL</div>
+          <div class="slider-row">
+            <input type="range" class="cslider" min="0" max="100" value="71" style="--pct:71%">
+            <span class="slider-readout">85 dB</span>
+          </div>
+          <div class="tick-row">
+            <span class="tick">60</span>
+            <span class="tick">70</span>
+            <span class="tick">80</span>
+            <span class="tick">90</span>
+            <span class="tick">100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hairline-full"></div>
+
+      <!-- Compat table -->
+      <div class="compat-table">
+        <div class="compat-header">Compatibility Report</div>
+        <div class="compat-row">
+          <span class="compat-key">Impedance</span>
+          <span class="compat-val good">40Ω ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Power (32Ω)</span>
+          <span class="compat-val good">2.0W ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">SNR</span>
+          <span class="compat-val good">112 dB ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Noise floor</span>
+          <span class="compat-val good">–120 dBu ✓</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">Gain stage</span>
+          <span class="compat-val warn">Review ⚡</span>
+        </div>
+        <div class="compat-row">
+          <span class="compat-key">SPL at ear</span>
+          <span class="compat-val ok">87 dB</span>
+        </div>
+      </div>
+
+      <div class="score-block">
+        <div class="score-label">Compatibility Score</div>
+        <div class="score-num">94<span>/100</span></div>
+        <div class="score-desc">Excellent — minor gain review recommended</div>
+      </div>
+
+      <div class="hairline-full"></div>
+
+      <div style="display:flex; gap:8px;">
+        <button style="flex:1; background:var(--cyan); color:#fff; border:none; padding:9px 0; font-family:'Courier New',monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">SAVE</button>
+        <button style="flex:1; background:#fff; color:var(--cyan); border:1.5px solid var(--cyan); padding:9px 0; font-family:'Courier New',monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">SHARE</button>
+      </div>
+
+      <div style="font-size:0.6rem; color:var(--ink-faint); letter-spacing:0.06em; text-align:center; border-top:1px solid var(--border); padding-top:8px;">
+        Chain ID: #PHN-2024-0042 &nbsp;·&nbsp; rev.3
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<div class="hairline"></div>
+
+<!-- FOOTER NOTE -->
+<div class="footer-note">
+  <span>&lt;- Option C of 3 — View other options:</span>
+  <a href="option-a.html">A</a>
+  <a href="option-b.html">B</a>
+  <a href="option-c.html" class="current">C</a>
+</div>
+
+</body>
+</html>

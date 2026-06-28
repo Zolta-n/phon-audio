@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phon.Audio — Option B-Amber: Refined Warm Cream</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #faf8f5;
+      --surface:  #f3ede3;
+      --border:   #e8d9c4;
+      --text:     #2d1a0a;
+      --muted:    #7a5c3a;
+      --accent:   #c96f12;
+      --accent2:  #9b4f0a;
+      --dark:     #1a0f00;
+      --nav-bg:   rgba(26,15,0,0.93);
+      --hero-hl:  #fdf6ec;
+    }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      min-width: 1100px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 52px;
+      height: 68px;
+      background: var(--nav-bg);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--hero-hl);
+      letter-spacing: 0.03em;
+    }
+    .nav-logo .dot { color: var(--accent); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a {
+      color: #a08060;
+      text-decoration: none;
+      font-family: 'Lora', serif;
+      font-size: 0.875rem;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--hero-hl); }
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 9px 22px;
+      font-family: 'Lora', serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--accent2); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+    }
+    .hero-photo {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(170deg, #2a1808 0%, #6b3c12 30%, #c4800a 55%, #8b5020 75%, #1a0c04 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-photo::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10,6,2,0.92) 0%, rgba(10,6,2,0.4) 50%, rgba(10,6,2,0.15) 100%);
+    }
+    .hero-photo-label {
+      position: relative;
+      z-index: 1;
+      color: rgba(255,255,255,0.12);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-family: 'Lora', serif;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 0 80px 80px;
+      max-width: 780px;
+    }
+    .hero-eyebrow {
+      color: var(--accent);
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-family: 'Lora', serif;
+      margin-bottom: 20px;
+    }
+    .hero-headline {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 3.8rem;
+      font-weight: 700;
+      color: var(--hero-hl);
+      line-height: 1.1;
+      margin-bottom: 22px;
+      letter-spacing: -0.01em;
+    }
+    .hero-sub {
+      font-size: 1.15rem;
+      color: rgba(253,246,236,0.72);
+      line-height: 1.65;
+      margin-bottom: 38px;
+      font-weight: 400;
+      max-width: 560px;
+    }
+    .hero-buttons { display: flex; gap: 16px; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 32px;
+      font-family: 'Lora', serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--hero-hl);
+      border: 1.5px solid rgba(253,246,236,0.4);
+      padding: 14px 32px;
+      font-family: 'Lora', serif;
+      font-size: 0.95rem;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: border-color 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(253,246,236,0.8); }
+
+    /* ── GALLERY STRIP ── */
+    .gallery {
+      background: var(--surface);
+      padding: 52px 80px;
+      border-top: 1px solid var(--border);
+    }
+    .gallery-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-family: 'Lora', serif;
+    }
+    .gallery-row {
+      display: flex;
+      gap: 20px;
+    }
+    .gallery-thumb {
+      width: 280px;
+      height: 180px;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .gallery-thumb.turntable {
+      background: radial-gradient(ellipse at 40% 60%, #c47c2a 0%, #6b3a10 40%, #1a0c04 100%);
+    }
+    .gallery-thumb.amp {
+      background: radial-gradient(ellipse at 50% 70%, #d4820a 0%, #7a3a08 30%, #0d0805 100%);
+    }
+    .gallery-thumb.room {
+      background: linear-gradient(160deg, #8b5e2a 0%, #3d2008 50%, #1a0e06 100%);
+    }
+    .thumb-label {
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: rgba(255,255,255,0.14);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      font-family: 'Lora', serif;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      background: var(--bg);
+      padding: 84px 80px;
+      border-top: 1px solid var(--border);
+    }
+    .section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 52px;
+      letter-spacing: -0.01em;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+    }
+    .step { display: flex; flex-direction: column; gap: 14px; }
+    .step-num {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .step-icon { font-size: 1.5rem; margin-bottom: 4px; }
+    .step-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .step-body {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── BUILDER PREVIEW ── */
+    .builder {
+      background: var(--surface);
+      padding: 84px 80px;
+      border-top: 1px solid var(--border);
+    }
+    .builder-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 200px 1fr 180px;
+    }
+    .builder-sidebar {
+      border-right: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .sidebar-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 16px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+      font-family: 'Lora', serif;
+    }
+    .sidebar-item {
+      padding: 9px 16px;
+      font-size: 0.82rem;
+      color: var(--text);
+      cursor: default;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-item:hover { background: var(--surface); }
+    .sidebar-item.active { background: rgba(201,111,18,0.1); color: var(--accent); font-weight: 500; }
+    .sidebar-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+    .sidebar-item.active .sidebar-dot { background: var(--accent); }
+    .builder-canvas {
+      padding: 36px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+    .chain-node {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 90px;
+    }
+    .chain-node.active { border-color: var(--accent); background: rgba(201,111,18,0.06); }
+    .node-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-family: 'Lora', serif;
+    }
+    .node-name {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .chain-node.active .node-name { color: var(--accent2); }
+    .chain-arrow {
+      width: 44px;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+    }
+    .chain-arrow::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border-left: 8px solid var(--border);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .builder-controls {
+      border-left: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .ctrl-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+      font-family: 'Lora', serif;
+    }
+    .ctrl-slider {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      position: relative;
+      margin-top: 6px;
+    }
+    .ctrl-slider-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+    .ctrl-value {
+      font-size: 0.8rem;
+      color: var(--text);
+      font-weight: 500;
+      margin-top: 4px;
+      font-family: 'Lora', serif;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark);
+      color: rgba(253,246,236,0.35);
+      text-align: center;
+      padding: 28px;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      font-family: 'Lora', serif;
+    }
+    footer a { color: rgba(201,111,18,0.6); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+    .palette-links { margin-top: 10px; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Phon<span class="dot">.</span>Audio</div>
+    <ul class="nav-links">
+      <li><a href="#">Builder</a></li>
+      <li><a href="#">Components</a></li>
+      <li><a href="#">Pricing</a></li>
+    </ul>
+    <button class="nav-cta">Start Building</button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-photo">
+      <span class="hero-photo-label">⬡ Hero photo: warm listening room</span>
+    </div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">High-Fidelity Audio Engineering</p>
+      <h1 class="hero-headline">Design Your<br>Perfect Sound Chain</h1>
+      <p class="hero-sub">Map, compare, and refine your audiophile signal path. From source to speaker — every component visualised, every pairing considered.</p>
+      <div class="hero-buttons">
+        <button class="btn-primary">Build Your Chain</button>
+        <button class="btn-ghost">Explore Components</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY STRIP -->
+  <section class="gallery">
+    <p class="gallery-label">The listening experience</p>
+    <div class="gallery-row">
+      <div class="gallery-thumb turntable">
+        <span class="thumb-label">⬡ Turntable closeup</span>
+      </div>
+      <div class="gallery-thumb amp">
+        <span class="thumb-label">⬡ Amplifier glow</span>
+      </div>
+      <div class="gallery-thumb room">
+        <span class="thumb-label">⬡ Listening room</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <h2 class="section-title">How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">🎛</div>
+        <div class="step-title">Add your components</div>
+        <p class="step-body">Search our library of thousands of DACs, amplifiers, speakers, and cables. Add what you own or what you're considering.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">🔗</div>
+        <div class="step-title">Build the signal chain</div>
+        <p class="step-body">Connect components visually. Phon.Audio checks impedance, gain staging, and compatibility as you build.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">✦</div>
+        <div class="step-title">Refine and compare</div>
+        <p class="step-body">Swap components, compare chains side-by-side, and get recommendations tuned to your listening preferences.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUILDER PREVIEW -->
+  <section class="builder">
+    <h2 class="section-title">The chain builder</h2>
+    <div class="builder-card">
+      <!-- Sidebar -->
+      <div class="builder-sidebar">
+        <div class="sidebar-title">Components</div>
+        <div class="sidebar-item active">
+          <div class="sidebar-dot"></div> Schiit Modi 3+
+        </div>
+        <div class="sidebar-item">
+          <div class="sidebar-dot"></div> Schiit Magni
+        </div>
+        <div class="sidebar-item">
+          <div class="sidebar-dot"></div> Focal Clear MG
+        </div>
+        <div class="sidebar-item">
+          <div class="sidebar-dot"></div> Cardas Clear Cable
+        </div>
+      </div>
+      <!-- Chain canvas -->
+      <div class="builder-canvas">
+        <div class="chain-node active">
+          <div class="node-label">Source</div>
+          <div class="node-name">DAC</div>
+        </div>
+        <div class="chain-arrow"></div>
+        <div class="chain-node">
+          <div class="node-label">Amplifier</div>
+          <div class="node-name">Amp</div>
+        </div>
+        <div class="chain-arrow"></div>
+        <div class="chain-node">
+          <div class="node-label">Output</div>
+          <div class="node-name">Speakers</div>
+        </div>
+      </div>
+      <!-- Controls -->
+      <div class="builder-controls">
+        <div>
+          <span class="ctrl-label">Output Level</span>
+          <div class="ctrl-slider"><div class="ctrl-slider-fill" style="width:68%"></div></div>
+          <div class="ctrl-value">−4.2 dB</div>
+        </div>
+        <div>
+          <span class="ctrl-label">Gain Stage</span>
+          <div class="ctrl-slider"><div class="ctrl-slider-fill" style="width:45%"></div></div>
+          <div class="ctrl-value">Low</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>Phon<span style="color:rgba(201,111,18,0.6)">.</span>Audio &mdash; High-fidelity signal chain design &copy; 2026</div>
+    <div class="palette-links">
+      View other palettes:
+      <a href="option-b-amber.html">B-Amber</a> &middot;
+      <a href="option-b-dark.html">B-Dark</a> &middot;
+      <a href="option-b-linen.html">B-Linen</a> &middot;
+      <a href="option-b.html">Back to options</a>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -7,9 +7,11 @@ import type {
 } from "@/types";
 import {
   CABLE_DEFS, CABLE_BY_ID, CABLE_SUGGESTION,
-  CATEGORY_LABELS, CATEGORY_BADGE, CATEGORY_ORDER,
+  CATEGORY_BADGE, CATEGORY_LABELS, CATEGORY_ORDER,
 } from "@/types";
 import ResultsPanel from "@/components/ResultsPanel";
+import ChainDiagram from "@/components/ChainDiagram";
+import RoomCanvas from "@/components/RoomCanvas";
 
 // ---- Seed demo chains (use engine seed IDs for fallback mode) ---------------
 
@@ -26,35 +28,54 @@ const DEMO_CHAINS: Record<string, { componentIds: string[]; cableIds: string[] }
   },
 };
 
-// ---- Sub-components --------------------------------------------------------
+// ---- Helper functions -------------------------------------------------------
 
-function CategoryGroup({
-  category,
-  components,
-  onAdd,
-}: {
-  category: ComponentCategory;
-  components: UIComponent[];
-  onAdd: (c: UIComponent) => void;
-}) {
-  return (
-    <div className="mb-3">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 px-1">
-        {CATEGORY_LABELS[category]}
-      </p>
-      {components.map((c) => (
-        <button
-          key={c.id}
-          onClick={() => onAdd(c)}
-          title={c.note ?? c.name}
-          className="block w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md px-3 py-2 text-xs text-slate-700 mb-1 truncate transition-colors"
-        >
-          {c.name}
-        </button>
-      ))}
-    </div>
-  );
+function computeScore(report: SystemReport): number {
+  let score = 100;
+  for (const link of report.links) {
+    for (const r of link.results) {
+      if (r.verdict === "fail") score -= 20;
+      else if (r.verdict === "warn") score -= 5;
+    }
+  }
+  for (const r of report.system) {
+    if (r.verdict === "fail") score -= 20;
+    else if (r.verdict === "warn") score -= 5;
+  }
+  return Math.max(0, Math.min(100, score));
 }
+
+function scoreLabel(score: number): string {
+  if (score >= 90) return "Excellent pairing";
+  if (score >= 70) return "Good match";
+  if (score >= 50) return "Fair match";
+  return "Compatibility issues";
+}
+
+function getTopChecks(report: SystemReport): Array<{ label: string; verdict: "pass" | "warn" | "fail" | "info"; valueStr: string }> {
+  const all: Array<{ label: string; verdict: "pass" | "warn" | "fail" | "info"; valueStr: string }> = [];
+  for (const link of report.links) {
+    for (const r of link.results) {
+      if (r.verdict === "info") continue; // skip info-level
+      const valueStr = r.value != null && r.unit ? `${r.value.toFixed(1)}${r.unit}` : "";
+      all.push({ label: r.label, verdict: r.verdict, valueStr });
+    }
+  }
+  // Sort: fails first, then warns, then passes. Take top 4.
+  const order = { fail: 0, warn: 1, pass: 2, info: 3 };
+  all.sort((a, b) => order[a.verdict] - order[b.verdict]);
+  return all.slice(0, 4);
+}
+
+// ---- Category color badges -------------------------------------------------
+
+const CAT_COLOR_BADGE: Partial<Record<ComponentCategory, string>> = {
+  source: "#7a5c3a", dac: "#c96f12", preamp: "#9b4f0a",
+  power_amp: "#7a3a08", integrated: "#8b4f20", headphone_amp: "#9b5010",
+  speaker: "#4a7a3a", headphone: "#3a5c7a",
+};
+
+// ---- Sub-components --------------------------------------------------------
 
 function CableConnector({
   value,
@@ -87,26 +108,46 @@ function ContextForm({
   ctx: ContextSettings;
   onChange: (c: ContextSettings) => void;
 }) {
-  const field = (label: string, key: keyof ContextSettings, min: number, max: number, step = 1) => (
-    <div className="mb-3">
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+  const slider = (
+    label: string,
+    key: keyof ContextSettings,
+    min: number,
+    max: number,
+    step: number,
+    unit: string,
+  ) => (
+    <div style={{ marginBottom: "18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+        <label style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--pa-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {label}
+        </label>
+        <span style={{ fontSize: "0.82rem", fontWeight: 500, color: "var(--pa-text)", fontFamily: "var(--font-lora), serif" }}>
+          {ctx[key]}{unit}
+        </span>
+      </div>
       <input
-        type="number"
-        value={ctx[key]}
+        type="range"
         min={min}
         max={max}
         step={step}
-        onChange={(e) => onChange({ ...ctx, [key]: parseFloat(e.target.value) || 0 })}
-        className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        value={ctx[key]}
+        onChange={(e) => onChange({ ...ctx, [key]: parseFloat(e.target.value) })}
+        style={{ width: "100%", cursor: "pointer", margin: "2px 0" }}
       />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.6rem", color: "var(--pa-muted)", opacity: 0.65, marginTop: "1px" }}>
+        <span>{min}{unit}</span>
+        <span>{Math.round((min + max) / 2)}{unit}</span>
+        <span>{max}{unit}</span>
+      </div>
     </div>
   );
+
   return (
     <>
-      {field("Target SPL (dB)", "targetSplDb",  60, 120)}
-      {field("Crest factor / headroom (dB)", "crestFactorDb", 6, 30)}
-      {field("Distance to speaker (m)", "distanceM", 0.5, 20, 0.5)}
-      {field("Room gain (dB)", "roomGainDb", 0, 12)}
+      {slider("Target SPL", "targetSplDb", 60, 100, 1, " dB")}
+      {slider("Headroom", "crestFactorDb", 6, 30, 1, " dB")}
+      {slider("Distance", "distanceM", 0.5, 8, 0.5, " m")}
+      {slider("Room gain", "roomGainDb", 0, 12, 1, " dB")}
     </>
   );
 }
@@ -130,6 +171,8 @@ export default function ChainBuilder({
   const [report, setReport] = useState<SystemReport | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openManufacturer, setOpenManufacturer] = useState<string | null>(null);
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   // Index catalog by id for quick lookup
   const catalogById = Object.fromEntries(catalog.map((c) => [c.id, c]));
@@ -236,56 +279,263 @@ export default function ChainBuilder({
     }
   }, [chain, ctx]);
 
-  // Group catalog by category
-  const grouped: Partial<Record<ComponentCategory, UIComponent[]>> = {};
+  // Two-level grouping: category → manufacturer → components
+  const byCategory: Partial<Record<ComponentCategory, Record<string, UIComponent[]>>> = {};
   for (const c of catalog) {
-    (grouped[c.category] ??= []).push(c);
+    const cat = c.category;
+    const mfr = c.manufacturer ?? "Other";
+    if (!byCategory[cat]) byCategory[cat] = {};
+    if (!byCategory[cat]![mfr]) byCategory[cat]![mfr] = [];
+    byCategory[cat]![mfr].push(c);
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="grid grid-cols-[220px_1fr_260px] gap-4 p-4 max-w-7xl mx-auto w-full">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "220px 1fr 300px",
+        gap: "16px",
+        padding: "16px",
+        maxWidth: "1280px",
+        margin: "0 auto",
+        width: "100%",
+      }}>
 
         {/* ── Palette ── */}
-        <aside className="bg-white rounded-xl border border-slate-200 p-4 overflow-y-auto max-h-[calc(100vh-10rem)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Components</p>
+        <aside style={{
+          background: "var(--pa-bg)",
+          borderRadius: "10px",
+          border: "1px solid var(--pa-border)",
+          padding: "16px",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 10rem)",
+        }}>
+          <p style={{
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "var(--pa-muted)",
+            marginBottom: "12px",
+            fontFamily: "var(--font-playfair), Georgia, serif",
+          }}>
+            Components
+          </p>
           {catalog.length === 0 ? (
-            <p className="text-xs text-slate-400">Loading catalog…</p>
+            <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)" }}>Loading catalog…</p>
           ) : (
-            CATEGORY_ORDER.map((cat) =>
-              grouped[cat] ? (
-                <CategoryGroup
-                  key={cat}
-                  category={cat}
-                  components={grouped[cat]!}
-                  onAdd={addComponent}
-                />
-              ) : null,
-            )
+            CATEGORY_ORDER.map((cat) => {
+              if (!byCategory[cat]) return null;
+              const catMfrs = byCategory[cat]!;
+              const mfrNames = Object.keys(catMfrs).sort();
+              const isCatOpen = openCategory === cat;
+              return (
+                <div key={cat} style={{ marginBottom: "2px" }}>
+                  {/* Category header */}
+                  <button
+                    onClick={() => setOpenCategory(isCatOpen ? null : cat)}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "6px 8px",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--pa-border)",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    <span style={{
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: "var(--pa-accent)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      fontFamily: "var(--font-lora), serif",
+                    }}>
+                      {CATEGORY_LABELS[cat]}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--pa-accent)" }}>{isCatOpen ? "−" : "+"}</span>
+                  </button>
+                  {/* Manufacturer list under this category */}
+                  {isCatOpen && mfrNames.map((mfr) => {
+                    const isMfrOpen = openManufacturer === `${cat}::${mfr}`;
+                    return (
+                      <div key={mfr} style={{ paddingLeft: "4px" }}>
+                        <button
+                          onClick={() => setOpenManufacturer(prev => prev === `${cat}::${mfr}` ? null : `${cat}::${mfr}`)}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "5px 8px",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "0.78rem",
+                            color: isMfrOpen ? "var(--pa-text)" : "var(--pa-muted)",
+                            fontFamily: "var(--font-lora), serif",
+                            fontWeight: isMfrOpen ? 600 : 400,
+                          }}
+                        >
+                          <span>{mfr}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, opacity: 0.6 }}>{isMfrOpen ? "−" : "+"}</span>
+                        </button>
+                        {isMfrOpen && (
+                          <div style={{ paddingLeft: "8px", paddingBottom: "4px" }}>
+                            {catMfrs[mfr].map((c) => (
+                              <button
+                                key={c.id}
+                                onClick={() => addComponent(c)}
+                                title={c.note ?? c.name}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  width: "100%",
+                                  textAlign: "left",
+                                  background: "var(--pa-surface)",
+                                  border: "1px solid var(--pa-border)",
+                                  borderRadius: "4px",
+                                  padding: "5px 8px",
+                                  fontSize: "0.76rem",
+                                  color: "var(--pa-text)",
+                                  marginBottom: "2px",
+                                  cursor: "pointer",
+                                  fontFamily: "var(--font-lora), serif",
+                                }}
+                              >
+                                <span style={{
+                                  fontSize: "0.6rem",
+                                  fontWeight: 700,
+                                  background: CAT_COLOR_BADGE[c.category] ?? "var(--pa-accent)",
+                                  color: "#fff",
+                                  padding: "1px 5px",
+                                  borderRadius: "3px",
+                                  flexShrink: 0,
+                                  letterSpacing: "0.04em",
+                                }}>
+                                  {CATEGORY_BADGE[c.category]}
+                                </span>
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {c.name}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
           )}
         </aside>
 
         {/* ── Chain ── */}
-        <section className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Chain</p>
+        <section style={{
+          background: "var(--pa-bg)",
+          borderRadius: "10px",
+          border: "1px solid var(--pa-border)",
+          padding: "16px",
+          display: "flex",
+          flexDirection: "column",
+        }}>
+          <p style={{
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "var(--pa-muted)",
+            marginBottom: "12px",
+            fontFamily: "var(--font-playfair), Georgia, serif",
+          }}>
+            Chain
+          </p>
 
-          {chain.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-10">
-              Click a component on the left to start building your chain
-            </p>
+          {/* Graphical chain diagram — always visible */}
+          {chain.length > 0 ? (
+            <div style={{
+              background: "var(--pa-surface)",
+              border: "1px solid var(--pa-border)",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "12px",
+            }}>
+              <ChainDiagram chain={chain} report={report} />
+            </div>
           ) : (
-            <div className="flex-1">
+            <div style={{
+              background: "var(--pa-surface)",
+              border: "1px dashed var(--pa-border)",
+              borderRadius: "8px",
+              padding: "40px 20px",
+              textAlign: "center",
+              marginBottom: "12px",
+              color: "var(--pa-muted)",
+              fontSize: "0.85rem",
+              fontFamily: "var(--font-lora), serif",
+            }}>
+              ← Add components from the panel to build your chain
+            </div>
+          )}
+
+          {/* Compact chain node list (for cable editing + remove) */}
+          {chain.length > 0 && (
+            <div style={{ marginBottom: "12px", flex: 1 }}>
               {chain.map((entry, i) => (
                 <div key={`${entry.component.id}-${i}`}>
                   {/* Node card */}
-                  <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2.5 bg-slate-50">
-                    <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded shrink-0">
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    border: "1px solid var(--pa-border)",
+                    borderRadius: "8px",
+                    padding: "10px 12px",
+                    background: "var(--pa-surface)",
+                  }}>
+                    <span style={{
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      background: "var(--pa-accent)",
+                      color: "#fff",
+                      padding: "2px 8px",
+                      borderRadius: "3px",
+                      flexShrink: 0,
+                      fontFamily: "var(--font-lora), serif",
+                      letterSpacing: "0.04em",
+                    }}>
                       {CATEGORY_BADGE[entry.component.category]}
                     </span>
-                    <span className="flex-1 text-sm text-slate-800 truncate">{entry.component.name}</span>
+                    <span style={{
+                      flex: 1,
+                      fontSize: "0.875rem",
+                      color: "var(--pa-text)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-lora), serif",
+                    }}>
+                      {entry.component.name}
+                    </span>
                     <button
                       onClick={() => removeAt(i)}
-                      className="text-slate-400 hover:text-red-500 transition-colors text-lg leading-none px-1"
+                      style={{
+                        color: "var(--pa-muted)",
+                        background: "none",
+                        border: "none",
+                        fontSize: "1.2rem",
+                        lineHeight: 1,
+                        padding: "0 4px",
+                        cursor: "pointer",
+                      }}
                       title="Remove"
                     >
                       ×
@@ -304,30 +554,85 @@ export default function ChainBuilder({
             </div>
           )}
 
+          {/* Room view — only for speaker chains */}
+          {chain.some(e => e.component.category === "speaker") && (
+            <div style={{
+              margin: "12px 0",
+              padding: "16px",
+              background: "var(--pa-surface)",
+              border: "1px solid var(--pa-border)",
+              borderRadius: "8px",
+            }}>
+              <RoomCanvas
+                distanceM={ctx.distanceM}
+                roomGainDb={ctx.roomGainDb}
+                hasSpeakers={true}
+                hasHeadphones={false}
+              />
+            </div>
+          )}
+
           {/* Actions */}
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap" }}>
             <button
               onClick={evaluate}
               disabled={evaluating || chain.length < 2}
-              className="bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              style={{
+                background: evaluating || chain.length < 2 ? "var(--pa-border)" : "var(--pa-dark)",
+                color: "#fff",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                padding: "8px 16px",
+                borderRadius: "4px",
+                border: "none",
+                cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
+                fontFamily: "var(--font-lora), serif",
+              }}
             >
               {evaluating ? "Evaluating…" : "Evaluate"}
             </button>
             <button
               onClick={() => loadDemo("speaker")}
-              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-sm px-4 py-2 rounded-lg transition-colors"
+              style={{
+                border: "1px solid var(--pa-accent)",
+                color: "var(--pa-accent)",
+                background: "transparent",
+                fontSize: "0.875rem",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontFamily: "var(--font-lora), serif",
+              }}
             >
               Speaker demo
             </button>
             <button
               onClick={() => loadDemo("headphone")}
-              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-sm px-4 py-2 rounded-lg transition-colors"
+              style={{
+                border: "1px solid var(--pa-accent)",
+                color: "var(--pa-accent)",
+                background: "transparent",
+                fontSize: "0.875rem",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontFamily: "var(--font-lora), serif",
+              }}
             >
               HP demo
             </button>
             <button
               onClick={() => { setChain([]); setReport(null); }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm px-4 py-2 rounded-lg transition-colors"
+              style={{
+                background: "var(--pa-surface)",
+                color: "var(--pa-muted)",
+                fontSize: "0.875rem",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                border: "1px solid var(--pa-border)",
+                cursor: "pointer",
+                fontFamily: "var(--font-lora), serif",
+              }}
             >
               Clear
             </button>
@@ -335,32 +640,192 @@ export default function ChainBuilder({
         </section>
 
         {/* ── Context + Evaluate ── */}
-        <aside className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-            Listening Context
-          </p>
-          <ContextForm ctx={ctx} onChange={setCtx} />
+        <aside style={{
+          background: "var(--pa-bg)",
+          borderRadius: "10px",
+          border: "1px solid var(--pa-border)",
+          padding: "16px",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 10rem)",
+        }}>
+          {/* Evaluate button — always at top for visibility */}
           <button
             onClick={evaluate}
             disabled={evaluating || chain.length < 2}
-            className="w-full mt-2 bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+            style={{
+              width: "100%",
+              marginBottom: "16px",
+              background: evaluating || chain.length < 2 ? "var(--pa-border)" : "var(--pa-accent)",
+              color: "#fff",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              padding: "11px",
+              borderRadius: "5px",
+              border: "none",
+              cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
+              fontFamily: "var(--font-lora), serif",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
           >
-            {evaluating ? "Evaluating…" : "Evaluate chain"}
+            {evaluating ? "Evaluating…" : "Evaluate Chain"}
           </button>
+
+          <p style={{
+            fontSize: "0.68rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            color: "var(--pa-muted)",
+            marginBottom: "12px",
+            fontFamily: "var(--font-lora), serif",
+          }}>
+            Listening Context
+          </p>
+          <ContextForm ctx={ctx} onChange={setCtx} />
+
+          {/* Compatibility check summary */}
+          {report && (
+            <div style={{ marginTop: "16px" }}>
+              {/* Score badge */}
+              <div style={{
+                background: "var(--pa-accent)",
+                borderRadius: "8px",
+                padding: "16px",
+                textAlign: "center",
+                marginBottom: "12px",
+              }}>
+                <div style={{
+                  fontSize: "2.5rem",
+                  fontWeight: 700,
+                  color: "#fff",
+                  fontFamily: "var(--font-playfair), Georgia, serif",
+                  lineHeight: 1,
+                }}>
+                  {computeScore(report)}
+                </div>
+                <div style={{
+                  fontSize: "0.65rem",
+                  color: "rgba(255,255,255,0.8)",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  marginTop: "4px",
+                  fontFamily: "var(--font-lora), serif",
+                }}>
+                  out of 100 — {scoreLabel(computeScore(report))}
+                </div>
+              </div>
+
+              {/* Key checks */}
+              <div style={{
+                border: "1px solid var(--pa-border)",
+                borderRadius: "8px",
+                overflow: "hidden",
+                marginBottom: "12px",
+              }}>
+                <div style={{
+                  padding: "8px 12px",
+                  background: "var(--pa-surface)",
+                  borderBottom: "1px solid var(--pa-border)",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--pa-muted)",
+                  fontFamily: "var(--font-lora), serif",
+                }}>
+                  Compatibility Check
+                </div>
+                {getTopChecks(report).map((chk, idx) => (
+                  <div key={idx} style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "7px 12px",
+                    borderBottom: idx < getTopChecks(report).length - 1 ? "1px solid var(--pa-border)" : "none",
+                    fontSize: "0.78rem",
+                    fontFamily: "var(--font-lora), serif",
+                  }}>
+                    <span style={{ color: "var(--pa-text)" }}>{chk.label}</span>
+                    <span style={{
+                      fontWeight: 600,
+                      color: chk.verdict === "pass" ? "#4a7a3a" : chk.verdict === "fail" ? "#c0392b" : "#9b5010",
+                    }}>
+                      {chk.valueStr} {chk.verdict === "pass" ? "✓" : chk.verdict === "fail" ? "✕" : "⚡"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Save + Share buttons */}
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button style={{
+                  flex: 1,
+                  background: "var(--pa-accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "9px",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-lora), serif",
+                }}>
+                  Save
+                </button>
+                <button style={{
+                  flex: 1,
+                  background: "transparent",
+                  color: "var(--pa-text)",
+                  border: "1px solid var(--pa-border)",
+                  borderRadius: "4px",
+                  padding: "9px",
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-lora), serif",
+                }}>
+                  Share
+                </button>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
 
       {/* ── Results ── */}
       {(error || report) && (
-        <div id="results" className="max-w-7xl mx-auto w-full px-4 pb-10">
+        <div id="results" style={{ maxWidth: "1280px", margin: "0 auto", width: "100%", padding: "0 16px 40px" }}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">
+            <div style={{
+              background: "#fff5f5",
+              border: "1px solid #feb2b2",
+              color: "#c53030",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              fontSize: "0.875rem",
+              marginBottom: "16px",
+            }}>
               {error}
             </div>
           )}
           {report && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Results</p>
+            <div style={{
+              background: "var(--pa-bg)",
+              borderRadius: "10px",
+              border: "1px solid var(--pa-border)",
+              padding: "24px",
+            }}>
+              <p style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                color: "var(--pa-muted)",
+                marginBottom: "16px",
+                fontFamily: "var(--font-playfair), Georgia, serif",
+              }}>
+                Results
+              </p>
               <ResultsPanel report={report} />
             </div>
           )}
