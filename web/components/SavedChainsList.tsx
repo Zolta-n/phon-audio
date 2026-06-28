@@ -1,0 +1,130 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+
+interface ChainNode {
+  position: number;
+  component: { id: string; name: string; category: string; manufacturer?: string } | null;
+}
+
+interface SavedChain {
+  id: string;
+  name: string;
+  is_public: boolean;
+  created_at: string;
+  context: Record<string, unknown>;
+  chain_nodes: ChainNode[];
+}
+
+const BADGE_COLORS: Record<string, string> = {
+  source: "#7a5c3a", turntable: "#6b4423", dac: "#c96f12", preamp: "#9b4f0a",
+  power_amp: "#7a3a08", integrated: "#8b4f20", headphone_amp: "#9b5010",
+  speaker: "#4a7a3a", headphone: "#3a5c7a",
+};
+
+export default function SavedChainsList({ chains: initialChains }: { chains: SavedChain[] }) {
+  const [chains, setChains] = useState(initialChains);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this chain?")) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/chains/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setChains(chains.filter(c => c.id !== id));
+      }
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {chains.map(chain => {
+        const nodes = [...chain.chain_nodes].sort((a, b) => a.position - b.position);
+        const date = new Date(chain.created_at).toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric",
+        });
+
+        return (
+          <div key={chain.id} style={{
+            background: "#fff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "10px",
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            transition: "border-color 0.15s",
+          }}>
+            {/* Chain info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "Georgia, serif", fontSize: "1rem", color: "#1e293b", marginBottom: "6px" }}>
+                {chain.name}
+              </div>
+              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" }}>
+                {nodes.map((node, i) => (
+                  <span key={i} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    {i > 0 && <span style={{ color: "#cbd5e1", fontSize: "0.7rem" }}>{"\u2192"}</span>}
+                    <span style={{
+                      fontSize: "0.7rem",
+                      fontFamily: "var(--pa-font-ui)",
+                      background: BADGE_COLORS[node.component?.category ?? ""] ?? "#94a3b8",
+                      color: "#fff",
+                      padding: "2px 6px",
+                      borderRadius: "3px",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {node.component?.name ?? "Unknown"}
+                    </span>
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontFamily: "var(--pa-font-ui)", marginTop: "6px" }}>
+                {date}
+                {chain.is_public && <span style={{ marginLeft: "8px", color: "#d97706" }}>Public</span>}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+              <Link
+                href={`/builder?load=${chain.id}`}
+                style={{
+                  background: "#d97706",
+                  color: "#fff",
+                  textDecoration: "none",
+                  padding: "7px 14px",
+                  borderRadius: "6px",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  fontFamily: "var(--pa-font-ui)",
+                }}
+              >
+                Open
+              </Link>
+              <button
+                onClick={() => handleDelete(chain.id)}
+                disabled={deleting === chain.id}
+                style={{
+                  background: "none",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  color: deleting === chain.id ? "#cbd5e1" : "#c0392b",
+                  padding: "7px 12px",
+                  fontSize: "0.78rem",
+                  cursor: deleting === chain.id ? "wait" : "pointer",
+                  fontFamily: "var(--pa-font-ui)",
+                }}
+              >
+                {deleting === chain.id ? "\u2026" : "Delete"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

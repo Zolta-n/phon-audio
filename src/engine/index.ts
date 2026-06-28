@@ -15,6 +15,8 @@ import type {
   HeadphoneLoad,
   DigitalOut,
   DigitalIn,
+  PhonoOut,
+  PhonoIn,
 } from "../types";
 import type { CheckResult, Verdict } from "./checkResult";
 import { worstVerdict } from "./checkResult";
@@ -26,6 +28,12 @@ import {
   powerHandling,
 } from "./checks/speakerLink";
 import { headphoneDrive, headphoneOutputImpedance } from "./checks/headphoneLink";
+import {
+  phonoCartridgeMatch,
+  phonoImpedanceLoading,
+  phonoCapacitanceLoading,
+  phonoGainAdequacy,
+} from "./checks/phonoLink";
 import { digitalLink } from "./checks/digitalLink";
 import { gainStructure, endToEndSpl } from "./system";
 
@@ -44,7 +52,7 @@ export interface SystemReport {
 }
 
 // Priority for picking the link domain when more than one matches.
-const DOMAIN_PRIORITY: SignalDomain[] = ["speaker", "headphone", "line", "digital"];
+const DOMAIN_PRIORITY: SignalDomain[] = ["speaker", "headphone", "line", "phono", "digital"];
 
 function resolveLink(
   from: Component,
@@ -88,6 +96,16 @@ function checkLink(
         impedanceBridging(o.outputImpedanceOhm, i.inputImpedanceOhm),
         hfRolloff(o.outputImpedanceOhm, asInterconnect(cable)),
         gainStaging(o.maxOutputVrms, i.inputSensitivityVrms, i.maxInputVrms),
+      ];
+    }
+    case "phono": {
+      const cart = out.specs as PhonoOut;
+      const stage = inp.specs as PhonoIn;
+      return [
+        phonoCartridgeMatch(cart, stage),
+        phonoImpedanceLoading(cart, stage),
+        phonoCapacitanceLoading(cart, stage, asInterconnect(cable)),
+        phonoGainAdequacy(cart, stage),
       ];
     }
     case "speaker": {

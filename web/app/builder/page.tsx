@@ -1,13 +1,35 @@
 import ChainBuilder from "@/components/ChainBuilder";
 import { getComponents } from "@/lib/getComponents";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+
+async function loadSavedChain(chainId: string) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data } = await supabase
+      .from("chains")
+      .select("name, context, chain_nodes(position, cable, component:components(id, name, category, specs, manufacturer, affiliate_url, image_url, notes))")
+      .eq("id", chainId)
+      .single();
+    if (!data) return null;
+    const nodes = [...(data.chain_nodes ?? [])].sort((a: { position: number }, b: { position: number }) => a.position - b.position);
+    return { name: data.name, context: data.context, nodes };
+  } catch {
+    return null;
+  }
+}
 
 export default async function BuilderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ demo?: string }>;
+  searchParams: Promise<{ demo?: string; load?: string }>;
 }) {
-  const { demo } = await searchParams;
+  const { demo, load } = await searchParams;
   const catalog = await getComponents();
+
+  let savedChain = null;
+  if (load) {
+    savedChain = await loadSavedChain(load);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 68px)" }}>
@@ -32,7 +54,7 @@ export default async function BuilderPage({
           Add components, set listening context, then evaluate your signal chain.
         </p>
       </div>
-      <ChainBuilder catalog={catalog} initialDemo={demo} />
+      <ChainBuilder catalog={catalog} initialDemo={demo} savedChain={savedChain} />
     </div>
   );
 }

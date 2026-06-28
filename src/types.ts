@@ -9,7 +9,7 @@
 // amp declares a `line` input and a `speaker` output.
 // ---------------------------------------------------------------------------
 
-export type SignalDomain = "digital" | "line" | "speaker" | "headphone";
+export type SignalDomain = "digital" | "line" | "phono" | "speaker" | "headphone";
 
 export type Connector =
   | "usb"
@@ -25,6 +25,7 @@ export type Connector =
 
 export type ComponentCategory =
   | "source"
+  | "turntable"
   | "dac"
   | "preamp"
   | "power_amp"
@@ -91,6 +92,34 @@ export interface DigitalIn {
   maxBitDepth: number;
 }
 
+// --- Phono port specs ------------------------------------------------------
+
+export interface PhonoOut {
+  kind: "phono_out";
+  /** "mm" (moving magnet) or "mc" (moving coil). */
+  cartridgeType: "mm" | "mc";
+  /** Cartridge output voltage in mV (e.g. 5 mV for MM, 0.4 mV for MC). */
+  outputVoltageMv: number;
+  /** Cartridge internal impedance / source impedance in ohms. */
+  internalImpedanceOhm?: number;
+  /** Recommended load impedance (47 kΩ standard for MM). */
+  recommendedLoadImpedanceOhm?: number;
+  /** Recommended total load capacitance in pF (100–300 pF typical for MM). */
+  recommendedLoadCapacitancePf?: number;
+}
+
+export interface PhonoIn {
+  kind: "phono_in";
+  /** Which cartridge types this input accepts. */
+  cartridgeType: "mm" | "mc" | "both";
+  /** Input impedance in ohms (47 kΩ standard for MM, variable for MC). */
+  inputImpedanceOhm: number;
+  /** Internal capacitance of the phono input in pF (added to cable capacitance). */
+  inputCapacitancePf?: number;
+  /** Phono stage gain in dB (typically 40 dB for MM, 60 dB for MC). */
+  gainDb: number;
+}
+
 // --- Loads (terminal components) -------------------------------------------
 
 export interface HeadphoneLoad {
@@ -118,8 +147,10 @@ export type PortSpec =
   | SpeakerOut
   | HeadphoneOut
   | DigitalOut
+  | PhonoOut
   | LineIn
   | DigitalIn
+  | PhonoIn
   | HeadphoneLoad
   | SpeakerLoad;
 

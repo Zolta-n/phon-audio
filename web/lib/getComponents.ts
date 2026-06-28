@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { SEED_CATALOG } from "@/lib/seedCatalog";
 import type { UIComponent } from "@/types";
 

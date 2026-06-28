@@ -1,9 +1,9 @@
 // Shared UI types — what the API returns to the client.
 // The engine's Port/PortSpec types are intentionally re-used via JSON serialization.
 
-export type SignalDomain = "digital" | "line" | "speaker" | "headphone";
+export type SignalDomain = "digital" | "line" | "phono" | "speaker" | "headphone";
 export type ComponentCategory =
-  | "source" | "dac" | "preamp" | "power_amp" | "integrated"
+  | "source" | "turntable" | "dac" | "preamp" | "power_amp" | "integrated"
   | "headphone_amp" | "speaker" | "headphone";
 
 export interface PortSpec {
@@ -76,6 +76,8 @@ export const CABLE_DEFS: CableDef[] = [
   { id: "speaker-14awg-3m", label: "Speaker 14 AWG (3 m)",         cable: { kind: "speaker",       lengthM: 3.0, awg: 14 } },
   { id: "speaker-16awg-3m", label: "Speaker 16 AWG (3 m)",         cable: { kind: "speaker",       lengthM: 3.0, awg: 16 } },
   { id: "speaker-18awg-8m", label: "Speaker 18 AWG (8 m, thin)",   cable: { kind: "speaker",       lengthM: 8.0, awg: 18 } },
+  { id: "phono-rca-1m",    label: "Phono RCA (1 m, low-cap)",    cable: { kind: "interconnect",  lengthM: 1.0, capacitancePfPerM: 60, balanced: false } },
+  { id: "phono-rca-1.5m",  label: "Phono RCA (1.5 m, low-cap)",  cable: { kind: "interconnect",  lengthM: 1.5, capacitancePfPerM: 60, balanced: false } },
 ];
 
 export const CABLE_BY_ID = Object.fromEntries(CABLE_DEFS.map(c => [c.id, c]));
@@ -84,6 +86,7 @@ export const CABLE_BY_ID = Object.fromEntries(CABLE_DEFS.map(c => [c.id, c]));
 
 export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
   source:       "Sources",
+  turntable:    "Turntables",
   dac:          "DACs",
   preamp:       "Preamps",
   power_amp:    "Power Amps",
@@ -95,6 +98,7 @@ export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
 
 export const CATEGORY_BADGE: Record<ComponentCategory, string> = {
   source:       "SRC",
+  turntable:    "TT",
   dac:          "DAC",
   preamp:       "PRE",
   power_amp:    "AMP",
@@ -105,12 +109,14 @@ export const CATEGORY_BADGE: Record<ComponentCategory, string> = {
 };
 
 export const CATEGORY_ORDER: ComponentCategory[] = [
-  "source", "dac", "preamp", "power_amp", "integrated",
+  "source", "turntable", "dac", "preamp", "power_amp", "integrated",
   "headphone_amp", "speaker", "headphone",
 ];
 
 // Smart cable suggestion based on upstream→downstream category pair
 export const CABLE_SUGGESTION: Partial<Record<string, string>> = {
+  "turntable->integrated": "phono-rca-1m",
+  "turntable->preamp":     "phono-rca-1m",
   "source->dac":           "usb",
   "source->integrated":    "coax",
   "dac->preamp":           "xlr-1m",

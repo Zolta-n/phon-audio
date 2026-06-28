@@ -1,6 +1,9 @@
 import Link from "next/link";
+import AuthButton from "./AuthButton";
 
 export default function Navbar() {
+  const linkStyle = { color: "#a08060", textDecoration: "none" as const, fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" };
+
   return (
     <header style={{
       background: "rgba(26,15,0,0.96)",
@@ -29,19 +32,12 @@ export default function Navbar() {
         }}>
           Phon<span style={{ color: "var(--pa-accent)" }}>.</span>Audio
         </Link>
-        <nav style={{ display: "flex", gap: "36px", alignItems: "center" }}>
-          <Link href="/builder" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
-            Compatibility
-          </Link>
-          <Link href="/" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
-            Components
-          </Link>
-          <Link href="/learn" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
-            Learn
-          </Link>
-          <Link href="#" style={{ color: "#a08060", textDecoration: "none", fontSize: "0.875rem", letterSpacing: "0.05em", fontFamily: "var(--pa-font-ui)" }}>
-            Community
-          </Link>
+        <nav style={{ display: "flex", gap: "28px", alignItems: "center" }}>
+          <Link href="/builder" style={linkStyle}>Compatibility</Link>
+          <Link href="/components" style={linkStyle}>Components</Link>
+          <Link href="/learn" style={linkStyle}>Learn</Link>
+          <Link href="#" style={linkStyle}>Community</Link>
+          <AuthButton />
           <Link href="/builder" style={{
             background: "var(--pa-accent)",
             color: "#fff",

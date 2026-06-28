@@ -12,6 +12,7 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import ChainDiagram from "@/components/ChainDiagram";
 import RoomCanvas from "@/components/RoomCanvas";
+import { createClient } from "@/lib/supabase";
 
 // ---- Seed demo chains (use engine seed IDs for fallback mode) ---------------
 
@@ -170,12 +171,17 @@ function ContextForm({
 
 // ---- Main component --------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SavedChainData = { name: string; context: any; nodes: any[] } | null;
+
 export default function ChainBuilder({
   catalog,
   initialDemo,
+  savedChain,
 }: {
   catalog: UIComponent[];
   initialDemo?: string;
+  savedChain?: SavedChainData;
 }) {
   const [chain, setChain] = useState<ChainEntry[]>([]);
   const [ctx, setCtx] = useState<ContextSettings>({
@@ -189,6 +195,10 @@ export default function ChainBuilder({
   const [error, setError] = useState<string | null>(null);
   const [openManufacturer, setOpenManufacturer] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [chainName, setChainName] = useState("");
 
   // Index catalog by id for quick lookup
   const catalogById = Object.fromEntries(catalog.map((c) => [c.id, c]));
@@ -219,12 +229,41 @@ export default function ChainBuilder({
     [catalogById],
   );
 
-  // Auto-load demo from URL param on mount
+  // Auto-load demo or saved chain from URL param on mount
   useEffect(() => {
-    if (initialDemo && catalog.length > 0) {
+    if (savedChain && catalog.length > 0) {
+      const entries: ChainEntry[] = [];
+      for (const node of savedChain.nodes) {
+        const comp = node.component;
+        if (!comp) continue;
+        const uiComp = catalogById[comp.id];
+        if (!uiComp) continue;
+        // Match cable object back to a cable definition
+        let cableId = "none";
+        if (node.cable) {
+          const match = CABLE_DEFS.find(c =>
+            c.cable && c.cable.kind === node.cable.kind && c.cable.lengthM === node.cable.lengthM
+          );
+          if (match) cableId = match.id;
+        }
+        entries.push({ component: uiComp, cableId });
+      }
+      if (entries.length > 0) {
+        setChain(entries);
+        setChainName(savedChain.name ?? "");
+        if (savedChain.context) {
+          setCtx({
+            targetSplDb: savedChain.context.targetSplDb ?? 85,
+            crestFactorDb: savedChain.context.crestFactorDb ?? 15,
+            distanceM: savedChain.context.distanceM ?? 3,
+            roomGainDb: savedChain.context.roomGainDb ?? 0,
+          });
+        }
+      }
+    } else if (initialDemo && catalog.length > 0) {
       loadDemo(initialDemo);
     }
-  }, [initialDemo, catalog.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialDemo, savedChain, catalog.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addComponent = useCallback(
     (comp: UIComponent) => {
@@ -294,6 +333,55 @@ export default function ChainBuilder({
       setEvaluating(false);
     }
   }, [chain, ctx]);
+
+  const handleSave = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    setShowSaveModal(true);
+    // Default name from chain components
+    if (!chainName) {
+      setChainName(chain.map(e => e.component.name).join(" → "));
+    }
+  };
+
+  const confirmSave = async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const nodes = chain.map((entry, i) => {
+        const isLast = i === chain.length - 1;
+        const cableDef = isLast ? null : CABLE_BY_ID[entry.cableId];
+        return {
+          componentId: entry.component.id,
+          cable: cableDef?.cable ?? undefined,
+        };
+      });
+
+      const res = await fetch("/api/chains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: chainName || "My Chain",
+          context: ctx,
+          nodes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Save failed");
+      setSaveMsg("Chain saved!");
+      setShowSaveModal(false);
+      setTimeout(() => setSaveMsg(null), 3000);
+    } catch (e) {
+      setSaveMsg(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Two-level grouping: category → manufacturer → components
   const byCategory: Partial<Record<ComponentCategory, Record<string, UIComponent[]>>> = {};
@@ -753,19 +841,23 @@ export default function ChainBuilder({
 
               {/* Save + Share buttons */}
               <div style={{ display: "flex", gap: "8px" }}>
-                <button style={{
-                  flex: 1,
-                  background: "#d97706",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "7px",
-                  padding: "9px",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "var(--pa-font-ui)",
-                }}>
-                  Save
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    background: saving ? "#b45309" : "#d97706",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "7px",
+                    padding: "9px",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    cursor: saving ? "wait" : "pointer",
+                    fontFamily: "var(--pa-font-ui)",
+                  }}
+                >
+                  {saving ? "Saving\u2026" : saveMsg || "Save"}
                 </button>
                 <button style={{
                   flex: 1,
@@ -823,6 +915,66 @@ export default function ChainBuilder({
               <ResultsPanel report={report} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Save Modal ── */}
+      {showSaveModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+        }} onClick={() => setShowSaveModal(false)}>
+          <div style={{
+            background: "#fff", borderRadius: "12px", padding: "28px",
+            width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", color: "var(--pa-text)", marginBottom: "16px" }}>
+              Save Chain
+            </h3>
+            <label style={{ fontSize: "0.78rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", display: "block", marginBottom: "6px" }}>
+              Chain name
+            </label>
+            <input
+              type="text"
+              value={chainName}
+              onChange={e => setChainName(e.target.value)}
+              placeholder="My audio chain"
+              style={{
+                width: "100%", padding: "10px 14px", fontSize: "0.88rem",
+                border: "1.5px solid var(--pa-border)", borderRadius: "8px",
+                background: "var(--pa-bg)", color: "var(--pa-text)",
+                fontFamily: "var(--pa-font-ui)", outline: "none", marginBottom: "8px",
+                boxSizing: "border-box",
+              }}
+              onKeyDown={e => e.key === "Enter" && confirmSave()}
+              autoFocus
+            />
+            <p style={{ fontSize: "0.72rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", marginBottom: "16px" }}>
+              {chain.length} components: {chain.map(e => e.component.name).join(" \u2192 ")}
+            </p>
+            {saveMsg && (
+              <p style={{ fontSize: "0.78rem", color: saveMsg.includes("failed") ? "#c0392b" : "#166534", marginBottom: "12px", fontFamily: "var(--pa-font-ui)" }}>
+                {saveMsg}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button onClick={() => setShowSaveModal(false)} style={{
+                background: "var(--pa-bg)", color: "var(--pa-text)", border: "1.5px solid var(--pa-border)",
+                padding: "9px 20px", borderRadius: "8px", fontSize: "0.85rem",
+                fontFamily: "var(--pa-font-ui)", cursor: "pointer",
+              }}>
+                Cancel
+              </button>
+              <button onClick={confirmSave} disabled={saving} style={{
+                background: saving ? "#b45309" : "#d97706", color: "#fff", border: "none",
+                padding: "9px 24px", borderRadius: "8px", fontSize: "0.85rem",
+                fontWeight: 600, cursor: saving ? "wait" : "pointer",
+                fontFamily: "var(--pa-font-ui)",
+              }}>
+                {saving ? "Saving\u2026" : "Save Chain"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
