@@ -12,6 +12,9 @@ import {
 } from "@/types";
 import ResultsPanel from "@/components/ResultsPanel";
 import ChainDiagram from "@/components/ChainDiagram";
+import ExpertDiagram from "@/components/ExpertDiagram";
+import TelemetryDiagram from "@/components/TelemetryDiagram";
+import SchematicDiagram from "@/components/SchematicDiagram";
 import RoomCanvas from "@/components/RoomCanvas";
 import { createClient } from "@/lib/supabase";
 
@@ -194,6 +197,7 @@ export default function ChainBuilder({
   });
   const [report, setReport] = useState<SystemReport | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const [viewMode, setViewMode] = useState<"simple" | "rack" | "telemetry" | "schematic">("simple");
   const [error, setError] = useState<string | null>(null);
   const [openManufacturer, setOpenManufacturer] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
@@ -613,6 +617,47 @@ export default function ChainBuilder({
             Signal Chain
           </div>
 
+          {/* View toggle — only when report exists */}
+          {report && chain.length > 0 && (
+            <div style={{
+              display: "flex",
+              gap: "0",
+              marginBottom: "10px",
+              borderRadius: "6px",
+              overflow: "hidden",
+              border: "1px solid var(--pa-border)",
+              width: "fit-content",
+            }}>
+              {([
+                { key: "simple", label: "Simple" },
+                { key: "rack", label: "Rack" },
+                { key: "telemetry", label: "Telemetry" },
+                { key: "schematic", label: "Schematic" },
+              ] as const).map((mode) => {
+                const active = mode.key === viewMode;
+                return (
+                  <button
+                    key={mode.key}
+                    onClick={() => setViewMode(mode.key)}
+                    style={{
+                      padding: "5px 14px",
+                      fontSize: "0.75rem",
+                      fontFamily: "var(--pa-font-ui)",
+                      fontWeight: active ? 700 : 400,
+                      background: active ? "var(--pa-accent)" : "var(--pa-surface)",
+                      color: active ? "#fff" : "var(--pa-muted)",
+                      border: "none",
+                      cursor: "pointer",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Graphical chain diagram — always visible */}
           {chain.length > 0 ? (
             <div style={{
@@ -621,8 +666,17 @@ export default function ChainBuilder({
               borderRadius: "8px",
               padding: "16px",
               marginBottom: "12px",
+              ...(viewMode !== "simple" && report ? { overflowX: "auto" as const } : {}),
             }}>
-              <ChainDiagram chain={chain} report={report} />
+              {viewMode === "rack" && report ? (
+                <ExpertDiagram chain={chain} report={report} ctx={ctx} />
+              ) : viewMode === "telemetry" && report ? (
+                <TelemetryDiagram chain={chain} report={report} ctx={ctx} />
+              ) : viewMode === "schematic" && report ? (
+                <SchematicDiagram chain={chain} report={report} ctx={ctx} />
+              ) : (
+                <ChainDiagram chain={chain} report={report} />
+              )}
             </div>
           ) : (
             <div style={{
