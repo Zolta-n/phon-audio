@@ -12,9 +12,6 @@ import {
 } from "@/types";
 import ResultsPanel from "@/components/ResultsPanel";
 import ChainDiagram from "@/components/ChainDiagram";
-import ExpertDiagram from "@/components/ExpertDiagram";
-import TelemetryDiagram from "@/components/TelemetryDiagram";
-import SchematicDiagram from "@/components/SchematicDiagram";
 import RoomCanvas from "@/components/RoomCanvas";
 import { createClient } from "@/lib/supabase";
 
@@ -197,7 +194,6 @@ export default function ChainBuilder({
   });
   const [report, setReport] = useState<SystemReport | null>(null);
   const [evaluating, setEvaluating] = useState(false);
-  const [viewMode, setViewMode] = useState<"simple" | "rack" | "telemetry" | "schematic">("simple");
   const [error, setError] = useState<string | null>(null);
   const [openManufacturer, setOpenManufacturer] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
@@ -208,6 +204,7 @@ export default function ChainBuilder({
   const { isFavorite, toggleFavorite } = useFavorites();
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [expandedMfrs, setExpandedMfrs] = useState<Set<string>>(new Set());
+  const [insertAtIdx, setInsertAtIdx] = useState<number | null>(null);
 
   // Index catalog by id for quick lookup
   const catalogById = Object.fromEntries(catalog.map((c) => [c.id, c]));
@@ -290,8 +287,27 @@ export default function ChainBuilder({
     [suggestCable],
   );
 
+  const insertComponent = useCallback(
+    (idx: number, comp: UIComponent) => {
+      setChain((prev) => {
+        const next = [...prev];
+        const before = next[idx - 1];
+        const after = next[idx];
+        const cableToNew = before ? suggestCable(before.component.id, comp.id) : "none";
+        const cableToAfter = after ? suggestCable(comp.id, after.component.id) : "none";
+        if (before) next[idx - 1] = { ...before, cableId: cableToNew };
+        next.splice(idx, 0, { component: comp, cableId: cableToAfter });
+        return next;
+      });
+      setInsertAtIdx(null);
+      setReport(null);
+    },
+    [suggestCable],
+  );
+
   const removeAt = useCallback((idx: number) => {
     setChain((prev) => prev.filter((_, i) => i !== idx));
+    setInsertAtIdx(null);
     setReport(null);
   }, []);
 
@@ -522,7 +538,7 @@ export default function ChainBuilder({
                               {visible.map((c) => (
                                 <div
                                   key={c.id}
-                                  onClick={() => addComponent(c)}
+                                  onClick={() => insertAtIdx !== null ? insertComponent(insertAtIdx, c) : addComponent(c)}
                                   title={c.note ?? c.name}
                                   style={{
                                     display: "flex",
@@ -617,46 +633,6 @@ export default function ChainBuilder({
             Signal Chain
           </div>
 
-          {/* View toggle — only when report exists */}
-          {report && chain.length > 0 && (
-            <div style={{
-              display: "flex",
-              gap: "0",
-              marginBottom: "10px",
-              borderRadius: "6px",
-              overflow: "hidden",
-              border: "1px solid var(--pa-border)",
-              width: "fit-content",
-            }}>
-              {([
-                { key: "simple", label: "Simple" },
-                { key: "rack", label: "Rack" },
-                { key: "telemetry", label: "Telemetry" },
-                { key: "schematic", label: "Schematic" },
-              ] as const).map((mode) => {
-                const active = mode.key === viewMode;
-                return (
-                  <button
-                    key={mode.key}
-                    onClick={() => setViewMode(mode.key)}
-                    style={{
-                      padding: "5px 14px",
-                      fontSize: "0.75rem",
-                      fontFamily: "var(--pa-font-ui)",
-                      fontWeight: active ? 700 : 400,
-                      background: active ? "var(--pa-accent)" : "var(--pa-surface)",
-                      color: active ? "#fff" : "var(--pa-muted)",
-                      border: "none",
-                      cursor: "pointer",
-                      letterSpacing: "0.03em",
-                    }}
-                  >
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
           {/* Graphical chain diagram — always visible */}
           {chain.length > 0 ? (
@@ -666,17 +642,8 @@ export default function ChainBuilder({
               borderRadius: "8px",
               padding: "16px",
               marginBottom: "12px",
-              ...(viewMode !== "simple" && report ? { overflowX: "auto" as const } : {}),
             }}>
-              {viewMode === "rack" && report ? (
-                <ExpertDiagram chain={chain} report={report} ctx={ctx} />
-              ) : viewMode === "telemetry" && report ? (
-                <TelemetryDiagram chain={chain} report={report} ctx={ctx} />
-              ) : viewMode === "schematic" && report ? (
-                <SchematicDiagram chain={chain} report={report} ctx={ctx} />
-              ) : (
-                <ChainDiagram chain={chain} report={report} />
-              )}
+              <ChainDiagram chain={chain} report={report} />
             </div>
           ) : (
             <div style={{
@@ -691,6 +658,39 @@ export default function ChainBuilder({
               fontFamily: "var(--pa-font-ui)",
             }}>
               ← Add components from the panel to build your chain
+            </div>
+          )}
+
+          {/* Insert mode hint */}
+          {insertAtIdx !== null && (
+            <div style={{
+              background: "#fffbeb",
+              border: "1px solid var(--pa-accent)",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              marginBottom: "8px",
+              fontSize: "0.78rem",
+              color: "var(--pa-accent)",
+              fontFamily: "var(--pa-font-ui)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <span>← Select a component to insert</span>
+              <button
+                onClick={() => setInsertAtIdx(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--pa-muted)",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  lineHeight: 1,
+                  padding: "0 4px",
+                }}
+              >
+                ×
+              </button>
             </div>
           )}
 
@@ -750,12 +750,36 @@ export default function ChainBuilder({
                     </button>
                   </div>
 
-                  {/* Cable connector (between nodes) */}
+                  {/* Cable connector + insert button (between nodes) */}
                   {i < chain.length - 1 && (
-                    <CableConnector
-                      value={entry.cableId}
-                      onChange={(id) => setCableAt(i, id)}
-                    />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <CableConnector
+                        value={entry.cableId}
+                        onChange={(id) => setCableAt(i, id)}
+                      />
+                      <button
+                        onClick={() => setInsertAtIdx(insertAtIdx === i + 1 ? null : i + 1)}
+                        title="Insert component here"
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          border: insertAtIdx === i + 1 ? "2px solid var(--pa-accent)" : "1px solid var(--pa-border)",
+                          background: insertAtIdx === i + 1 ? "var(--pa-accent)" : "var(--pa-surface)",
+                          color: insertAtIdx === i + 1 ? "#fff" : "var(--pa-muted)",
+                          fontSize: "1rem",
+                          lineHeight: 1,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          marginLeft: "6px",
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

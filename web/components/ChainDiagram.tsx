@@ -55,8 +55,8 @@ function getSpecNote(c: UIComponent): string {
       const ohm  = s(hp).nominalImpedanceOhm as number | null;
       const sens = (s(hp).sensitivity as { value?: number; unit?: string } | null)?.value;
       const unit = (s(hp).sensitivity as { value?: number; unit?: string } | null)?.unit ?? "dB/mW";
-      if (ohm && sens) return `${ohm}\u2126 \u00B7 ${sens} ${unit}`;
-      if (ohm) return `${ohm}\u2126`;
+      if (ohm && sens) return `${ohm}Ω \u00B7 ${sens} ${unit}`;
+      if (ohm) return `${ohm}Ω`;
     }
   }
 
@@ -65,8 +65,8 @@ function getSpecNote(c: UIComponent): string {
     if (sp) {
       const ohm  = s(sp).nominalImpedanceOhm as number | null;
       const sens = s(sp).sensitivity83dBm as number | null;
-      if (ohm && sens) return `${ohm}\u2126 \u00B7 ${sens} dB`;
-      if (ohm) return `${ohm}\u2126`;
+      if (ohm && sens) return `${ohm}Ω \u00B7 ${sens} dB`;
+      if (ohm) return `${ohm}Ω`;
     }
   }
 
@@ -78,7 +78,7 @@ function getSpecNote(c: UIComponent): string {
     if (out) {
       const watts = (s(out).continuousWattsPerChannel ?? s(out).maxWattsPerChannel) as number | null;
       const imp   = (s(out).minLoadImpedanceOhm ?? s(out).nominalLoadImpedanceOhm) as number | null;
-      if (watts && imp) return `${watts}W @ ${imp}\u2126`;
+      if (watts && imp) return `${watts}W @ ${imp}Ω`;
       const conn = out.connector?.toUpperCase();
       const bal  = out.balanced ? "Balanced" : "SE";
       if (conn) return `${conn} \u00B7 ${bal}`;

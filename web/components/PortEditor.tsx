@@ -20,7 +20,7 @@ function getKind(domain: string, direction: Direction): string {
 const SPEC_TIPS: Record<string, { where: string; how: string; impact: string }> = {
   inputImpedanceOhm_line: {
     where: "Product manual PDF (specs page) or AudioScienceReview.com measurements",
-    how: "Search for 'input impedance' in the manual. Typical values: 10k\u201347k\u2126 for line, 47k\u2126 for phono.",
+    how: "Search for 'input impedance' in the manual. Typical values: 10k\u201347kΩ for line, 47kΩ for phono.",
     impact: "Used for impedance bridging check \u2014 ensures the source can drive this input without signal loss.",
   },
   inputSensitivityVrms: {
@@ -50,12 +50,12 @@ const SPEC_TIPS: Record<string, { where: string; how: string; impact: string }> 
   },
   outputImpedanceOhm_speaker: {
     where: "ASR measurements \u2014 often derived from damping factor",
-    how: "If damping factor is given: output impedance = 8 / damping_factor. E.g., DF=100 \u2192 0.08\u2126.",
+    how: "If damping factor is given: output impedance = 8 / damping_factor. E.g., DF=100 \u2192 0.08Ω.",
     impact: "Used for damping factor calculation with speakers.",
   },
   outputImpedanceOhm_hp: {
     where: "ASR measurements, Head-Fi reviews, or product spec sheet",
-    how: "Search for 'output impedance'. Typical: <1\u2126 (good) to 10+\u2126 (tube amps).",
+    how: "Search for 'output impedance'. Typical: <1Ω (good) to 10+Ω (tube amps).",
     impact: "Critical \u2014 output impedance should be \u2264\u215b of headphone impedance for flat response.",
   },
   maxVrms_hp: {
@@ -65,7 +65,7 @@ const SPEC_TIPS: Record<string, { where: string; how: string; impact: string }> 
   },
   maxCurrentMa_hp: {
     where: "ASR measurements or derived from power specs",
-    how: "If power is given: I = sqrt(P/R). E.g., 1W into 32\u2126 = 177mA. Or look for 'max current output'.",
+    how: "If power is given: I = sqrt(P/R). E.g., 1W into 32Ω = 177mA. Or look for 'max current output'.",
     impact: "Determines if the amp can drive low-impedance headphones/IEMs.",
   },
 };
@@ -269,13 +269,13 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           </>
         ) : kind === "line_in" ? (
           <>
-            <NumField label="Input Impedance (\u2126)" value={specs.inputImpedanceOhm as number | null} onChange={v => updateSpec("inputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "inputImpedanceOhm")]} />
+            <NumField label="Input Impedance (Ω)" value={specs.inputImpedanceOhm as number | null} onChange={v => updateSpec("inputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "inputImpedanceOhm")]} />
             <NumField label="Input Sensitivity (Vrms)" value={specs.inputSensitivityVrms as number | null} onChange={v => updateSpec("inputSensitivityVrms", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "inputSensitivityVrms")]} />
             <NumField label="Max Input (Vrms)" value={specs.maxInputVrms as number | null} onChange={v => updateSpec("maxInputVrms", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "maxInputVrms")]} />
           </>
         ) : kind === "line_out" ? (
           <>
-            <NumField label="Output Impedance (\u2126)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
+            <NumField label="Output Impedance (Ω)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
             <NumField label="Max Output (Vrms)" value={specs.maxOutputVrms as number | null} onChange={v => updateSpec("maxOutputVrms", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "maxOutputVrms")]} />
             <NumField label="Gain (dB)" value={specs.gainDb as number | null} onChange={v => updateSpec("gainDb", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "gainDb")]} />
           </>
@@ -289,8 +289,8 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
               </select>
             </div>
             <NumField label="Output Voltage (mV)" value={specs.outputVoltageMv as number | null} onChange={v => updateSpec("outputVoltageMv", v)} placeholder="e.g. 5" />
-            <NumField label="Internal Impedance (\u2126)" value={specs.internalImpedanceOhm as number | null} onChange={v => updateSpec("internalImpedanceOhm", v)} />
-            <NumField label="Rec. Load Impedance (\u2126)" value={specs.recommendedLoadImpedanceOhm as number | null} onChange={v => updateSpec("recommendedLoadImpedanceOhm", v)} placeholder="47000" />
+            <NumField label="Internal Impedance (Ω)" value={specs.internalImpedanceOhm as number | null} onChange={v => updateSpec("internalImpedanceOhm", v)} />
+            <NumField label="Rec. Load Impedance (Ω)" value={specs.recommendedLoadImpedanceOhm as number | null} onChange={v => updateSpec("recommendedLoadImpedanceOhm", v)} placeholder="47000" />
             <NumField label="Rec. Load Capacitance (pF)" value={specs.recommendedLoadCapacitancePf as number | null} onChange={v => updateSpec("recommendedLoadCapacitancePf", v)} placeholder="100-300" />
           </>
         ) : kind === "phono_in" ? (
@@ -303,14 +303,14 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
                 <option value="both">MM + MC</option>
               </select>
             </div>
-            <NumField label="Input Impedance (\u2126)" value={specs.inputImpedanceOhm as number | null} onChange={v => updateSpec("inputImpedanceOhm", v)} placeholder="47000" />
+            <NumField label="Input Impedance (Ω)" value={specs.inputImpedanceOhm as number | null} onChange={v => updateSpec("inputImpedanceOhm", v)} placeholder="47000" />
             <NumField label="Input Capacitance (pF)" value={specs.inputCapacitancePf as number | null} onChange={v => updateSpec("inputCapacitancePf", v)} />
             <NumField label="Gain (dB)" value={specs.gainDb as number | null} onChange={v => updateSpec("gainDb", v)} placeholder="40" />
           </>
         ) : kind === "speaker_out" ? (
           <>
-            <NumField label="Output Impedance (\u2126)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
-            <NumField label="Min Load Impedance (\u2126)" value={specs.ratedMinImpedanceOhm as number | null} onChange={v => updateSpec("ratedMinImpedanceOhm", v)} />
+            <NumField label="Output Impedance (Ω)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
+            <NumField label="Min Load Impedance (Ω)" value={specs.ratedMinImpedanceOhm as number | null} onChange={v => updateSpec("ratedMinImpedanceOhm", v)} />
             <NumField label="Gain (dB)" value={specs.gainDb as number | null} onChange={v => updateSpec("gainDb", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "gainDb")]} />
             <NumField label="Input Sensitivity (Vrms)" value={specs.inputSensitivityVrms as number | null} onChange={v => updateSpec("inputSensitivityVrms", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "inputSensitivityVrms")]} />
             <div style={{ width: "100%" }}>
@@ -321,7 +321,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
                     <input type="number" step="any" placeholder="ohm" style={{ ...inputStyle, width: "60px" }} value={pw.ohm || ""} onChange={e => {
                       const next = [...arr]; next[i] = { ...pw, ohm: Number(e.target.value) }; updateSpec("powerW", next);
                     }} />
-                    <span style={{ fontSize: "0.72rem", color: "var(--pa-muted)" }}>\u2126 @</span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--pa-muted)" }}>Ω @</span>
                     <input type="number" step="any" placeholder="watts" style={{ ...inputStyle, width: "70px" }} value={pw.watts || ""} onChange={e => {
                       const next = [...arr]; next[i] = { ...pw, watts: Number(e.target.value) }; updateSpec("powerW", next);
                     }} />
@@ -336,14 +336,14 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           </>
         ) : kind === "headphone_out" ? (
           <>
-            <NumField label="Output Impedance (\u2126)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
+            <NumField label="Output Impedance (Ω)" value={specs.outputImpedanceOhm as number | null} onChange={v => updateSpec("outputImpedanceOhm", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "outputImpedanceOhm")]} />
             <NumField label="Max Vrms" value={specs.maxVrms as number | null} onChange={v => updateSpec("maxVrms", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "maxVrms")]} />
             <NumField label="Max Current (mA)" value={specs.maxCurrentMa as number | null} onChange={v => updateSpec("maxCurrentMa", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "maxCurrentMa")]} />
             <NumField label="Gain (dB)" value={specs.gainDb as number | null} onChange={v => updateSpec("gainDb", v)} tip={SPEC_TIPS[getSpecTipKey(kind, "gainDb")]} />
           </>
         ) : kind === "headphone_load" ? (
           <>
-            <NumField label="Nominal Impedance (\u2126)" value={specs.nominalImpedanceOhm as number | null} onChange={v => updateSpec("nominalImpedanceOhm", v)} />
+            <NumField label="Nominal Impedance (Ω)" value={specs.nominalImpedanceOhm as number | null} onChange={v => updateSpec("nominalImpedanceOhm", v)} />
             <NumField label="Sensitivity (value)" value={(specs.sensitivity as { value?: number })?.value ?? null} onChange={v => updateSpec("sensitivity", { value: v, unit: (specs.sensitivity as { unit?: string })?.unit ?? "dB/mW" })} />
             <div style={{ minWidth: "100px" }}>
               <span style={labelStyle}>Sensitivity unit</span>
@@ -355,8 +355,8 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           </>
         ) : kind === "speaker_load" ? (
           <>
-            <NumField label="Nominal Impedance (\u2126)" value={specs.nominalImpedanceOhm as number | null} onChange={v => updateSpec("nominalImpedanceOhm", v)} />
-            <NumField label="Min Impedance (\u2126)" value={specs.minImpedanceOhm as number | null} onChange={v => updateSpec("minImpedanceOhm", v)} />
+            <NumField label="Nominal Impedance (Ω)" value={specs.nominalImpedanceOhm as number | null} onChange={v => updateSpec("nominalImpedanceOhm", v)} />
+            <NumField label="Min Impedance (Ω)" value={specs.minImpedanceOhm as number | null} onChange={v => updateSpec("minImpedanceOhm", v)} />
             <NumField label="Sensitivity (dB @ 2.83V/1m)" value={specs.sensitivityDb_2_83V_1m as number | null} onChange={v => updateSpec("sensitivityDb_2_83V_1m", v)} />
             <NumField label="Power Handling (W)" value={specs.powerHandlingW as number | null} onChange={v => updateSpec("powerHandlingW", v)} />
           </>

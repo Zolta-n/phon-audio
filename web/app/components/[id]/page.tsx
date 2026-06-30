@@ -66,44 +66,44 @@ function PortSpecs({ port }: { port: Port }) {
     const formats = s.formats as string[] | undefined;
     if (formats?.length) specs.push({ label: "Formats", value: formats.map(f => f.toUpperCase()).join(", ") });
   } else if (kind === "line_in") {
-    add("Input impedance", "inputImpedanceOhm", v => `${v} \u2126`);
+    add("Input impedance", "inputImpedanceOhm", v => `${v} Ω`);
     add("Sensitivity", "inputSensitivityVrms", v => `${v} Vrms`);
     add("Max input", "maxInputVrms", v => `${v} Vrms`);
   } else if (kind === "line_out") {
-    add("Output impedance", "outputImpedanceOhm", v => `${v} \u2126`);
+    add("Output impedance", "outputImpedanceOhm", v => `${v} Ω`);
     add("Max output", "maxOutputVrms", v => `${v} Vrms`);
     add("Gain", "gainDb", v => `${v} dB`);
   } else if (kind === "speaker_out") {
     const pw = s.powerW as { ohm: number; watts: number }[] | undefined;
-    if (pw?.length) specs.push({ label: "Power", value: pw.map(p => `${p.watts}W @ ${p.ohm}\u2126`).join(", ") });
-    add("Output impedance", "outputImpedanceOhm", v => `${v} \u2126`);
+    if (pw?.length) specs.push({ label: "Power", value: pw.map(p => `${p.watts}W @ ${p.ohm}Ω`).join(", ") });
+    add("Output impedance", "outputImpedanceOhm", v => `${v} Ω`);
     add("Gain", "gainDb", v => `${v} dB`);
   } else if (kind === "headphone_out") {
-    add("Output impedance", "outputImpedanceOhm", v => `${v} \u2126`);
+    add("Output impedance", "outputImpedanceOhm", v => `${v} Ω`);
     add("Max Vrms", "maxVrms", v => `${v}`);
     add("Max current", "maxCurrentMa", v => `${v} mA`);
     add("Gain", "gainDb", v => `${v} dB`);
   } else if (kind === "headphone_load") {
-    add("Impedance", "nominalImpedanceOhm", v => `${v} \u2126`);
+    add("Impedance", "nominalImpedanceOhm", v => `${v} Ω`);
     const sens = s.sensitivity as { value?: number; unit?: string } | undefined;
     if (sens?.value) specs.push({ label: "Sensitivity", value: `${sens.value} ${sens.unit ?? "dB/mW"}` });
     else specs.push({ label: "Sensitivity", value: null, unknownImpact: "headphone drive check skipped" });
   } else if (kind === "speaker_load") {
-    add("Impedance", "nominalImpedanceOhm", v => `${v} \u2126`);
-    add("Min impedance", "minImpedanceOhm", v => `${v} \u2126`);
+    add("Impedance", "nominalImpedanceOhm", v => `${v} Ω`);
+    add("Min impedance", "minImpedanceOhm", v => `${v} Ω`);
     add("Sensitivity", "sensitivityDb_2_83V_1m", v => `${v} dB`);
     add("Power handling", "powerHandlingW", v => `${v} W`);
   } else if (kind === "phono_out") {
     const ct = s.cartridgeType as string | undefined;
     if (ct) specs.push({ label: "Type", value: ct.toUpperCase() });
     add("Output", "outputVoltageMv", v => `${v} mV`);
-    if (s.internalImpedanceOhm) specs.push({ label: "Internal impedance", value: `${s.internalImpedanceOhm} \u2126` });
-    if (s.recommendedLoadImpedanceOhm) specs.push({ label: "Rec. load impedance", value: `${Number(s.recommendedLoadImpedanceOhm as number).toLocaleString()} \u2126` });
+    if (s.internalImpedanceOhm) specs.push({ label: "Internal impedance", value: `${s.internalImpedanceOhm} Ω` });
+    if (s.recommendedLoadImpedanceOhm) specs.push({ label: "Rec. load impedance", value: `${Number(s.recommendedLoadImpedanceOhm as number).toLocaleString()} Ω` });
     if (s.recommendedLoadCapacitancePf) specs.push({ label: "Rec. load capacitance", value: `${s.recommendedLoadCapacitancePf} pF` });
   } else if (kind === "phono_in") {
     const ct = s.cartridgeType as string | undefined;
     if (ct) specs.push({ label: "Accepts", value: ct === "both" ? "MM + MC" : ct.toUpperCase() });
-    add("Input impedance", "inputImpedanceOhm", v => `${Number(v as number).toLocaleString()} \u2126`);
+    add("Input impedance", "inputImpedanceOhm", v => `${Number(v as number).toLocaleString()} Ω`);
     if (s.inputCapacitancePf) specs.push({ label: "Input capacitance", value: `${s.inputCapacitancePf} pF` });
     add("Gain", "gainDb", v => `${v} dB`);
   }
