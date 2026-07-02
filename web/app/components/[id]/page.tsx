@@ -88,14 +88,14 @@ function PortSpecs({ port }: { port: Port }) {
     <div className="mt-1 ml-1 text-xs space-y-0.5">
       {specs.map(sp => (
         <div key={sp.label}>
-          <span className="text-slate-400">{sp.label}:</span>{" "}
+          <span className="text-pa-muted opacity-70">{sp.label}:</span>{" "}
           {sp.value != null ? (
-            <span className="text-slate-500">{sp.value}</span>
+            <span className="text-pa-muted">{sp.value}</span>
           ) : (
-            <span className="text-amber-500" title={sp.unknownImpact}>
+            <span className="text-pa-accent" title={sp.unknownImpact}>
               Unknown
               {sp.unknownImpact && (
-                <span className="text-amber-400 text-[10px] ml-1">({sp.unknownImpact})</span>
+                <span className="text-pa-accent/70 text-[10px] ml-1">({sp.unknownImpact})</span>
               )}
             </span>
           )}
@@ -117,23 +117,23 @@ export default async function ComponentPage({
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
       {/* Breadcrumb */}
-      <nav className="text-sm text-slate-400 mb-6">
-        <Link href="/components" className="hover:text-slate-600">Components</Link>
+      <nav className="text-sm text-pa-muted mb-6">
+        <Link href="/components" className="hover:text-pa-accent-deep underline-offset-2 hover:underline">Components</Link>
         <span className="mx-2">&rsaquo;</span>
         <span>{CATEGORY_LABELS[component.category]}</span>
         <span className="mx-2">&rsaquo;</span>
-        <span className="text-slate-700">{component.name}</span>
+        <span className="text-pa-text">{component.name}</span>
       </nav>
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+      <div className="bg-pa-cream rounded-xl border border-pa-border p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-pa-muted mb-1">
               {CATEGORY_LABELS[component.category]}
               {component.manufacturer ? ` \u00B7 ${component.manufacturer}` : ""}
             </p>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">{component.name}</h1>
+            <h1 className="text-2xl font-bold text-pa-text mb-2" style={{ fontFamily: "var(--pa-font-serif)" }}>{component.name}</h1>
             {component.note && (
               <p className="text-sm text-amber-700 bg-amber-50 rounded px-3 py-1.5 border border-amber-200">
                 {component.note}
@@ -156,16 +156,16 @@ export default async function ComponentPage({
       {/* Ports */}
       <div className="grid sm:grid-cols-2 gap-4 mb-6">
         {component.inputs.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Inputs</p>
+          <div className="bg-pa-cream rounded-xl border border-pa-border p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-pa-muted mb-3">Inputs</p>
             {component.inputs.map((port, i) => (
-              <div key={i} className="mb-3 pb-2 border-b border-slate-100 last:border-0 last:mb-0 last:pb-0">
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded uppercase font-medium">
+              <div key={i} className="mb-3 pb-2 border-b border-pa-border last:border-0 last:mb-0 last:pb-0">
+                <div className="flex items-center gap-2 text-sm text-pa-text">
+                  <span className="bg-pa-surface text-pa-muted text-xs px-2 py-0.5 rounded uppercase font-medium">
                     {port.domain}
                   </span>
                   <span>{port.connector.toUpperCase()}</span>
-                  {port.balanced && <span className="text-xs text-slate-400">balanced</span>}
+                  {port.balanced && <span className="text-xs text-pa-muted">balanced</span>}
                 </div>
                 <PortSpecs port={port} />
               </div>
@@ -173,16 +173,16 @@ export default async function ComponentPage({
           </div>
         )}
         {component.outputs.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Outputs</p>
+          <div className="bg-pa-cream rounded-xl border border-pa-border p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-pa-muted mb-3">Outputs</p>
             {component.outputs.map((port, i) => (
-              <div key={i} className="mb-3 pb-2 border-b border-slate-100 last:border-0 last:mb-0 last:pb-0">
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded uppercase font-medium">
+              <div key={i} className="mb-3 pb-2 border-b border-pa-border last:border-0 last:mb-0 last:pb-0">
+                <div className="flex items-center gap-2 text-sm text-pa-text">
+                  <span className="bg-pa-surface text-pa-muted text-xs px-2 py-0.5 rounded uppercase font-medium">
                     {port.domain}
                   </span>
                   <span>{port.connector.toUpperCase()}</span>
-                  {port.balanced && <span className="text-xs text-slate-400">balanced</span>}
+                  {port.balanced && <span className="text-xs text-pa-muted">balanced</span>}
                 </div>
                 <PortSpecs port={port} />
               </div>
@@ -195,19 +195,19 @@ export default async function ComponentPage({
       <div className="flex gap-3">
         <Link
           href={`/builder?add=${component.id}`}
-          className="bg-slate-900 hover:bg-slate-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors"
+          className="pa-btn pa-btn-primary"
         >
           Add to chain &rarr;
         </Link>
         <Link
           href={`/components/${component.id}/edit`}
-          className="bg-amber-500 hover:bg-amber-400 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors"
+          className="pa-btn pa-btn-secondary"
         >
           Edit specs
         </Link>
         <Link
           href="/components"
-          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm px-5 py-2.5 rounded-lg transition-colors"
+          className="pa-btn pa-btn-ghost"
         >
           Back to catalog
         </Link>

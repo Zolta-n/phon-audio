@@ -258,7 +258,7 @@ export default function ChainBuilder({
     background: "transparent",
     fontSize: "0.875rem",
     padding: "8px 16px",
-    borderRadius: "4px",
+    borderRadius: "var(--pa-radius-sm)",
     cursor: "pointer",
     fontFamily: "var(--pa-font-ui)",
   };
@@ -270,7 +270,7 @@ export default function ChainBuilder({
         gridTemplateColumns: "220px 1fr 300px",
         gap: "16px",
         padding: "16px",
-        maxWidth: "1280px",
+        maxWidth: "var(--pa-container)",
         margin: "0 auto",
         width: "100%",
       }}>
@@ -280,18 +280,18 @@ export default function ChainBuilder({
 
         {/* ── Chain ── */}
         <section style={{
-          background: "#fff8f0",
-          borderRadius: "10px",
-          border: "1.5px solid #e8d5b7",
+          background: "var(--pa-cream)",
+          borderRadius: "var(--pa-radius-lg)",
+          border: "1.5px solid var(--pa-border)",
           padding: "20px",
           display: "flex",
           flexDirection: "column",
         }}>
           <div style={{
-            fontFamily: "Georgia, serif",
+            fontFamily: "var(--pa-font-serif)",
             fontSize: "1rem",
             color: "#3d2200",
-            borderBottom: "1px solid #e8d5b7",
+            borderBottom: "1px solid var(--pa-border)",
             paddingBottom: "12px",
             marginBottom: "12px",
           }}>
@@ -303,7 +303,7 @@ export default function ChainBuilder({
               background: "#fff5f5",
               border: "1px solid #feb2b2",
               color: "#c53030",
-              borderRadius: "6px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "8px 12px",
               marginBottom: "12px",
               fontSize: "0.8rem",
@@ -318,7 +318,7 @@ export default function ChainBuilder({
             <div style={{
               background: "var(--pa-surface)",
               border: "1px solid var(--pa-border)",
-              borderRadius: "8px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "16px",
               marginBottom: "12px",
             }}>
@@ -328,7 +328,7 @@ export default function ChainBuilder({
             <div style={{
               background: "var(--pa-surface)",
               border: "1px dashed var(--pa-border)",
-              borderRadius: "8px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "40px 20px",
               textAlign: "center",
               marginBottom: "12px",
@@ -345,7 +345,7 @@ export default function ChainBuilder({
             <div style={{
               background: "#fffbeb",
               border: "1px solid var(--pa-accent)",
-              borderRadius: "6px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "6px 12px",
               marginBottom: "8px",
               fontSize: "0.78rem",
@@ -391,7 +391,7 @@ export default function ChainBuilder({
               padding: "16px",
               background: "var(--pa-surface)",
               border: "1px solid var(--pa-border)",
-              borderRadius: "8px",
+              borderRadius: "var(--pa-radius-md)",
             }}>
               <RoomCanvas
                 distanceM={ctx.distanceM}
@@ -413,7 +413,7 @@ export default function ChainBuilder({
                 fontSize: "0.875rem",
                 fontWeight: 500,
                 padding: "8px 16px",
-                borderRadius: "4px",
+                borderRadius: "var(--pa-radius-sm)",
                 border: "none",
                 cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
                 fontFamily: "var(--pa-font-ui)",
@@ -434,7 +434,7 @@ export default function ChainBuilder({
                 color: "var(--pa-muted)",
                 fontSize: "0.875rem",
                 padding: "8px 16px",
-                borderRadius: "4px",
+                borderRadius: "var(--pa-radius-sm)",
                 border: "1px solid var(--pa-border)",
                 cursor: "pointer",
                 fontFamily: "var(--pa-font-ui)",
@@ -461,13 +461,13 @@ export default function ChainBuilder({
 
       {/* ── Results ── */}
       {(error || report) && (
-        <div id="results" style={{ maxWidth: "1280px", margin: "0 auto", width: "100%", padding: "0 16px 40px" }}>
+        <div id="results" style={{ maxWidth: "var(--pa-container)", margin: "0 auto", width: "100%", padding: "0 16px 40px" }}>
           {error && (
             <div style={{
               background: "#fff5f5",
               border: "1px solid #feb2b2",
               color: "#c53030",
-              borderRadius: "8px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "12px 16px",
               fontSize: "0.875rem",
               marginBottom: "16px",
@@ -478,7 +478,7 @@ export default function ChainBuilder({
           {report && (
             <div style={{
               background: "var(--pa-bg)",
-              borderRadius: "10px",
+              borderRadius: "var(--pa-radius-lg)",
               border: "1px solid var(--pa-border)",
               padding: "24px",
             }}>

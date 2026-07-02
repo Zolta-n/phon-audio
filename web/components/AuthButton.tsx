@@ -25,13 +25,7 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <Link href="/login" style={{
-        color: "#d97706",
-        textDecoration: "none",
-        fontSize: "0.875rem",
-        fontFamily: "var(--pa-font-ui)",
-        letterSpacing: "0.05em",
-      }}>
+      <Link href="/login" className="pa-navlink pa-navlink--accent">
         Sign in
       </Link>
     );
@@ -47,17 +41,11 @@ export default function AuthButton() {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      <Link href="/saved" style={{
-        color: "#a08060",
-        textDecoration: "none",
-        fontSize: "0.875rem",
-        fontFamily: "var(--pa-font-ui)",
-        letterSpacing: "0.05em",
-      }}>
+      <Link href="/saved" className="pa-navlink">
         My Chains
       </Link>
       <span style={{
-        color: "#d97706",
+        color: "var(--pa-accent)",
         fontSize: "0.8rem",
         fontFamily: "var(--pa-font-ui)",
       }}>
@@ -65,15 +53,14 @@ export default function AuthButton() {
       </span>
       <button
         onClick={handleSignOut}
+        className="pa-btn pa-btn-outline-light"
         style={{
-          background: "none",
-          border: "1px solid rgba(201,111,18,0.3)",
-          borderRadius: "4px",
-          color: "#a08060",
           padding: "4px 10px",
           fontSize: "0.75rem",
-          cursor: "pointer",
-          fontFamily: "var(--pa-font-ui)",
+          fontWeight: 400,
+          color: "#a08060",
+          borderColor: "rgba(217,119,6,0.3)",
+          borderRadius: "var(--pa-radius-sm)",
         }}
       >
         Sign out

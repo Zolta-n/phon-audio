@@ -63,15 +63,16 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
 
   const pillStyle = (active: boolean, accent?: boolean) => ({
     padding: "6px 16px",
-    borderRadius: "20px",
+    borderRadius: "var(--pa-radius-pill)",
     border: "1.5px solid",
-    borderColor: active ? (accent ? "#92400e" : "#d97706") : "var(--pa-border)",
-    background: active ? (accent ? "#92400e" : "#d97706") : "var(--pa-bg)",
+    borderColor: active ? (accent ? "var(--pa-accent-deep)" : "var(--pa-accent)") : "var(--pa-border)",
+    background: active ? (accent ? "var(--pa-accent-deep)" : "var(--pa-accent)") : "var(--pa-bg)",
     color: active ? "#fff" : "var(--pa-muted)",
     fontSize: "0.78rem",
     cursor: "pointer",
     fontFamily: "var(--pa-font-ui)",
     fontWeight: 500 as const,
+    transition: "background-color 0.15s, border-color 0.15s, color 0.15s",
   });
 
   return (
@@ -88,32 +89,10 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
           placeholder="Search by name or brand..."
           value={query}
           onChange={e => setQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "10px 16px",
-            fontSize: "0.9rem",
-            border: "1.5px solid var(--pa-border)",
-            borderRadius: "8px",
-            background: "var(--pa-bg)",
-            color: "var(--pa-text)",
-            fontFamily: "var(--pa-font-ui)",
-            outline: "none",
-          }}
-          onFocus={e => { e.currentTarget.style.borderColor = "#d97706"; }}
-          onBlur={e => { e.currentTarget.style.borderColor = "var(--pa-border)"; }}
+          className="pa-input"
+          style={{ flex: 1, width: "auto", padding: "10px 16px", fontSize: "0.9rem" }}
         />
-        <Link href="/components/add" style={{
-          background: "#d97706",
-          color: "#fff",
-          border: "none",
-          padding: "10px 20px",
-          borderRadius: "8px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          textDecoration: "none",
-          fontFamily: "var(--pa-font-ui)",
-          whiteSpace: "nowrap",
-        }}>
+        <Link href="/components/add" className="pa-btn pa-btn-primary" style={{ padding: "10px 20px", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
           + Add Component
         </Link>
       </div>
@@ -181,7 +160,7 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
               style={{
                 background: "none",
                 border: "none",
-                color: "#d97706",
+                color: "var(--pa-accent)",
                 fontSize: "0.75rem",
                 cursor: "pointer",
                 fontFamily: "var(--pa-font-ui)",
@@ -204,7 +183,7 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
         return (
           <div key={mfr} style={{ marginBottom: "32px" }}>
             <div style={{
-              fontFamily: "Georgia, serif",
+              fontFamily: "var(--pa-font-serif)",
               fontSize: "1rem",
               color: "var(--pa-muted)",
               marginBottom: "12px",
@@ -237,7 +216,7 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#d97706",
+                  color: "var(--pa-accent)",
                   fontSize: "0.82rem",
                   cursor: "pointer",
                   fontFamily: "var(--pa-font-ui)",
@@ -265,7 +244,7 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
           <div style={{ fontSize: "0.85rem" }}>
             {showFavoritesOnly
               ? "Click the heart on any component to add it to your favorites"
-              : <>Try a different search or{" "}<Link href="/components/add" style={{ color: "#d97706" }}>add a new component</Link></>
+              : <>Try a different search or{" "}<Link href="/components/add" style={{ color: "var(--pa-accent)" }}>add a new component</Link></>
             }
           </div>
         </div>

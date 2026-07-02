@@ -85,7 +85,7 @@ export default function LearnIndexPage() {
                   display: "block",
                   background: "var(--pa-surface)",
                   border: "1px solid var(--pa-border)",
-                  borderRadius: "8px",
+                  borderRadius: "var(--pa-radius-md)",
                   padding: "16px 18px",
                   textDecoration: "none",
                 }}

@@ -5,16 +5,16 @@ export default async function ComponentsPage() {
   const catalog = await getComponents();
 
   return (
-    <div style={{ minHeight: "calc(100vh - 68px)" }}>
+    <div style={{ minHeight: "calc(100vh - var(--pa-nav-h))" }}>
       {/* Header */}
       <div style={{
         background: "linear-gradient(135deg, #1a0f00, #3d2200)",
         padding: "48px 48px 40px",
         borderBottom: "1px solid rgba(217,119,6,0.2)",
       }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "var(--pa-container)", margin: "0 auto" }}>
           <h1 style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily: "var(--pa-font-serif)",
             fontSize: "2rem",
             fontWeight: 700,
             color: "#faf5ee",
@@ -34,7 +34,7 @@ export default async function ComponentsPage() {
 
       {/* Content */}
       <div style={{
-        maxWidth: "1280px",
+        maxWidth: "var(--pa-container)",
         margin: "0 auto",
         padding: "32px 48px",
       }}>

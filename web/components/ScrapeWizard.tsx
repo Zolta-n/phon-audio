@@ -9,12 +9,7 @@ const inputStyle: React.CSSProperties = {
   flex: 1,
   padding: "10px 14px",
   fontSize: "0.9rem",
-  border: "1.5px solid var(--pa-border)",
-  borderRadius: "8px",
-  background: "var(--pa-bg)",
-  color: "var(--pa-text)",
-  fontFamily: "var(--pa-font-ui)",
-  outline: "none",
+  width: "auto",
 };
 
 export default function ScrapeWizard() {
@@ -67,7 +62,7 @@ export default function ScrapeWizard() {
         <div style={{
           width: "40px", height: "40px",
           border: "3px solid var(--pa-border)",
-          borderTopColor: "#d97706",
+          borderTopColor: "var(--pa-accent)",
           borderRadius: "50%",
           animation: "spin 0.8s linear infinite",
           margin: "0 auto 20px",
@@ -93,7 +88,7 @@ export default function ScrapeWizard() {
         <div style={{
           background: "#dcfce7",
           border: "1px solid #86efac",
-          borderRadius: "8px",
+          borderRadius: "var(--pa-radius-md)",
           padding: "12px 16px",
           marginBottom: "20px",
           fontSize: "0.85rem",
@@ -114,20 +109,20 @@ export default function ScrapeWizard() {
         padding: "60px 20px",
       }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>{"\u2713"}</div>
-        <div style={{ fontSize: "1.1rem", color: "var(--pa-text)", fontFamily: "Georgia, serif", marginBottom: "12px" }}>
+        <div style={{ fontSize: "1.1rem", color: "var(--pa-text)", fontFamily: "var(--pa-font-serif)", marginBottom: "12px" }}>
           Component saved!
         </div>
         <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
           <a href={`/components/${savedId}`} style={{
-            background: "#d97706", color: "#fff", padding: "10px 20px",
-            borderRadius: "8px", textDecoration: "none", fontSize: "0.85rem",
+            background: "var(--pa-accent)", color: "#fff", padding: "10px 20px",
+            borderRadius: "var(--pa-radius-md)", textDecoration: "none", fontSize: "0.85rem",
             fontFamily: "var(--pa-font-ui)", fontWeight: 600,
           }}>
             View Component
           </a>
           <button onClick={() => { setStep("input"); setUrl(""); setScraped(null); }} style={{
             background: "var(--pa-bg)", color: "var(--pa-text)", border: "1.5px solid var(--pa-border)",
-            padding: "10px 20px", borderRadius: "8px", fontSize: "0.85rem",
+            padding: "10px 20px", borderRadius: "var(--pa-radius-md)", fontSize: "0.85rem",
             fontFamily: "var(--pa-font-ui)", cursor: "pointer",
           }}>
             Add Another
@@ -152,26 +147,19 @@ export default function ScrapeWizard() {
       <div style={{ display: "flex", gap: "10px" }}>
         <input
           type="url"
-          style={inputStyle}
+          className="pa-input" style={inputStyle}
           placeholder="https://www.schiit.com/products/modi"
           value={url}
           onChange={e => setUrl(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleScrape()}
-          onFocus={e => { e.currentTarget.style.borderColor = "#d97706"; }}
-          onBlur={e => { e.currentTarget.style.borderColor = "var(--pa-border)"; }}
         />
-        <button onClick={handleScrape} style={{
-          background: "#d97706", color: "#fff", border: "none",
-          padding: "10px 24px", borderRadius: "8px", fontSize: "0.88rem",
-          fontWeight: 600, cursor: "pointer", fontFamily: "var(--pa-font-ui)",
-          whiteSpace: "nowrap",
-        }}>
+        <button onClick={handleScrape} className="pa-btn pa-btn-primary" style={{ padding: "10px 24px", fontSize: "0.88rem", whiteSpace: "nowrap" }}>
           Find Specs
         </button>
       </div>
       {error && (
         <div style={{
-          background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px",
+          background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "var(--pa-radius-md)",
           padding: "10px 14px", color: "#c0392b", fontSize: "0.82rem",
           fontFamily: "var(--pa-font-ui)", marginTop: "12px",
         }}>

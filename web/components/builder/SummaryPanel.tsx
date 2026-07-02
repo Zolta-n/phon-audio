@@ -32,12 +32,12 @@ export default function SummaryPanel({
 
   return (
     <aside style={{
-      background: "#fff8f0",
-      borderRadius: "10px",
-      border: "1.5px solid #e8d5b7",
+      background: "var(--pa-cream)",
+      borderRadius: "var(--pa-radius-lg)",
+      border: "1.5px solid var(--pa-border)",
       padding: "16px",
       overflowY: "auto",
-      maxHeight: "calc(100vh - 10rem)",
+      maxHeight: "calc(100vh - var(--pa-nav-h) - 6rem)",
     }}>
       {/* Evaluate button — always at top for visibility */}
       <button
@@ -46,12 +46,12 @@ export default function SummaryPanel({
         style={{
           width: "100%",
           marginBottom: "16px",
-          background: evaluating || !canEvaluate ? "#e8d5b7" : "#d97706",
+          background: evaluating || !canEvaluate ? "var(--pa-border)" : "var(--pa-accent)",
           color: "#fff",
           fontSize: "0.9rem",
           fontWeight: 700,
           padding: "11px",
-          borderRadius: "5px",
+          borderRadius: "var(--pa-radius-sm)",
           border: "none",
           cursor: evaluating || !canEvaluate ? "not-allowed" : "pointer",
           fontFamily: "var(--pa-font-ui)",
@@ -63,10 +63,10 @@ export default function SummaryPanel({
       </button>
 
       <div style={{
-        fontFamily: "Georgia, serif",
+        fontFamily: "var(--pa-font-serif)",
         fontSize: "0.95rem",
         color: "#3d2200",
-        borderBottom: "1px solid #e8d5b7",
+        borderBottom: "1px solid var(--pa-border)",
         paddingBottom: "12px",
         marginBottom: "16px",
       }}>
@@ -81,7 +81,7 @@ export default function SummaryPanel({
           <div style={{
             background: "#fef3e2",
             border: "1.5px solid #fcd34d",
-            borderRadius: "8px",
+            borderRadius: "var(--pa-radius-md)",
             padding: "12px",
             marginBottom: "12px",
           }}>
@@ -89,7 +89,7 @@ export default function SummaryPanel({
               fontSize: "0.65rem",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#92400e",
+              color: "var(--pa-accent-deep)",
               marginBottom: "10px",
               fontWeight: 700,
               fontFamily: "var(--pa-font-ui)",
@@ -109,7 +109,7 @@ export default function SummaryPanel({
                 <span style={{ color: "#7c5a3a" }}>{chk.label}</span>
                 <span style={{
                   fontWeight: 600,
-                  color: chk.verdict === "pass" ? "#16a34a" : chk.verdict === "fail" ? "#c0392b" : "#d97706",
+                  color: chk.verdict === "pass" ? "#16a34a" : chk.verdict === "fail" ? "#c0392b" : "var(--pa-accent)",
                 }}>
                   {chk.valueStr} {chk.verdict === "pass" ? "✓" : chk.verdict === "fail" ? "✕" : "⚡"}
                 </span>
@@ -119,14 +119,14 @@ export default function SummaryPanel({
 
           {/* Score badge */}
           <div style={{
-            background: "linear-gradient(135deg, #d97706, #b45309)",
-            borderRadius: "8px",
+            background: "linear-gradient(135deg, var(--pa-accent), var(--pa-accent-hover))",
+            borderRadius: "var(--pa-radius-md)",
             padding: "12px",
             textAlign: "center",
             color: "#fff",
             marginBottom: "12px",
           }}>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: "2.2rem", lineHeight: 1 }}>
+            <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "2.2rem", lineHeight: 1 }}>
               {score}
             </div>
             <div style={{
@@ -146,10 +146,10 @@ export default function SummaryPanel({
             disabled={saving}
             style={{
               width: "100%",
-              background: saving ? "#b45309" : "#d97706",
+              background: "var(--pa-accent)",
               color: "#fff",
               border: "none",
-              borderRadius: "7px",
+              borderRadius: "var(--pa-radius-md)",
               padding: "9px",
               fontSize: "0.8rem",
               fontWeight: 600,

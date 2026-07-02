@@ -35,7 +35,7 @@ export default function EditComponentPage() {
   };
 
   return (
-    <div style={{ minHeight: "calc(100vh - 68px)" }}>
+    <div style={{ minHeight: "calc(100vh - var(--pa-nav-h))" }}>
       {/* Header */}
       <div style={{
         background: "linear-gradient(135deg, #1a0f00, #3d2200)",
@@ -44,7 +44,7 @@ export default function EditComponentPage() {
       }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <h1 style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily: "var(--pa-font-serif)",
             fontSize: "2rem",
             fontWeight: 700,
             color: "#faf5ee",
@@ -70,7 +70,7 @@ export default function EditComponentPage() {
           </div>
         ) : error ? (
           <div style={{
-            background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px",
+            background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "var(--pa-radius-md)",
             padding: "16px", color: "#c0392b", fontSize: "0.9rem", fontFamily: "var(--pa-font-ui)",
           }}>
             {error}

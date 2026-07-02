@@ -30,61 +30,26 @@ export default function ComponentCard({ component, isFavorite, onToggleFavorite 
 
   return (
     <Link href={`/components/${component.id}`} style={{ textDecoration: "none" }}>
-      <div style={{
-        background: "var(--pa-bg)",
-        border: "1px solid var(--pa-border)",
-        borderRadius: "10px",
+      <div className="pa-card pa-card--interactive" style={{
         padding: "18px",
         display: "flex",
         flexDirection: "column",
         gap: "8px",
         cursor: "pointer",
-        transition: "border-color 0.2s, box-shadow 0.2s",
         position: "relative",
-      }}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = "#d97706";
-          e.currentTarget.style.boxShadow = "0 2px 12px rgba(217,119,6,0.12)";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = "var(--pa-border)";
-          e.currentTarget.style.boxShadow = "none";
-        }}
-      >
+      }}>
         {onToggleFavorite && (
           <button
             onClick={e => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(component.id); }}
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              background: "none",
-              border: "none",
-              fontSize: "1.1rem",
-              cursor: "pointer",
-              color: isFavorite ? "#d97706" : "var(--pa-muted)",
-              opacity: isFavorite ? 1 : 0.5,
-              padding: "2px",
-              lineHeight: 1,
-              transition: "color 0.15s, opacity 0.15s",
-            }}
+            className={isFavorite ? "pa-fav pa-fav--active" : "pa-fav"}
+            style={{ position: "absolute", top: 8, right: 8 }}
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite ? "\u2665" : "\u2661"}
           </button>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{
-            fontSize: "0.6rem",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#fff",
-            background: color,
-            padding: "2px 7px",
-            borderRadius: "4px",
-            fontFamily: "var(--pa-font-ui)",
-            fontWeight: 600,
-          }}>
+          <span className="pa-badge" style={{ color: "#fff", background: color }}>
             {badge}
           </span>
           {component.manufacturer && (
@@ -98,7 +63,7 @@ export default function ComponentCard({ component, isFavorite, onToggleFavorite 
           )}
         </div>
         <div style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--pa-font-serif)",
           fontSize: "1rem",
           fontWeight: 600,
           color: "var(--pa-text)",

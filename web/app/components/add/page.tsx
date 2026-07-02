@@ -23,7 +23,7 @@ export default function AddComponentPage() {
   };
 
   return (
-    <div style={{ minHeight: "calc(100vh - 68px)" }}>
+    <div style={{ minHeight: "calc(100vh - var(--pa-nav-h))" }}>
       {/* Header */}
       <div style={{
         background: "linear-gradient(135deg, #1a0f00, #3d2200)",
@@ -32,7 +32,7 @@ export default function AddComponentPage() {
       }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <h1 style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily: "var(--pa-font-serif)",
             fontSize: "2rem",
             fontWeight: 700,
             color: "#faf5ee",
@@ -57,7 +57,7 @@ export default function AddComponentPage() {
           display: "flex",
           gap: 0,
           border: "1.5px solid var(--pa-border)",
-          borderRadius: "8px",
+          borderRadius: "var(--pa-radius-md)",
           overflow: "hidden",
           marginBottom: "28px",
           width: "fit-content",
@@ -73,7 +73,7 @@ export default function AddComponentPage() {
                 padding: "10px 24px",
                 fontSize: "0.85rem",
                 color: tab === t.key ? "#fff" : "var(--pa-muted)",
-                background: tab === t.key ? "#d97706" : "var(--pa-bg)",
+                background: tab === t.key ? "var(--pa-accent)" : "var(--pa-bg)",
                 border: "none",
                 borderRight: i === 0 ? "1.5px solid var(--pa-border)" : "none",
                 cursor: "pointer",

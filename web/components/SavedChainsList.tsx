@@ -18,7 +18,7 @@ export interface SavedChain {
 }
 
 const BADGE_COLORS: Record<string, string> = {
-  source: "#7a5c3a", turntable: "#6b4423", dac: "#c96f12", preamp: "#9b4f0a",
+  source: "#7a5c3a", turntable: "#6b4423", dac: "var(--pa-accent)", preamp: "#9b4f0a",
   power_amp: "#7a3a08", tube_amp_se: "#8b3a5c", tube_amp_pp: "#6b3a6b",
   integrated: "#8b4f20", headphone_amp: "#9b5010",
   speaker: "#4a7a3a", headphone: "#3a5c7a",
@@ -55,7 +55,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
           background: "#fff5f5",
           border: "1px solid #feb2b2",
           color: "#c53030",
-          borderRadius: "8px",
+          borderRadius: "var(--pa-radius-md)",
           padding: "10px 14px",
           fontSize: "0.82rem",
           fontFamily: "var(--pa-font-ui)",
@@ -82,7 +82,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
           <div key={chain.id} style={{
             background: "#fff",
             border: "1px solid #e2e8f0",
-            borderRadius: "10px",
+            borderRadius: "var(--pa-radius-lg)",
             padding: "16px 20px",
             display: "flex",
             alignItems: "center",
@@ -91,7 +91,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
           }}>
             {/* Chain info */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "Georgia, serif", fontSize: "1rem", color: "#1e293b", marginBottom: "6px" }}>
+              <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1rem", color: "#1e293b", marginBottom: "6px" }}>
                 {chain.name}
               </div>
               <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" }}>
@@ -104,7 +104,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
                       background: BADGE_COLORS[node.component?.category ?? ""] ?? "#94a3b8",
                       color: "#fff",
                       padding: "2px 6px",
-                      borderRadius: "3px",
+                      borderRadius: "var(--pa-radius-sm)",
                       whiteSpace: "nowrap",
                     }}>
                       {node.component?.name ?? "Unknown"}
@@ -119,7 +119,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
               )}
               <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontFamily: "var(--pa-font-ui)", marginTop: "6px" }}>
                 {date}
-                {chain.is_public && <span style={{ marginLeft: "8px", color: "#d97706" }}>Public</span>}
+                {chain.is_public && <span style={{ marginLeft: "8px", color: "var(--pa-accent)" }}>Public</span>}
               </div>
             </div>
 
@@ -128,11 +128,11 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
               <Link
                 href={`/builder?load=${chain.id}`}
                 style={{
-                  background: "#d97706",
+                  background: "var(--pa-accent)",
                   color: "#fff",
                   textDecoration: "none",
                   padding: "7px 14px",
-                  borderRadius: "6px",
+                  borderRadius: "var(--pa-radius-md)",
                   fontSize: "0.78rem",
                   fontWeight: 600,
                   fontFamily: "var(--pa-font-ui)",
@@ -146,7 +146,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
                 style={{
                   background: "none",
                   border: "1px solid #e2e8f0",
-                  borderRadius: "6px",
+                  borderRadius: "var(--pa-radius-md)",
                   color: deleting === chain.id ? "#cbd5e1" : "#c0392b",
                   padding: "7px 12px",
                   fontSize: "0.78rem",

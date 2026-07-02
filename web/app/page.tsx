@@ -44,24 +44,20 @@ export default async function HomePage() {
           alignItems: "center",
           gap: "80px",
           padding: "80px",
-          maxWidth: "1280px",
+          maxWidth: "var(--pa-container)",
           width: "100%",
         }}>
           {/* Left text */}
           <div style={{ flex: 1, maxWidth: "520px" }}>
-            <div style={{
-              fontSize: "0.72rem",
+            <div className="pa-eyebrow" style={{
               letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#d97706",
+              color: "var(--pa-accent)",
               marginBottom: "18px",
-              fontWeight: 500,
-              fontFamily: "var(--pa-font-ui)",
             }}>
               Audiophile Compatibility Engine
             </div>
             <h1 style={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontFamily: "var(--pa-font-serif)",
               fontSize: "3.5rem",
               fontWeight: "normal",
               lineHeight: 1.15,
@@ -69,7 +65,7 @@ export default async function HomePage() {
               marginBottom: "22px",
             }}>
               Hear more.<br />
-              <em style={{ fontStyle: "italic", color: "#fbbf24" }}>Pair better.</em>
+              <em style={{ fontStyle: "italic", color: "var(--pa-gold)" }}>Pair better.</em>
             </h1>
             <p style={{
               fontSize: "1.1rem",
@@ -84,31 +80,10 @@ export default async function HomePage() {
               verified before you invest.
             </p>
             <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
-              <Link href="/builder" style={{
-                background: "#d97706",
-                color: "#fff",
-                border: "none",
-                padding: "14px 28px",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: 600,
-                textDecoration: "none",
-                letterSpacing: "0.02em",
-                fontFamily: "var(--pa-font-ui)",
-              }}>
+              <Link href="/builder" className="pa-btn pa-btn-primary" style={{ padding: "14px 28px", fontSize: "1rem" }}>
                 Build Your Chain
               </Link>
-              <Link href="#how" style={{
-                background: "transparent",
-                color: "#faf5ee",
-                border: "1.5px solid rgba(250,245,238,0.5)",
-                padding: "13px 28px",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                textDecoration: "none",
-                letterSpacing: "0.02em",
-                fontFamily: "var(--pa-font-ui)",
-              }}>
+              <Link href="#how" className="pa-btn pa-btn-outline-light" style={{ padding: "13px 28px", fontSize: "1rem", fontWeight: 400 }}>
                 See how it works
               </Link>
             </div>
@@ -121,17 +96,17 @@ export default async function HomePage() {
               alignItems: "center",
             }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>{componentCount}</div>
+                <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.6rem", color: "var(--pa-gold)" }}>{componentCount}</div>
                 <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#a8916d", marginTop: "2px", fontFamily: "var(--pa-font-ui)" }}>Components</div>
               </div>
               <div style={{ width: "1px", height: "36px", background: "rgba(250,245,238,0.15)" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>{brandCount}</div>
+                <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.6rem", color: "var(--pa-gold)" }}>{brandCount}</div>
                 <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#a8916d", marginTop: "2px", fontFamily: "var(--pa-font-ui)" }}>Brands</div>
               </div>
               <div style={{ width: "1px", height: "36px", background: "rgba(250,245,238,0.15)" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>Free</div>
+                <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.6rem", color: "var(--pa-gold)" }}>Free</div>
                 <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#a8916d", marginTop: "2px", fontFamily: "var(--pa-font-ui)" }}>No signup</div>
               </div>
             </div>
@@ -225,14 +200,7 @@ export default async function HomePage() {
         padding: "52px 80px",
         borderTop: "1px solid var(--pa-border)",
       }}>
-        <p style={{
-          fontSize: "0.72rem",
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
-          color: "var(--pa-muted)",
-          marginBottom: "24px",
-          fontFamily: "var(--pa-font-ui)",
-        }}>
+        <p className="pa-eyebrow" style={{ letterSpacing: "0.18em", marginBottom: "24px" }}>
           The listening experience
         </p>
         <div style={{ display: "flex", gap: "20px" }}>
@@ -244,7 +212,7 @@ export default async function HomePage() {
             <div key={thumb.label} style={{
               width: "280px",
               height: "180px",
-              borderRadius: "6px",
+              borderRadius: "var(--pa-radius-md)",
               overflow: "hidden",
               position: "relative",
               flexShrink: 0,
@@ -279,7 +247,7 @@ export default async function HomePage() {
         borderTop: "1px solid var(--pa-border)",
       }}>
         <h2 style={{
-          fontFamily: "Georgia, 'Times New Roman', serif",
+          fontFamily: "var(--pa-font-serif)",
           fontSize: "2.1rem",
           fontWeight: 700,
           color: "var(--pa-text)",
@@ -300,16 +268,16 @@ export default async function HomePage() {
           ].map(step => (
             <div key={step.num} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontFamily: "var(--pa-font-serif)",
                 fontSize: "3.2rem",
                 fontWeight: 700,
-                color: "#d97706",
+                color: "var(--pa-accent)",
                 lineHeight: 1,
               }}>
                 {step.num}
               </div>
               <div style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontFamily: "var(--pa-font-serif)",
                 fontSize: "1.15rem",
                 fontWeight: 600,
                 color: "var(--pa-text)",
@@ -336,7 +304,7 @@ export default async function HomePage() {
         borderTop: "1px solid var(--pa-border)",
       }}>
         <h2 style={{
-          fontFamily: "Georgia, 'Times New Roman', serif",
+          fontFamily: "var(--pa-font-serif)",
           fontSize: "2.1rem",
           fontWeight: 700,
           color: "var(--pa-text)",
@@ -348,7 +316,7 @@ export default async function HomePage() {
         <div style={{
           background: "var(--pa-bg)",
           border: "1px solid var(--pa-border)",
-          borderRadius: "10px",
+          borderRadius: "var(--pa-radius-lg)",
           overflow: "hidden",
           display: "grid",
           gridTemplateColumns: "200px 1fr 180px",
@@ -376,19 +344,19 @@ export default async function HomePage() {
               <div key={item.name} style={{
                 padding: "9px 16px",
                 fontSize: "0.82rem",
-                color: item.active ? "#d97706" : "var(--pa-text)",
+                color: item.active ? "var(--pa-accent)" : "var(--pa-text)",
                 fontWeight: item.active ? 500 : 400,
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                background: item.active ? "rgba(201,111,18,0.1)" : "transparent",
+                background: item.active ? "var(--pa-accent-soft)" : "transparent",
                 fontFamily: "var(--pa-font-ui)",
               }}>
                 <span style={{
                   width: "8px",
                   height: "8px",
                   borderRadius: "50%",
-                  background: item.active ? "#d97706" : "var(--pa-border)",
+                  background: item.active ? "var(--pa-accent)" : "var(--pa-border)",
                 }} />
                 {item.name}
               </div>
@@ -410,9 +378,9 @@ export default async function HomePage() {
             ].map((node, i) => (
               <div key={node.name} style={{ display: "flex", alignItems: "center", gap: 0 }}>
                 <div style={{
-                  background: node.active ? "rgba(201,111,18,0.06)" : "var(--pa-bg)",
-                  border: `1.5px solid ${node.active ? "#d97706" : "var(--pa-border)"}`,
-                  borderRadius: "8px",
+                  background: node.active ? "rgba(217,119,6,0.06)" : "var(--pa-bg)",
+                  border: `1.5px solid ${node.active ? "var(--pa-accent)" : "var(--pa-border)"}`,
+                  borderRadius: "var(--pa-radius-md)",
                   padding: "14px 20px",
                   textAlign: "center",
                   minWidth: "90px",
@@ -428,10 +396,10 @@ export default async function HomePage() {
                     {node.label}
                   </div>
                   <div style={{
-                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontFamily: "var(--pa-font-serif)",
                     fontSize: "0.95rem",
                     fontWeight: 600,
-                    color: node.active ? "#9b4f0a" : "var(--pa-text)",
+                    color: node.active ? "var(--pa-accent2)" : "var(--pa-text)",
                   }}>
                     {node.name}
                   </div>
@@ -494,7 +462,7 @@ export default async function HomePage() {
                   <div style={{
                     height: "100%",
                     borderRadius: "2px",
-                    background: "#d97706",
+                    background: "var(--pa-accent)",
                     width: `${ctrl.pct}%`,
                   }} />
                 </div>
@@ -513,35 +481,11 @@ export default async function HomePage() {
         </div>
 
         <div style={{ textAlign: "center", marginTop: "40px" }}>
-          <Link href="/builder" style={{
-            background: "#d97706",
-            color: "#fff",
-            border: "none",
-            padding: "14px 32px",
-            borderRadius: "8px",
-            fontSize: "1rem",
-            fontWeight: 600,
-            textDecoration: "none",
-            letterSpacing: "0.04em",
-            fontFamily: "var(--pa-font-ui)",
-          }}>
+          <Link href="/builder" className="pa-btn pa-btn-primary" style={{ padding: "14px 32px", fontSize: "1rem", letterSpacing: "0.04em" }}>
             Start Building
           </Link>
         </div>
       </section>
-
-      {/* ═══ FOOTER ═══ */}
-      <footer style={{
-        background: "var(--pa-dark)",
-        color: "rgba(253,246,236,0.35)",
-        textAlign: "center",
-        padding: "28px",
-        fontSize: "0.8rem",
-        letterSpacing: "0.06em",
-        fontFamily: "var(--pa-font-ui)",
-      }}>
-        Phon<span style={{ color: "rgba(201,111,18,0.6)" }}>.</span>Audio &mdash; High-fidelity signal chain design &copy; 2026
-      </footer>
     </div>
   );
 }

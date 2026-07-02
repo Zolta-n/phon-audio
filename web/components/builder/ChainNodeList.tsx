@@ -20,7 +20,7 @@ function CableConnector({
         style={{
           fontSize: "0.75rem",
           border: "1px solid var(--pa-border)",
-          borderRadius: "4px",
+          borderRadius: "var(--pa-radius-sm)",
           padding: "4px 8px",
           background: "var(--pa-bg)",
           color: "var(--pa-text)",
@@ -60,7 +60,7 @@ export default function ChainNodeList({
             alignItems: "center",
             gap: "8px",
             border: "1px solid var(--pa-border)",
-            borderRadius: "8px",
+            borderRadius: "var(--pa-radius-md)",
             padding: "10px 12px",
             background: "var(--pa-surface)",
           }}>
@@ -70,7 +70,7 @@ export default function ChainNodeList({
               background: "var(--pa-accent)",
               color: "#fff",
               padding: "2px 8px",
-              borderRadius: "3px",
+              borderRadius: "var(--pa-radius-sm)",
               flexShrink: 0,
               fontFamily: "var(--pa-font-ui)",
               letterSpacing: "0.04em",

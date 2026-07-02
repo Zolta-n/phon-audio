@@ -145,7 +145,7 @@ export default async function LearnParameterPage({
             background: "var(--pa-accent)",
             color: "#fff",
             padding: "11px 24px",
-            borderRadius: "4px",
+            borderRadius: "var(--pa-radius-sm)",
             textDecoration: "none",
             fontSize: "0.9rem",
             fontWeight: 500,

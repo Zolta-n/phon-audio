@@ -84,12 +84,6 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "6px 10px",
   fontSize: "0.82rem",
-  border: "1.5px solid var(--pa-border)",
-  borderRadius: "6px",
-  background: "var(--pa-bg)",
-  color: "var(--pa-text)",
-  fontFamily: "var(--pa-font-ui)",
-  outline: "none",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -102,13 +96,13 @@ const labelStyle: React.CSSProperties = {
 
 const tipStyle: React.CSSProperties = {
   fontSize: "0.68rem",
-  color: "#92400e",
+  color: "var(--pa-accent-deep)",
   fontFamily: "var(--pa-font-ui)",
   lineHeight: 1.4,
   padding: "6px 8px",
   background: "#fffbeb",
   border: "1px solid #fde68a",
-  borderRadius: "4px",
+  borderRadius: "var(--pa-radius-sm)",
   marginTop: "4px",
 };
 
@@ -128,7 +122,7 @@ function NumField({ label, value, onChange, placeholder, tip }: {
             onClick={() => setShowTip(!showTip)}
             style={{
               background: "none", border: "none", cursor: "pointer",
-              color: "#d97706", fontSize: "0.68rem", marginLeft: "4px",
+              color: "var(--pa-accent)", fontSize: "0.68rem", marginLeft: "4px",
               fontFamily: "var(--pa-font-ui)", textDecoration: "underline",
               padding: 0,
             }}
@@ -140,7 +134,7 @@ function NumField({ label, value, onChange, placeholder, tip }: {
       <input
         type="number"
         step="any"
-        style={inputStyle}
+        className="pa-input" style={inputStyle}
         placeholder={placeholder ?? ""}
         value={value ?? ""}
         onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
@@ -181,9 +175,9 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
   return (
     <div style={{
       border: "1px solid var(--pa-border)",
-      borderRadius: "8px",
+      borderRadius: "var(--pa-radius-md)",
       padding: "14px",
-      background: "#fff8f0",
+      background: "var(--pa-cream)",
       display: "flex",
       flexDirection: "column",
       gap: "10px",
@@ -193,7 +187,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
         <div style={{ minWidth: "120px" }}>
           <span style={labelStyle}>Domain</span>
           <select
-            style={inputStyle}
+            className="pa-input" style={inputStyle}
             value={port.domain}
             onChange={e => setDomain(e.target.value)}
           >
@@ -203,7 +197,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
         <div style={{ minWidth: "120px" }}>
           <span style={labelStyle}>Connector</span>
           <select
-            style={inputStyle}
+            className="pa-input" style={inputStyle}
             value={port.connector}
             onChange={e => onChange({ ...port, connector: e.target.value as Port["connector"] })}
           >
@@ -223,8 +217,8 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           style={{
             marginLeft: "auto",
             background: "none",
-            border: "1px solid #e8d5b7",
-            borderRadius: "6px",
+            border: "1px solid var(--pa-border)",
+            borderRadius: "var(--pa-radius-md)",
             color: "#c0392b",
             padding: "4px 10px",
             fontSize: "0.78rem",
@@ -283,7 +277,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           <>
             <div style={{ minWidth: "120px" }}>
               <span style={labelStyle}>Cartridge Type</span>
-              <select style={inputStyle} value={(specs.cartridgeType as string) ?? "mm"} onChange={e => updateSpec("cartridgeType", e.target.value)}>
+              <select className="pa-input" style={inputStyle} value={(specs.cartridgeType as string) ?? "mm"} onChange={e => updateSpec("cartridgeType", e.target.value)}>
                 <option value="mm">MM (Moving Magnet)</option>
                 <option value="mc">MC (Moving Coil)</option>
               </select>
@@ -297,7 +291,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           <>
             <div style={{ minWidth: "120px" }}>
               <span style={labelStyle}>Accepts</span>
-              <select style={inputStyle} value={(specs.cartridgeType as string) ?? "both"} onChange={e => updateSpec("cartridgeType", e.target.value)}>
+              <select className="pa-input" style={inputStyle} value={(specs.cartridgeType as string) ?? "both"} onChange={e => updateSpec("cartridgeType", e.target.value)}>
                 <option value="mm">MM only</option>
                 <option value="mc">MC only</option>
                 <option value="both">MM + MC</option>
@@ -318,16 +312,16 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {((specs.powerW as { ohm: number; watts: number }[] | undefined) ?? [{ ohm: 8, watts: 0 }]).map((pw, i, arr) => (
                   <div key={i} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <input type="number" step="any" placeholder="ohm" style={{ ...inputStyle, width: "60px" }} value={pw.ohm || ""} onChange={e => {
+                    <input type="number" step="any" placeholder="ohm" className="pa-input" style={{ ...inputStyle, width: "60px" }} value={pw.ohm || ""} onChange={e => {
                       const next = [...arr]; next[i] = { ...pw, ohm: Number(e.target.value) }; updateSpec("powerW", next);
                     }} />
                     <span style={{ fontSize: "0.72rem", color: "var(--pa-muted)" }}>Ω @</span>
-                    <input type="number" step="any" placeholder="watts" style={{ ...inputStyle, width: "70px" }} value={pw.watts || ""} onChange={e => {
+                    <input type="number" step="any" placeholder="watts" className="pa-input" style={{ ...inputStyle, width: "70px" }} value={pw.watts || ""} onChange={e => {
                       const next = [...arr]; next[i] = { ...pw, watts: Number(e.target.value) }; updateSpec("powerW", next);
                     }} />
                     <span style={{ fontSize: "0.72rem", color: "var(--pa-muted)" }}>W</span>
                     {i === arr.length - 1 && (
-                      <button onClick={() => updateSpec("powerW", [...arr, { ohm: 4, watts: 0 }])} style={{ background: "none", border: "1px solid var(--pa-border)", borderRadius: "4px", padding: "2px 8px", fontSize: "0.72rem", cursor: "pointer", color: "#d97706" }}>+</button>
+                      <button onClick={() => updateSpec("powerW", [...arr, { ohm: 4, watts: 0 }])} style={{ background: "none", border: "1px solid var(--pa-border)", borderRadius: "var(--pa-radius-sm)", padding: "2px 8px", fontSize: "0.72rem", cursor: "pointer", color: "var(--pa-accent)" }}>+</button>
                     )}
                   </div>
                 ))}
@@ -347,7 +341,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
             <NumField label="Sensitivity (value)" value={(specs.sensitivity as { value?: number })?.value ?? null} onChange={v => updateSpec("sensitivity", { value: v, unit: (specs.sensitivity as { unit?: string })?.unit ?? "dB/mW" })} />
             <div style={{ minWidth: "100px" }}>
               <span style={labelStyle}>Sensitivity unit</span>
-              <select style={inputStyle} value={(specs.sensitivity as { unit?: string })?.unit ?? "dB/mW"} onChange={e => updateSpec("sensitivity", { value: (specs.sensitivity as { value?: number })?.value ?? null, unit: e.target.value })}>
+              <select className="pa-input" style={inputStyle} value={(specs.sensitivity as { unit?: string })?.unit ?? "dB/mW"} onChange={e => updateSpec("sensitivity", { value: (specs.sensitivity as { value?: number })?.value ?? null, unit: e.target.value })}>
                 <option value="dB/mW">dB/mW</option>
                 <option value="dB/V">dB/V</option>
               </select>
@@ -373,12 +367,12 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
           paddingTop: "8px",
           lineHeight: 1.6,
         }}>
-          <span style={{ color: "#92400e", fontWeight: 600 }}>Missing specs?</span>{" "}
+          <span style={{ color: "var(--pa-accent-deep)", fontWeight: 600 }}>Missing specs?</span>{" "}
           <a
             href={`https://www.audiosciencereview.com/forum/index.php?search/${encodeURIComponent(componentName)}/&o=relevance`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#d97706", textDecoration: "underline" }}
+            style={{ color: "var(--pa-accent)", textDecoration: "underline" }}
           >
             Search AudioScienceReview
           </a>
@@ -387,7 +381,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
             href={`https://www.google.com/search?q=${encodeURIComponent(componentName + " specifications impedance measurements")}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#d97706", textDecoration: "underline" }}
+            style={{ color: "var(--pa-accent)", textDecoration: "underline" }}
           >
             Google specs
           </a>
@@ -396,7 +390,7 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
             href={`https://www.google.com/search?q=${encodeURIComponent(componentName + " manual PDF specifications")}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#d97706", textDecoration: "underline" }}
+            style={{ color: "var(--pa-accent)", textDecoration: "underline" }}
           >
             Find manual PDF
           </a>

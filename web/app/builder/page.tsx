@@ -53,10 +53,10 @@ export default async function BuilderPage({
   const loadFailed = Boolean(load) && !savedChain;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 68px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - var(--pa-nav-h))" }}>
       <div style={{
         background: "var(--pa-dark)",
-        borderBottom: "1px solid rgba(201,111,18,0.2)",
+        borderBottom: "1px solid rgba(217,119,6,0.2)",
         padding: "20px 32px",
       }}>
         <h1 style={{

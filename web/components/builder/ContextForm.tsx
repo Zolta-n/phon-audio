@@ -27,7 +27,7 @@ export default function ContextForm({
           <span style={{ fontSize: "0.78rem", color: "#7c5a3a", fontFamily: "var(--pa-font-ui)" }}>
             {label}
           </span>
-          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#92400e", fontFamily: "var(--pa-font-ui)" }}>
+          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--pa-accent-deep)", fontFamily: "var(--pa-font-ui)" }}>
             {ctx[key]}{unit}
           </span>
         </div>
@@ -42,7 +42,7 @@ export default function ContextForm({
         />
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 2px", marginTop: "2px" }}>
           {tickLabels.map((t, i) => (
-            <span key={i} style={{ fontSize: "0.55rem", color: "#b45309", fontFamily: "var(--pa-font-ui)" }}>
+            <span key={i} style={{ fontSize: "0.55rem", color: "var(--pa-accent-hover)", fontFamily: "var(--pa-font-ui)" }}>
               {typeof t === "number" ? `${t}${unit}` : t}
             </span>
           ))}

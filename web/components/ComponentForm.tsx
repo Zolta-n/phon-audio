@@ -22,12 +22,6 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "9px 14px",
   fontSize: "0.88rem",
-  border: "1.5px solid var(--pa-border)",
-  borderRadius: "8px",
-  background: "var(--pa-bg)",
-  color: "var(--pa-text)",
-  fontFamily: "var(--pa-font-ui)",
-  outline: "none",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -96,29 +90,29 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Basic info */}
       <div style={{
-        background: "#fff8f0",
+        background: "var(--pa-cream)",
         border: "1px solid var(--pa-border)",
-        borderRadius: "10px",
+        borderRadius: "var(--pa-radius-lg)",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
         gap: "14px",
       }}>
-        <div style={{ fontFamily: "Georgia, serif", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+        <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
           Basic Information
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
           <div>
             <span style={labelStyle}>Name</span>
-            <input type="text" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Modi 5" />
+            <input type="text" className="pa-input" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Modi 5" />
           </div>
           <div>
             <span style={labelStyle}>Manufacturer</span>
-            <input type="text" style={inputStyle} value={manufacturer} onChange={e => setManufacturer(e.target.value)} placeholder="e.g. Schiit Audio" />
+            <input type="text" className="pa-input" style={inputStyle} value={manufacturer} onChange={e => setManufacturer(e.target.value)} placeholder="e.g. Schiit Audio" />
           </div>
           <div>
             <span style={labelStyle}>Category</span>
-            <select style={inputStyle} value={category} onChange={e => setCategory(e.target.value as ComponentCategory)}>
+            <select className="pa-input" style={inputStyle} value={category} onChange={e => setCategory(e.target.value as ComponentCategory)}>
               {CATEGORY_ORDER.map(c => (
                 <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
               ))}
@@ -128,7 +122,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
             <span style={labelStyle}>ID {mode === "edit" ? "(read-only)" : ""}</span>
             <input
               type="text"
-              style={{ ...inputStyle, ...(mode === "edit" ? { opacity: 0.6 } : {}) }}
+              className="pa-input" style={{ ...inputStyle, ...(mode === "edit" ? { opacity: 0.6 } : {}) }}
               value={id || autoId}
               onChange={e => setId(e.target.value)}
               readOnly={mode === "edit"}
@@ -139,7 +133,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         <div>
           <span style={labelStyle}>Notes</span>
           <textarea
-            style={{ ...inputStyle, minHeight: "60px", resize: "vertical" }}
+            className="pa-input" style={{ ...inputStyle, minHeight: "60px", resize: "vertical" }}
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="Optional notes or caveats..."
@@ -149,21 +143,21 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
 
       {/* Inputs */}
       <div style={{
-        background: "#fff8f0",
+        background: "var(--pa-cream)",
         border: "1px solid var(--pa-border)",
-        borderRadius: "10px",
+        borderRadius: "var(--pa-radius-lg)",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+          <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
             Inputs ({inputs.length})
           </div>
           <button onClick={() => addPort("input")} style={{
-            background: "#d97706", color: "#fff", border: "none", padding: "6px 14px",
-            borderRadius: "6px", fontSize: "0.78rem", cursor: "pointer", fontFamily: "var(--pa-font-ui)", fontWeight: 600,
+            background: "var(--pa-accent)", color: "#fff", border: "none", padding: "6px 14px",
+            borderRadius: "var(--pa-radius-md)", fontSize: "0.78rem", cursor: "pointer", fontFamily: "var(--pa-font-ui)", fontWeight: 600,
           }}>
             + Add Input
           </button>
@@ -180,21 +174,21 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
 
       {/* Outputs */}
       <div style={{
-        background: "#fff8f0",
+        background: "var(--pa-cream)",
         border: "1px solid var(--pa-border)",
-        borderRadius: "10px",
+        borderRadius: "var(--pa-radius-lg)",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+          <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
             Outputs ({outputs.length})
           </div>
           <button onClick={() => addPort("output")} style={{
-            background: "#d97706", color: "#fff", border: "none", padding: "6px 14px",
-            borderRadius: "6px", fontSize: "0.78rem", cursor: "pointer", fontFamily: "var(--pa-font-ui)", fontWeight: 600,
+            background: "var(--pa-accent)", color: "#fff", border: "none", padding: "6px 14px",
+            borderRadius: "var(--pa-radius-md)", fontSize: "0.78rem", cursor: "pointer", fontFamily: "var(--pa-font-ui)", fontWeight: 600,
           }}>
             + Add Output
           </button>
@@ -214,7 +208,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         <div style={{
           background: "#fee2e2",
           border: "1px solid #fca5a5",
-          borderRadius: "8px",
+          borderRadius: "var(--pa-radius-md)",
           padding: "10px 14px",
           color: "#c0392b",
           fontSize: "0.85rem",
@@ -228,11 +222,11 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         onClick={handleSave}
         disabled={saving}
         style={{
-          background: saving ? "#b45309" : "#d97706",
+          background: saving ? "var(--pa-accent-hover)" : "var(--pa-accent)",
           color: "#fff",
           border: "none",
           padding: "14px 32px",
-          borderRadius: "8px",
+          borderRadius: "var(--pa-radius-md)",
           fontSize: "1rem",
           fontWeight: 600,
           cursor: saving ? "wait" : "pointer",

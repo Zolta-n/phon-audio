@@ -101,11 +101,11 @@ export default function ParameterExplainer({ id }: { id: string }) {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTier(t)}
-                  className="text-xs px-2 py-1 rounded transition-colors"
+                  className={`text-xs px-2 py-1 rounded transition-colors ${active ? "" : "pa-listrow"}`}
                   style={
                     active
                       ? { background: "var(--pa-accent)", color: "#fff" }
-                      : { background: "transparent", color: "var(--pa-muted)" }
+                      : { color: "var(--pa-muted)" }
                   }
                 >
                   {TIER_LABELS[t]}

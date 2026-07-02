@@ -37,17 +37,17 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="text-amber-600 text-3xl">Ω</span>
-          <h1 className="text-2xl font-bold text-slate-900 mt-3 mb-1">Sign in to Phon.Audio</h1>
-          <p className="text-slate-500 text-sm">Save and share your signal chains</p>
+          <span className="text-pa-accent text-3xl" style={{ fontFamily: "var(--pa-font-serif)" }}>Ω</span>
+          <h1 className="text-2xl font-bold text-pa-text mt-3 mb-1" style={{ fontFamily: "var(--pa-font-serif)" }}>Sign in to Phon.Audio</h1>
+          <p className="text-pa-muted text-sm">Save and share your signal chains</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+        <div className="bg-pa-cream rounded-xl border border-pa-border p-8" style={{ boxShadow: "var(--pa-shadow-md)" }}>
           {sent ? (
             <div className="text-center">
-              <p className="text-2xl mb-3">📬</p>
-              <p className="font-semibold text-slate-800 mb-2">Check your inbox</p>
-              <p className="text-sm text-slate-500">
+              <p className="text-pa-accent text-2xl mb-3" style={{ fontFamily: "var(--pa-font-serif)" }}>Ω</p>
+              <p className="font-semibold text-pa-text mb-2">Check your inbox</p>
+              <p className="text-sm text-pa-muted">
                 We sent a magic link to <strong>{email}</strong>.
                 Click it to sign in — no password needed.
               </p>
@@ -55,7 +55,7 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-pa-text mb-1.5">
                   Email address
                 </label>
                 <input
@@ -64,7 +64,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="pa-input"
                 />
               </div>
               {error && (
@@ -75,7 +75,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors"
+                className="pa-btn pa-btn-primary w-full"
               >
                 {loading ? "Sending…" : "Send magic link"}
               </button>
@@ -83,9 +83,9 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs text-pa-muted mt-6">
           By signing in you agree to our terms.{" "}
-          <Link href="/builder" className="underline hover:text-slate-600">
+          <Link href="/builder" className="underline hover:text-pa-accent-deep">
             Continue without account
           </Link>
         </p>
