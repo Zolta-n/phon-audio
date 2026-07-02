@@ -19,7 +19,7 @@ import type {
   PhonoIn,
 } from "../types";
 import type { CheckResult, Verdict } from "./checkResult";
-import { worstVerdict } from "./checkResult";
+import { worstVerdict, overallVerdict } from "./checkResult";
 import { impedanceBridging, hfRolloff, gainStaging } from "./checks/lineLink";
 import {
   speakerPowerHeadroom,
@@ -57,14 +57,30 @@ const DOMAIN_PRIORITY: SignalDomain[] = ["speaker", "headphone", "line", "phono"
 function resolveLink(
   from: Component,
   to: Component,
-): { domain: SignalDomain; out: Port; in: Port } | undefined {
+): { domain: SignalDomain; out: Port; in: Port; connectorMismatch: boolean } | undefined {
   for (const domain of DOMAIN_PRIORITY) {
-    const out = (from.outputs ?? []).find((p) => p.domain === domain);
-    const inp = (to.inputs ?? []).find((p) => p.domain === domain);
-    if (out && inp) return { domain, out, in: inp };
+    const outs = (from.outputs ?? []).filter((p) => p.domain === domain);
+    const ins = (to.inputs ?? []).filter((p) => p.domain === domain);
+    if (outs.length === 0 || ins.length === 0) continue;
+    // Prefer a port pair that shares a physical connector (e.g. XLR→XLR).
+    for (const out of outs) {
+      const match = ins.find((i) => i.connector === out.connector);
+      if (match) return { domain, out, in: match, connectorMismatch: false };
+    }
+    // Domain matches but no shared connector — usable with an adapter.
+    return { domain, out: outs[0]!, in: ins[0]!, connectorMismatch: true };
   }
   return undefined;
 }
+
+// Which spec kinds each domain's checks expect on the out/in ports.
+const EXPECTED_KINDS: Record<SignalDomain, { out: string; in: string }> = {
+  digital: { out: "digital_out", in: "digital_in" },
+  line: { out: "line_out", in: "line_in" },
+  phono: { out: "phono_out", in: "phono_in" },
+  speaker: { out: "speaker_out", in: "speaker_load" },
+  headphone: { out: "headphone_out", in: "headphone_load" },
+};
 
 function asInterconnect(cable?: Cable): InterconnectCable | undefined {
   return cable?.kind === "interconnect" ? cable : undefined;
@@ -84,6 +100,22 @@ function checkLink(
   cable: Cable | undefined,
   chain: Chain,
 ): CheckResult[] {
+  // Guard the casts below: a port whose specs.kind disagrees with its domain is
+  // malformed data (bad scrape/manual entry) — report it instead of mis-reading it.
+  const expected = EXPECTED_KINDS[domain];
+  if (out.specs?.kind !== expected.out || inp.specs?.kind !== expected.in) {
+    return [
+      {
+        id: "spec_kind_mismatch",
+        label: "Component data",
+        verdict: "fail",
+        explanation:
+          `Malformed component data on this ${domain} link: expected ${expected.out} → ${expected.in} specs but got ` +
+          `${out.specs?.kind ?? "none"} → ${inp.specs?.kind ?? "none"}. Fix the component's port definitions.`,
+      },
+    ];
+  }
+
   switch (domain) {
     case "digital":
       return [
@@ -126,6 +158,10 @@ function checkLink(
         headphoneOutputImpedance(hp, amp),
       ];
     }
+    default: {
+      const exhausted: never = domain;
+      throw new Error(`Unhandled signal domain: ${exhausted}`);
+    }
   }
 }
 
@@ -155,6 +191,14 @@ export function evaluateChain(chain: Chain): SystemReport {
       continue;
     }
     const results = checkLink(link.domain, link.out, link.in, fromNode.cableToNext, chain);
+    if (link.connectorMismatch) {
+      results.push({
+        id: "connector_match",
+        label: "Physical connector",
+        verdict: "warn",
+        explanation: `No shared ${link.domain} connector: output is ${link.out.connector}, input is ${link.in.connector} — an adapter or different cable is needed.`,
+      });
+    }
     links.push({
       from: fromNode.component.name,
       to: toNode.component.name,
@@ -172,7 +216,9 @@ export function evaluateChain(chain: Chain): SystemReport {
 
   const system: CheckResult[] = [endToEndSpl(terminalPowerCheck), gainStructure(chain)];
 
-  const overall = worstVerdict([...links.flatMap((l) => l.results), ...system]);
+  // Headline verdict: info results are neutral here — a well-matched chain with
+  // informational notes still reads as an overall pass (see overallVerdict).
+  const overall = overallVerdict([...links.flatMap((l) => l.results), ...system]);
   return { links, system, overall };
 }
 

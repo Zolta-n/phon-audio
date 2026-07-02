@@ -1,33 +1,8 @@
-import type { UIComponent, Port } from "@/types";
+import type { Port } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { SEED_CATALOG } from "@/lib/seedCatalog";
-import { rowToComponent } from "@/lib/getComponents";
-
-function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return url.length > 0 && !url.includes("YOUR_PROJECT");
-}
-
-async function getComponent(id: string): Promise<UIComponent | null> {
-  if (!isSupabaseConfigured()) {
-    return SEED_CATALOG.find((c) => c.id === id) ?? null;
-  }
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("components")
-      .select("id, name, category, specs, affiliate_url, image_url, manufacturer, notes")
-      .eq("id", id)
-      .single();
-    if (error || !data) return null;
-    return rowToComponent(data);
-  } catch {
-    return null;
-  }
-}
+import { getComponentById } from "@/lib/getComponents";
 
 /** Impact descriptions for missing specs */
 const UNKNOWN_IMPACT: Record<string, string> = {
@@ -136,7 +111,7 @@ export default async function ComponentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const component = await getComponent(id);
+  const component = await getComponentById(id);
   if (!component) notFound();
 
   return (

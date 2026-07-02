@@ -5,7 +5,7 @@ export interface ManufacturerConfig {
   name: string;                    // "Sennheiser"
   categories: ComponentCategory[];  // which categories this brand covers
   listingUrls: string[];           // product category listing pages to crawl
-  productLinkPattern: string;      // regex pattern to identify product page URLs
+  productLinkPattern: string;      // substring that identifies product page URLs (matched with .includes())
   needsPlaywright: boolean;        // true = JS-heavy site, false = static HTML
   rateLimit: number;               // ms between requests (be polite)
 }

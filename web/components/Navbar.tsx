@@ -36,7 +36,6 @@ export default function Navbar() {
           <Link href="/builder" style={linkStyle}>Compatibility</Link>
           <Link href="/components" style={linkStyle}>Components</Link>
           <Link href="/learn" style={linkStyle}>Learn</Link>
-          <Link href="#" style={linkStyle}>Community</Link>
           <AuthButton />
           <Link href="/builder" style={{
             background: "var(--pa-accent)",

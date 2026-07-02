@@ -8,7 +8,7 @@ interface ChainNode {
   component: { id: string; name: string; category: string; manufacturer?: string } | null;
 }
 
-interface SavedChain {
+export interface SavedChain {
   id: string;
   name: string;
   is_public: boolean;
@@ -27,15 +27,22 @@ const BADGE_COLORS: Record<string, string> = {
 export default function SavedChainsList({ chains: initialChains }: { chains: SavedChain[] }) {
   const [chains, setChains] = useState(initialChains);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this chain?")) return;
     setDeleting(id);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/chains/${id}`, { method: "DELETE" });
       if (res.ok) {
         setChains(chains.filter(c => c.id !== id));
+      } else {
+        const data = await res.json().catch(() => null);
+        setDeleteError(data?.error ?? "Couldn't delete the chain — please try again.");
       }
+    } catch {
+      setDeleteError("Couldn't delete the chain — please check your connection and try again.");
     } finally {
       setDeleting(null);
     }
@@ -43,6 +50,19 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {deleteError && (
+        <div style={{
+          background: "#fff5f5",
+          border: "1px solid #feb2b2",
+          color: "#c53030",
+          borderRadius: "8px",
+          padding: "10px 14px",
+          fontSize: "0.82rem",
+          fontFamily: "var(--pa-font-ui)",
+        }}>
+          {deleteError}
+        </div>
+      )}
       {chains.map(chain => {
         const nodes = [...chain.chain_nodes].sort((a, b) => a.position - b.position);
         const date = new Date(chain.created_at).toLocaleDateString("en-US", {

@@ -3,15 +3,12 @@ import { useState } from "react";
 import type { UIComponent, Port, ComponentCategory } from "@/types";
 import { CATEGORY_ORDER, CATEGORY_LABELS } from "@/types";
 import PortEditor from "./PortEditor";
+import { toKebabCase } from "@/lib/strings";
 
 interface ComponentFormProps {
   initial?: Partial<UIComponent>;
   onSave: (component: UIComponent) => Promise<void>;
   mode: "create" | "edit" | "review";
-}
-
-function toKebabCase(str: string): string {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 const defaultPort: Port = {

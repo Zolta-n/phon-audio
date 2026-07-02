@@ -1,46 +1,45 @@
-import { createServiceClient } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase-admin";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { SEED_CATALOG } from "@/lib/seedCatalog";
-import { rowToComponent } from "@/lib/getComponents";
-
-function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return url.length > 0 && !url.includes("YOUR_PROJECT");
-}
+import { getComponentById } from "@/lib/getComponents";
+import { componentUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-
-  if (!isSupabaseConfigured()) {
-    const component = SEED_CATALOG.find((c) => c.id === id);
-    if (!component) return Response.json({ error: "Not found" }, { status: 404 });
-    return Response.json(component);
-  }
-
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("components")
-    .select("id, name, category, specs, affiliate_url, image_url, manufacturer, notes")
-    .eq("id", id)
-    .single();
-
-  if (error || !data) return Response.json({ error: "Not found" }, { status: 404 });
-  return Response.json(rowToComponent(data));
+  const component = await getComponentById(id);
+  if (!component) return Response.json({ error: "Not found" }, { status: 404 });
+  return Response.json(component);
 }
 
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authClient = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: body, error: parseError } = await parseBody(req, componentUpdateSchema);
+  if (parseError) return parseError;
+
   try {
     const { id } = await params;
-    const body = await req.json();
     const { name, category, inputs, outputs, manufacturer, note } = body;
 
     const supabase = createServiceClient();
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("components")
+      .select("specs")
+      .eq("id", id)
+      .single();
+    if (fetchError || !existing) {
+      return Response.json({ error: "Not found" }, { status: 404 });
+    }
 
     // Build update object with only provided fields
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -49,13 +48,7 @@ export async function PUT(
     if (manufacturer !== undefined) update.manufacturer = manufacturer;
     if (note !== undefined) update.notes = note;
     if (inputs !== undefined || outputs !== undefined) {
-      // Fetch existing specs to merge
-      const { data: existing } = await supabase
-        .from("components")
-        .select("specs")
-        .eq("id", id)
-        .single();
-      const existingSpecs = (existing?.specs as Record<string, unknown>) ?? {};
+      const existingSpecs = (existing.specs as Record<string, unknown>) ?? {};
       update.specs = {
         inputs: inputs ?? existingSpecs.inputs ?? [],
         outputs: outputs ?? existingSpecs.outputs ?? [],

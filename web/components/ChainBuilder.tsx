@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { useFavorites } from "@/hooks/useFavorites";
-import type {
-  UIComponent, ChainEntry, ContextSettings, SystemReport,
-  ComponentCategory,
-} from "@/types";
-import {
-  CABLE_DEFS, CABLE_BY_ID, CABLE_SUGGESTION,
-  CATEGORY_BADGE, CATEGORY_LABELS, CATEGORY_ORDER,
-} from "@/types";
+import { useState, useCallback, useMemo } from "react";
+import type { UIComponent, ChainEntry, ContextSettings, SystemReport } from "@/types";
+import { CABLE_DEFS, CABLE_SUGGESTION } from "@/types";
 import ResultsPanel from "@/components/ResultsPanel";
 import ChainDiagram from "@/components/ChainDiagram";
 import RoomCanvas from "@/components/RoomCanvas";
+import Palette from "@/components/builder/Palette";
+import ChainNodeList from "@/components/builder/ChainNodeList";
+import SummaryPanel from "@/components/builder/SummaryPanel";
+import SaveModal from "@/components/builder/SaveModal";
+import { toEvaluateNodes, toSaveNodes } from "@/components/builder/chainSerialize";
 import { createClient } from "@/lib/supabase";
 
 // ---- Seed demo chains (use engine seed IDs for fallback mode) ---------------
@@ -30,184 +28,82 @@ const DEMO_CHAINS: Record<string, { componentIds: string[]; cableIds: string[] }
   },
 };
 
-// ---- Helper functions -------------------------------------------------------
-
-function computeScore(report: SystemReport): number {
-  let score = 100;
-  for (const link of report.links) {
-    for (const r of link.results) {
-      if (r.verdict === "fail") score -= 20;
-      else if (r.verdict === "warn") score -= 5;
-    }
-  }
-  for (const r of report.system) {
-    if (r.verdict === "fail") score -= 20;
-    else if (r.verdict === "warn") score -= 5;
-  }
-  return Math.max(0, Math.min(100, score));
+interface SavedChainNode {
+  component: { id: string } | null;
+  cable: { kind: string; lengthM: number } | null;
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 90) return "Excellent pairing";
-  if (score >= 70) return "Good match";
-  if (score >= 50) return "Fair match";
-  return "Compatibility issues";
-}
-
-function getTopChecks(report: SystemReport): Array<{ label: string; verdict: "pass" | "warn" | "fail" | "info"; valueStr: string }> {
-  const all: Array<{ label: string; verdict: "pass" | "warn" | "fail" | "info"; valueStr: string }> = [];
-  for (const link of report.links) {
-    for (const r of link.results) {
-      if (r.verdict === "info") continue; // skip info-level
-      const valueStr = r.value != null && r.unit ? `${r.value.toFixed(1)}${r.unit}` : "";
-      all.push({ label: r.label, verdict: r.verdict, valueStr });
-    }
-  }
-  // Sort: fails first, then warns, then passes. Take top 4.
-  const order = { fail: 0, warn: 1, pass: 2, info: 3 };
-  all.sort((a, b) => order[a.verdict] - order[b.verdict]);
-  return all.slice(0, 4);
-}
-
-// ---- Category color badges -------------------------------------------------
-
-const CAT_COLOR_BADGE: Partial<Record<ComponentCategory, string>> = {
-  source: "#7a5c3a", dac: "#c96f12", preamp: "#9b4f0a",
-  power_amp: "#7a3a08", tube_amp_se: "#8b3a5c", tube_amp_pp: "#6b3a6b",
-  integrated: "#8b4f20", headphone_amp: "#9b5010",
-  speaker: "#4a7a3a", headphone: "#3a5c7a",
-};
-
-// ---- Sub-components --------------------------------------------------------
-
-function CableConnector({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingLeft: "40px", padding: "4px 0 4px 40px" }}>
-      <div style={{ width: "1px", height: "16px", background: "var(--pa-border)" }} />
-      <span style={{ color: "var(--pa-muted)", fontSize: "0.75rem" }}>↓</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          fontSize: "0.75rem",
-          border: "1px solid var(--pa-border)",
-          borderRadius: "4px",
-          padding: "4px 8px",
-          background: "var(--pa-bg)",
-          color: "var(--pa-text)",
-          cursor: "pointer",
-          fontFamily: "var(--pa-font-ui)",
-        }}
-      >
-        {CABLE_DEFS.map((c) => (
-          <option key={c.id} value={c.id}>{c.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function ContextForm({
-  ctx,
-  onChange,
-}: {
-  ctx: ContextSettings;
-  onChange: (c: ContextSettings) => void;
-}) {
-  const slider = (
-    label: string,
-    key: keyof ContextSettings,
-    min: number,
-    max: number,
-    step: number,
-    unit: string,
-    ticks?: (string | number)[],
-  ) => {
-    const pct = ((ctx[key] - min) / (max - min)) * 100;
-    const tickLabels = ticks ?? [min, Math.round((min + max) / 2), max];
-    return (
-      <div style={{ marginBottom: "18px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
-          <span style={{ fontSize: "0.78rem", color: "#7c5a3a", fontFamily: "var(--pa-font-ui)" }}>
-            {label}
-          </span>
-          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#92400e", fontFamily: "var(--pa-font-ui)" }}>
-            {ctx[key]}{unit}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={ctx[key]}
-          onChange={(e) => onChange({ ...ctx, [key]: parseFloat(e.target.value) })}
-          style={{ width: "100%", cursor: "pointer", margin: "2px 0", "--pct": `${pct}%` } as React.CSSProperties}
-        />
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 2px", marginTop: "2px" }}>
-          {tickLabels.map((t, i) => (
-            <span key={i} style={{ fontSize: "0.55rem", color: "#b45309", fontFamily: "var(--pa-font-ui)" }}>
-              {typeof t === "number" ? `${t}${unit}` : t}
-            </span>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <>
-      {slider("Target SPL", "targetSplDb", 60, 100, 1, " dB", ["60", "70", "80", "90", "100"])}
-      {slider("Headroom", "crestFactorDb", 6, 30, 1, " dB", ["6", "12", "18", "24", "30"])}
-      {slider("Distance", "distanceM", 0.5, 8, 0.5, " m", ["0.5m", "2m", "4m", "6m", "8m"])}
-      {slider("Room gain", "roomGainDb", 0, 12, 1, " dB", ["0", "3", "6", "9", "12"])}
-    </>
-  );
-}
-
-// ---- Main component --------------------------------------------------------
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SavedChainData = { name: string; context: any; nodes: any[] } | null;
+type SavedChainData = {
+  name: string;
+  context: Partial<ContextSettings> | null;
+  nodes: SavedChainNode[];
+} | null;
 
 export default function ChainBuilder({
   catalog,
   initialDemo,
   savedChain,
+  loadFailed,
 }: {
   catalog: UIComponent[];
   initialDemo?: string;
   savedChain?: SavedChainData;
+  loadFailed?: boolean;
 }) {
-  const [chain, setChain] = useState<ChainEntry[]>([]);
-  const [ctx, setCtx] = useState<ContextSettings>({
-    targetSplDb: 85,
-    crestFactorDb: 15,
-    distanceM: 3,
-    roomGainDb: 0,
-  });
+  // Initial chain: restore the saved chain (?load=) or a demo (?demo=) once,
+  // at mount — catalog is server-provided and complete on first render.
+  const initialEntries = (): ChainEntry[] => {
+    const byId = Object.fromEntries(catalog.map((c) => [c.id, c]));
+    if (savedChain && catalog.length > 0) {
+      const entries: ChainEntry[] = [];
+      for (const node of savedChain.nodes) {
+        const uiComp = node.component ? byId[node.component.id] : undefined;
+        if (!uiComp) continue;
+        // Match cable object back to a cable definition
+        let cableId = "none";
+        if (node.cable) {
+          const match = CABLE_DEFS.find(c =>
+            c.cable && c.cable.kind === node.cable!.kind && c.cable.lengthM === node.cable!.lengthM
+          );
+          if (match) cableId = match.id;
+        }
+        entries.push({ component: uiComp, cableId });
+      }
+      if (entries.length > 0) return entries;
+    }
+    if (initialDemo && catalog.length > 0) {
+      const demo = DEMO_CHAINS[initialDemo];
+      if (demo) {
+        const components = demo.componentIds.map((id) => byId[id]).filter(Boolean);
+        if (components.length > 0) {
+          return components.map((c, i) => ({ component: c, cableId: demo.cableIds[i] ?? "none" }));
+        }
+      }
+    }
+    return [];
+  };
+
+  const [chain, setChain] = useState<ChainEntry[]>(initialEntries);
+  const [ctx, setCtx] = useState<ContextSettings>(() => ({
+    targetSplDb: savedChain?.context?.targetSplDb ?? 85,
+    crestFactorDb: savedChain?.context?.crestFactorDb ?? 15,
+    distanceM: savedChain?.context?.distanceM ?? 3,
+    roomGainDb: savedChain?.context?.roomGainDb ?? 0,
+  }));
   const [report, setReport] = useState<SystemReport | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [openManufacturer, setOpenManufacturer] = useState<string | null>(null);
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [chainName, setChainName] = useState("");
-  const { isFavorite, toggleFavorite } = useFavorites();
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [expandedMfrs, setExpandedMfrs] = useState<Set<string>>(new Set());
+  const [chainName, setChainName] = useState(savedChain?.name ?? "");
   const [insertAtIdx, setInsertAtIdx] = useState<number | null>(null);
 
   // Index catalog by id for quick lookup
-  const catalogById = Object.fromEntries(catalog.map((c) => [c.id, c]));
+  const catalogById = useMemo(
+    () => Object.fromEntries(catalog.map((c) => [c.id, c])),
+    [catalog],
+  );
 
   const suggestCable = useCallback(
     (fromId: string, toId: string): string => {
@@ -234,42 +130,6 @@ export default function ChainBuilder({
     },
     [catalogById],
   );
-
-  // Auto-load demo or saved chain from URL param on mount
-  useEffect(() => {
-    if (savedChain && catalog.length > 0) {
-      const entries: ChainEntry[] = [];
-      for (const node of savedChain.nodes) {
-        const comp = node.component;
-        if (!comp) continue;
-        const uiComp = catalogById[comp.id];
-        if (!uiComp) continue;
-        // Match cable object back to a cable definition
-        let cableId = "none";
-        if (node.cable) {
-          const match = CABLE_DEFS.find(c =>
-            c.cable && c.cable.kind === node.cable.kind && c.cable.lengthM === node.cable.lengthM
-          );
-          if (match) cableId = match.id;
-        }
-        entries.push({ component: uiComp, cableId });
-      }
-      if (entries.length > 0) {
-        setChain(entries);
-        setChainName(savedChain.name ?? "");
-        if (savedChain.context) {
-          setCtx({
-            targetSplDb: savedChain.context.targetSplDb ?? 85,
-            crestFactorDb: savedChain.context.crestFactorDb ?? 15,
-            distanceM: savedChain.context.distanceM ?? 3,
-            roomGainDb: savedChain.context.roomGainDb ?? 0,
-          });
-        }
-      }
-    } else if (initialDemo && catalog.length > 0) {
-      loadDemo(initialDemo);
-    }
-  }, [initialDemo, savedChain, catalog.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addComponent = useCallback(
     (comp: UIComponent) => {
@@ -305,6 +165,14 @@ export default function ChainBuilder({
     [suggestCable],
   );
 
+  const handlePick = useCallback(
+    (comp: UIComponent) => {
+      if (insertAtIdx !== null) insertComponent(insertAtIdx, comp);
+      else addComponent(comp);
+    },
+    [insertAtIdx, insertComponent, addComponent],
+  );
+
   const removeAt = useCallback((idx: number) => {
     setChain((prev) => prev.filter((_, i) => i !== idx));
     setInsertAtIdx(null);
@@ -323,25 +191,10 @@ export default function ChainBuilder({
     setEvaluating(true);
     setError(null);
     try {
-      const nodes = chain.map((entry, i) => {
-        const isLast = i === chain.length - 1;
-        const cableDef = isLast ? null : CABLE_BY_ID[entry.cableId];
-        return {
-          component: {
-            id: entry.component.id,
-            name: entry.component.name,
-            category: entry.component.category,
-            inputs: entry.component.inputs ?? [],
-            outputs: entry.component.outputs ?? [],
-          },
-          ...(cableDef?.cable ? { cableToNext: cableDef.cable } : {}),
-        };
-      });
-
       const res = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodes, context: ctx }),
+        body: JSON.stringify({ nodes: toEvaluateNodes(chain), context: ctx }),
       });
 
       const data = await res.json();
@@ -377,22 +230,13 @@ export default function ChainBuilder({
     setSaving(true);
     setSaveMsg(null);
     try {
-      const nodes = chain.map((entry, i) => {
-        const isLast = i === chain.length - 1;
-        const cableDef = isLast ? null : CABLE_BY_ID[entry.cableId];
-        return {
-          componentId: entry.component.id,
-          cable: cableDef?.cable ?? undefined,
-        };
-      });
-
       const res = await fetch("/api/chains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: chainName || "My Chain",
           context: ctx,
-          nodes,
+          nodes: toSaveNodes(chain),
         }),
       });
 
@@ -408,19 +252,16 @@ export default function ChainBuilder({
     }
   };
 
-  // Two-level grouping: category → manufacturer → components
-  const byCategory = useMemo(() => {
-    const result: Partial<Record<ComponentCategory, Record<string, UIComponent[]>>> = {};
-    const items = showFavoritesOnly ? catalog.filter(c => isFavorite(c.id)) : catalog;
-    for (const c of items) {
-      const cat = c.category;
-      const mfr = c.manufacturer ?? "Other";
-      if (!result[cat]) result[cat] = {};
-      if (!result[cat]![mfr]) result[cat]![mfr] = [];
-      result[cat]![mfr].push(c);
-    }
-    return result;
-  }, [catalog, showFavoritesOnly, isFavorite]);
+  const secondaryButton: React.CSSProperties = {
+    border: "1px solid var(--pa-accent)",
+    color: "var(--pa-accent)",
+    background: "transparent",
+    fontSize: "0.875rem",
+    padding: "8px 16px",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontFamily: "var(--pa-font-ui)",
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -435,183 +276,7 @@ export default function ChainBuilder({
       }}>
 
         {/* ── Palette ── */}
-        <aside style={{
-          background: "#fff8f0",
-          borderRadius: "10px",
-          border: "1.5px solid #e8d5b7",
-          padding: "16px 0",
-          overflowY: "auto",
-          maxHeight: "calc(100vh - 10rem)",
-        }}>
-          <div style={{
-            fontSize: "0.65rem",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.16em",
-            color: "#92400e",
-            padding: "0 16px 12px",
-            borderBottom: "1px solid #e8d5b7",
-            marginBottom: "8px",
-            fontFamily: "var(--pa-font-ui)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}>
-            Components
-            <button
-              onClick={() => setShowFavoritesOnly(prev => !prev)}
-              title={showFavoritesOnly ? "Show all" : "Show favorites only"}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                color: showFavoritesOnly ? "#d97706" : "#d4b896",
-                padding: "0 2px",
-                lineHeight: 1,
-                transition: "color 0.15s",
-              }}
-            >
-              {showFavoritesOnly ? "\u2665" : "\u2661"}
-            </button>
-          </div>
-          {catalog.length === 0 ? (
-            <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)" }}>Loading catalog…</p>
-          ) : (
-            CATEGORY_ORDER.map((cat) => {
-              if (!byCategory[cat]) return null;
-              const catMfrs = byCategory[cat]!;
-              const mfrNames = Object.keys(catMfrs).sort();
-              const isCatOpen = openCategory === cat;
-              return (
-                <div key={cat} style={{ marginBottom: "2px" }}>
-                  {/* Category type label */}
-                  <div style={{
-                    fontSize: "0.6rem",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "#92400e",
-                    padding: "10px 16px 6px",
-                    fontWeight: 700,
-                    fontFamily: "var(--pa-font-ui)",
-                    cursor: "pointer",
-                  }}
-                    onClick={() => setOpenCategory(isCatOpen ? null : cat)}
-                  >
-                    {CATEGORY_LABELS[cat]}
-                    <span style={{ float: "right", color: "#d97706", fontSize: "0.72rem" }}>
-                      {isCatOpen ? "\u25BC" : "\u25B6"}
-                    </span>
-                  </div>
-                  {/* Manufacturer list under this category */}
-                  {isCatOpen && mfrNames.map((mfr) => {
-                    const isMfrOpen = openManufacturer === `${cat}::${mfr}`;
-                    return (
-                      <div key={mfr}>
-                        {/* Brand header */}
-                        <div
-                          onClick={() => setOpenManufacturer(prev => prev === `${cat}::${mfr}` ? null : `${cat}::${mfr}`)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "9px 16px",
-                            cursor: "pointer",
-                            fontSize: "0.82rem",
-                            color: isMfrOpen ? "#92400e" : "#5c3a1e",
-                            fontWeight: isMfrOpen ? 600 : 400,
-                            letterSpacing: "0.03em",
-                            fontFamily: "var(--pa-font-ui)",
-                          }}
-                        >
-                          <span>{mfr}</span>
-                          <span style={{ color: "#d97706", fontSize: "0.72rem" }}>{isMfrOpen ? "\u25BC" : "\u25B6"}</span>
-                        </div>
-                        {isMfrOpen && (() => {
-                          const mfrKey = `${cat}::${mfr}`;
-                          const allComps = catMfrs[mfr];
-                          const isExpanded = expandedMfrs.has(mfrKey);
-                          const visible = isExpanded ? allComps : allComps.slice(0, 5);
-                          const remaining = allComps.length - 5;
-                          return (
-                            <div style={{ background: "#fef9f0" }}>
-                              {visible.map((c) => (
-                                <div
-                                  key={c.id}
-                                  onClick={() => insertAtIdx !== null ? insertComponent(insertAtIdx, c) : addComponent(c)}
-                                  title={c.note ?? c.name}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    padding: "7px 16px 7px 28px",
-                                    fontSize: "0.78rem",
-                                    color: "#7c5a3a",
-                                    cursor: "pointer",
-                                    borderBottom: "1px solid #f5e8d0",
-                                    fontFamily: "var(--pa-font-ui)",
-                                  }}
-                                >
-                                  <span
-                                    onClick={e => { e.stopPropagation(); toggleFavorite(c.id); }}
-                                    style={{
-                                      fontSize: "0.72rem",
-                                      color: isFavorite(c.id) ? "#d97706" : "#d4b896",
-                                      cursor: "pointer",
-                                      flexShrink: 0,
-                                      lineHeight: 1,
-                                      transition: "color 0.15s",
-                                    }}
-                                    title={isFavorite(c.id) ? "Remove from favorites" : "Add to favorites"}
-                                  >
-                                    {isFavorite(c.id) ? "\u2665" : "\u2661"}
-                                  </span>
-                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                    {c.name}
-                                  </span>
-                                  <span style={{
-                                    fontSize: "0.58rem",
-                                    letterSpacing: "0.06em",
-                                    textTransform: "uppercase",
-                                    color: "#b45309",
-                                    background: "#fef3c7",
-                                    padding: "1px 5px",
-                                    borderRadius: "3px",
-                                    border: "1px solid #fcd34d",
-                                    flexShrink: 0,
-                                    fontFamily: "var(--pa-font-ui)",
-                                  }}>
-                                    {CATEGORY_BADGE[c.category]}
-                                  </span>
-                                </div>
-                              ))}
-                              {remaining > 0 && !isExpanded && (
-                                <div
-                                  onClick={() => setExpandedMfrs(prev => new Set(prev).add(mfrKey))}
-                                  style={{
-                                    fontSize: "0.72rem",
-                                    color: "#d97706",
-                                    padding: "6px 16px 6px 28px",
-                                    cursor: "pointer",
-                                    fontFamily: "var(--pa-font-ui)",
-                                    fontWeight: 500,
-                                    borderBottom: "1px solid #f5e8d0",
-                                  }}
-                                >
-                                  +{remaining} more
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })
-          )}
-        </aside>
+        <Palette catalog={catalog} onPick={handlePick} />
 
         {/* ── Chain ── */}
         <section style={{
@@ -633,6 +298,20 @@ export default function ChainBuilder({
             Signal Chain
           </div>
 
+          {loadFailed && (
+            <div style={{
+              background: "#fff5f5",
+              border: "1px solid #feb2b2",
+              color: "#c53030",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              marginBottom: "12px",
+              fontSize: "0.8rem",
+              fontFamily: "var(--pa-font-ui)",
+            }}>
+              Couldn&apos;t load the requested saved chain — it may be private or deleted.
+            </div>
+          )}
 
           {/* Graphical chain diagram — always visible */}
           {chain.length > 0 ? (
@@ -696,94 +375,13 @@ export default function ChainBuilder({
 
           {/* Compact chain node list (for cable editing + remove) */}
           {chain.length > 0 && (
-            <div style={{ marginBottom: "12px", flex: 1 }}>
-              {chain.map((entry, i) => (
-                <div key={`${entry.component.id}-${i}`}>
-                  {/* Node card */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    border: "1px solid var(--pa-border)",
-                    borderRadius: "8px",
-                    padding: "10px 12px",
-                    background: "var(--pa-surface)",
-                  }}>
-                    <span style={{
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      background: "var(--pa-accent)",
-                      color: "#fff",
-                      padding: "2px 8px",
-                      borderRadius: "3px",
-                      flexShrink: 0,
-                      fontFamily: "var(--pa-font-ui)",
-                      letterSpacing: "0.04em",
-                    }}>
-                      {CATEGORY_BADGE[entry.component.category]}
-                    </span>
-                    <span style={{
-                      flex: 1,
-                      fontSize: "0.875rem",
-                      color: "var(--pa-text)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      fontFamily: "var(--pa-font-ui)",
-                    }}>
-                      {entry.component.name}
-                    </span>
-                    <button
-                      onClick={() => removeAt(i)}
-                      style={{
-                        color: "var(--pa-muted)",
-                        background: "none",
-                        border: "none",
-                        fontSize: "1.2rem",
-                        lineHeight: 1,
-                        padding: "0 4px",
-                        cursor: "pointer",
-                      }}
-                      title="Remove"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  {/* Cable connector + insert button (between nodes) */}
-                  {i < chain.length - 1 && (
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <CableConnector
-                        value={entry.cableId}
-                        onChange={(id) => setCableAt(i, id)}
-                      />
-                      <button
-                        onClick={() => setInsertAtIdx(insertAtIdx === i + 1 ? null : i + 1)}
-                        title="Insert component here"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          borderRadius: "50%",
-                          border: insertAtIdx === i + 1 ? "2px solid var(--pa-accent)" : "1px solid var(--pa-border)",
-                          background: insertAtIdx === i + 1 ? "var(--pa-accent)" : "var(--pa-surface)",
-                          color: insertAtIdx === i + 1 ? "#fff" : "var(--pa-muted)",
-                          fontSize: "1rem",
-                          lineHeight: 1,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginLeft: "6px",
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <ChainNodeList
+              chain={chain}
+              insertAtIdx={insertAtIdx}
+              onToggleInsertAt={(idx) => setInsertAtIdx(insertAtIdx === idx ? null : idx)}
+              onRemoveAt={removeAt}
+              onSetCableAt={setCableAt}
+            />
           )}
 
           {/* Room view — only for speaker chains */}
@@ -823,34 +421,10 @@ export default function ChainBuilder({
             >
               {evaluating ? "Evaluating…" : "Evaluate"}
             </button>
-            <button
-              onClick={() => loadDemo("speaker")}
-              style={{
-                border: "1px solid var(--pa-accent)",
-                color: "var(--pa-accent)",
-                background: "transparent",
-                fontSize: "0.875rem",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontFamily: "var(--pa-font-ui)",
-              }}
-            >
+            <button onClick={() => loadDemo("speaker")} style={secondaryButton}>
               Speaker demo
             </button>
-            <button
-              onClick={() => loadDemo("headphone")}
-              style={{
-                border: "1px solid var(--pa-accent)",
-                color: "var(--pa-accent)",
-                background: "transparent",
-                fontSize: "0.875rem",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontFamily: "var(--pa-font-ui)",
-              }}
-            >
+            <button onClick={() => loadDemo("headphone")} style={secondaryButton}>
               HP demo
             </button>
             <button
@@ -872,153 +446,17 @@ export default function ChainBuilder({
         </section>
 
         {/* ── Context + Evaluate ── */}
-        <aside style={{
-          background: "#fff8f0",
-          borderRadius: "10px",
-          border: "1.5px solid #e8d5b7",
-          padding: "16px",
-          overflowY: "auto",
-          maxHeight: "calc(100vh - 10rem)",
-        }}>
-          {/* Evaluate button — always at top for visibility */}
-          <button
-            onClick={evaluate}
-            disabled={evaluating || chain.length < 2}
-            style={{
-              width: "100%",
-              marginBottom: "16px",
-              background: evaluating || chain.length < 2 ? "#e8d5b7" : "#d97706",
-              color: "#fff",
-              fontSize: "0.9rem",
-              fontWeight: 700,
-              padding: "11px",
-              borderRadius: "5px",
-              border: "none",
-              cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
-              fontFamily: "var(--pa-font-ui)",
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}
-          >
-            {evaluating ? "Evaluating\u2026" : "Evaluate Chain"}
-          </button>
-
-          <div style={{
-            fontFamily: "Georgia, serif",
-            fontSize: "0.95rem",
-            color: "#3d2200",
-            borderBottom: "1px solid #e8d5b7",
-            paddingBottom: "12px",
-            marginBottom: "16px",
-          }}>
-            Room Settings
-          </div>
-          <ContextForm ctx={ctx} onChange={setCtx} />
-
-          {/* Compatibility check summary */}
-          {report && (
-            <div style={{ marginTop: "16px" }}>
-              {/* Compatibility card */}
-              <div style={{
-                background: "#fef3e2",
-                border: "1.5px solid #fcd34d",
-                borderRadius: "8px",
-                padding: "12px",
-                marginBottom: "12px",
-              }}>
-                <div style={{
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#92400e",
-                  marginBottom: "10px",
-                  fontWeight: 700,
-                  fontFamily: "var(--pa-font-ui)",
-                }}>
-                  Compatibility Check
-                </div>
-                {getTopChecks(report).map((chk, idx) => (
-                  <div key={idx} style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "5px 0",
-                    borderBottom: idx < getTopChecks(report).length - 1 ? "1px solid rgba(252,211,77,0.3)" : "none",
-                    fontSize: "0.72rem",
-                    fontFamily: "var(--pa-font-ui)",
-                  }}>
-                    <span style={{ color: "#7c5a3a" }}>{chk.label}</span>
-                    <span style={{
-                      fontWeight: 600,
-                      color: chk.verdict === "pass" ? "#16a34a" : chk.verdict === "fail" ? "#c0392b" : "#d97706",
-                    }}>
-                      {chk.valueStr} {chk.verdict === "pass" ? "\u2713" : chk.verdict === "fail" ? "\u2715" : "\u26A1"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Score badge */}
-              <div style={{
-                background: "linear-gradient(135deg, #d97706, #b45309)",
-                borderRadius: "8px",
-                padding: "12px",
-                textAlign: "center",
-                color: "#fff",
-                marginBottom: "12px",
-              }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "2.2rem", lineHeight: 1 }}>
-                  {computeScore(report)}
-                </div>
-                <div style={{
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  opacity: 0.85,
-                  marginTop: "4px",
-                  fontFamily: "var(--pa-font-ui)",
-                }}>
-                  out of 100 — {scoreLabel(computeScore(report))}
-                </div>
-              </div>
-
-              {/* Save + Share buttons */}
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    background: saving ? "#b45309" : "#d97706",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "7px",
-                    padding: "9px",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: saving ? "wait" : "pointer",
-                    fontFamily: "var(--pa-font-ui)",
-                  }}
-                >
-                  {saving ? "Saving\u2026" : saveMsg || "Save"}
-                </button>
-                <button style={{
-                  flex: 1,
-                  background: "#fff8f0",
-                  color: "#92400e",
-                  border: "1.5px solid #e8d5b7",
-                  borderRadius: "7px",
-                  padding: "9px",
-                  fontSize: "0.8rem",
-                  cursor: "pointer",
-                  fontFamily: "var(--pa-font-ui)",
-                }}>
-                  Share
-                </button>
-              </div>
-            </div>
-          )}
-        </aside>
+        <SummaryPanel
+          ctx={ctx}
+          onCtxChange={setCtx}
+          report={report}
+          evaluating={evaluating}
+          canEvaluate={chain.length >= 2}
+          onEvaluate={evaluate}
+          saving={saving}
+          saveMsg={saveMsg}
+          onSave={handleSave}
+        />
       </div>
 
       {/* ── Results ── */}
@@ -1063,62 +501,15 @@ export default function ChainBuilder({
 
       {/* ── Save Modal ── */}
       {showSaveModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
-        }} onClick={() => setShowSaveModal(false)}>
-          <div style={{
-            background: "#fff", borderRadius: "12px", padding: "28px",
-            width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-          }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", color: "var(--pa-text)", marginBottom: "16px" }}>
-              Save Chain
-            </h3>
-            <label style={{ fontSize: "0.78rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", display: "block", marginBottom: "6px" }}>
-              Chain name
-            </label>
-            <input
-              type="text"
-              value={chainName}
-              onChange={e => setChainName(e.target.value)}
-              placeholder="My audio chain"
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: "0.88rem",
-                border: "1.5px solid var(--pa-border)", borderRadius: "8px",
-                background: "var(--pa-bg)", color: "var(--pa-text)",
-                fontFamily: "var(--pa-font-ui)", outline: "none", marginBottom: "8px",
-                boxSizing: "border-box",
-              }}
-              onKeyDown={e => e.key === "Enter" && confirmSave()}
-              autoFocus
-            />
-            <p style={{ fontSize: "0.72rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", marginBottom: "16px" }}>
-              {chain.length} components: {chain.map(e => e.component.name).join(" \u2192 ")}
-            </p>
-            {saveMsg && (
-              <p style={{ fontSize: "0.78rem", color: saveMsg.includes("failed") ? "#c0392b" : "#166534", marginBottom: "12px", fontFamily: "var(--pa-font-ui)" }}>
-                {saveMsg}
-              </p>
-            )}
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button onClick={() => setShowSaveModal(false)} style={{
-                background: "var(--pa-bg)", color: "var(--pa-text)", border: "1.5px solid var(--pa-border)",
-                padding: "9px 20px", borderRadius: "8px", fontSize: "0.85rem",
-                fontFamily: "var(--pa-font-ui)", cursor: "pointer",
-              }}>
-                Cancel
-              </button>
-              <button onClick={confirmSave} disabled={saving} style={{
-                background: saving ? "#b45309" : "#d97706", color: "#fff", border: "none",
-                padding: "9px 24px", borderRadius: "8px", fontSize: "0.85rem",
-                fontWeight: 600, cursor: saving ? "wait" : "pointer",
-                fontFamily: "var(--pa-font-ui)",
-              }}>
-                {saving ? "Saving\u2026" : "Save Chain"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SaveModal
+          chain={chain}
+          chainName={chainName}
+          onChainNameChange={setChainName}
+          saving={saving}
+          saveMsg={saveMsg}
+          onCancel={() => setShowSaveModal(false)}
+          onConfirm={confirmSave}
+        />
       )}
     </div>
   );

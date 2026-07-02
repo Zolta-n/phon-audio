@@ -1,4 +1,6 @@
 import type { CheckResult } from "../checkResult";
+import { incompleteSpecs } from "../checkResult";
+import { THRESHOLDS as T } from "../thresholds";
 import type { HeadphoneLoad, HeadphoneOut, ListeningContext } from "../../types";
 import { toDbPerMw } from "../../units";
 
@@ -13,7 +15,7 @@ export function headphoneDrive(
   context: ListeningContext,
 ): CheckResult {
   if (!hp?.sensitivity || !hp?.nominalImpedanceOhm || !amp?.maxVrms || !amp?.maxCurrentMa) {
-    return { id: "headphone_drive", label: "Drive capability", verdict: "info", explanation: "Incomplete specs — cannot calculate drive requirements." };
+    return incompleteSpecs("headphone_drive", "Drive capability", "Incomplete specs — cannot calculate drive requirements.");
   }
   const peakSpl = context.targetSplDb + context.crestFactorDb;
   const sensDbMw = toDbPerMw(hp.sensitivity, hp.nominalImpedanceOhm);
@@ -48,23 +50,34 @@ export function headphoneDrive(
  * impedance curve and shifts frequency response (worst on multi-driver/low-Z).
  */
 export function headphoneOutputImpedance(hp: HeadphoneLoad, amp: HeadphoneOut): CheckResult {
-  if (!hp?.nominalImpedanceOhm || !amp?.outputImpedanceOhm) {
-    return { id: "headphone_output_impedance", label: "Output-impedance ratio", verdict: "info", explanation: "Impedance data not available." };
+  // A 0 Ω amp output is a valid (ideal) value, not missing data.
+  if (!hp?.nominalImpedanceOhm || amp?.outputImpedanceOhm == null) {
+    return incompleteSpecs("headphone_output_impedance", "Output-impedance ratio", "Impedance data not available.");
+  }
+  if (amp.outputImpedanceOhm === 0) {
+    return {
+      id: "headphone_output_impedance",
+      label: "Output-impedance ratio",
+      verdict: "pass",
+      threshold: T.headphoneZRatioPass,
+      unit: "x",
+      explanation: "Amp output impedance is effectively 0 Ω — frequency response stays neutral into any headphone.",
+    };
   }
   const ratio = hp.nominalImpedanceOhm / amp.outputImpedanceOhm;
-  const verdict = ratio >= 8 ? "pass" : ratio >= 4 ? "warn" : "fail";
+  const verdict = ratio >= T.headphoneZRatioPass ? "pass" : ratio >= T.headphoneZRatioWarn ? "warn" : "fail";
   return {
     id: "headphone_output_impedance",
     label: "Output-impedance ratio",
     verdict,
     value: Number(ratio.toFixed(1)),
-    threshold: 8,
+    threshold: T.headphoneZRatioPass,
     unit: "x",
     explanation:
       verdict === "pass"
         ? `Headphone is ${ratio.toFixed(1)}× the amp's output impedance — frequency response stays neutral.`
         : verdict === "warn"
-          ? `Headphone is ${ratio.toFixed(1)}× the amp's output impedance; aim for ≥8× to avoid tonal shifts.`
+          ? `Headphone is ${ratio.toFixed(1)}× the amp's output impedance; aim for ≥${T.headphoneZRatioPass}× to avoid tonal shifts.`
           : `Headphone is only ${ratio.toFixed(1)}× the amp's output impedance — expect audible frequency-response changes, especially on multi-driver IEMs.`,
   };
 }

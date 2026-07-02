@@ -1,15 +1,16 @@
 import { NextRequest } from "next/server";
 import { evaluateChain } from "@/lib/engine";
-import type { Chain, Component, Cable, ListeningContext } from "@/lib/engine";
+import type { Chain } from "@/lib/engine";
+import { evaluateBodySchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
+  const { data: body, error: parseError } = await parseBody(req, evaluateBodySchema);
+  if (parseError) return parseError;
+
   try {
-    const body = (await req.json()) as {
-      nodes: { component: Component; cableToNext?: Cable }[];
-      context: ListeningContext;
-    };
-    // body.nodes contains full Component objects (sent from client)
-    const chain: Chain = { context: body.context, nodes: body.nodes };
+    // Schema validates shape and bounds; the engine handles missing/partial
+    // specs internally (reports "info" verdicts), so a structural cast is safe.
+    const chain = { context: body.context, nodes: body.nodes } as unknown as Chain;
     const report = evaluateChain(chain);
     return Response.json(report);
   } catch (e: unknown) {

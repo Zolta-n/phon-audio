@@ -55,8 +55,11 @@ export interface SpeakerOut {
   ratedMinImpedanceOhm: number;
   outputImpedanceOhm: number;
   gainDb: number;
-  /** Input voltage (Vrms) required to reach full rated output. */
-  inputSensitivityVrms: number;
+  /**
+   * Input voltage (Vrms) required to reach full rated output. Informational —
+   * displayed in the UI but not (yet) read by any check.
+   */
+  inputSensitivityVrms?: number;
 }
 
 export interface HeadphoneOut {
@@ -64,7 +67,10 @@ export interface HeadphoneOut {
   outputImpedanceOhm: number;
   maxVrms: number;
   maxCurrentMa: number;
-  /** Optional: rated power into reference loads (32 / 300 / 600 Ω). */
+  /**
+   * Optional: rated power into reference loads (32 / 300 / 600 Ω). Informational —
+   * headphoneDrive computes from maxVrms/maxCurrentMa instead.
+   */
   powerMw?: { ohm: number; mw: number }[];
   gainDb?: number;
 }

@@ -1,26 +1,26 @@
 import { getComponents } from "@/lib/getComponents";
-import { createServiceClient } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase-admin";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { componentBodySchema, parseBody } from "@/lib/validation";
+import { toKebabCase } from "@/lib/strings";
 
 export async function GET() {
   const components = await getComponents();
   return Response.json(components);
 }
 
-function toKebabCase(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { id, name, category, inputs, outputs, manufacturer, note } = body;
+  const authClient = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!name || !category) {
-      return Response.json({ error: "name and category are required" }, { status: 400 });
-    }
+  const { data: body, error: parseError } = await parseBody(req, componentBodySchema);
+  if (parseError) return parseError;
+
+  try {
+    const { id, name, category, inputs, outputs, manufacturer, note } = body;
 
     const componentId = id || toKebabCase(`${manufacturer ?? ""} ${name}`);
 

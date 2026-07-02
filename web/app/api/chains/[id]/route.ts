@@ -7,12 +7,22 @@ export async function GET(
 ) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // RLS enforces this too, but make the authorization explicit in the query:
+  // a chain is readable by its owner or when marked public.
+  let query = supabase
     .from("chains")
     .select("*, chain_nodes(position, cable, component:components(*))")
-    .eq("id", id)
-    .single();
-  if (error) return Response.json({ error: error.message }, { status: 404 });
+    .eq("id", id);
+  query = user
+    ? query.or(`user_id.eq.${user.id},is_public.eq.true`)
+    : query.eq("is_public", true);
+
+  const { data, error } = await query.single();
+  if (error) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json(data);
 }
 

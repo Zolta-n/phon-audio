@@ -11,7 +11,7 @@ const BRAND_LIMIT = 5;
 export default function ComponentSearch({ catalog }: { catalog: UIComponent[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ComponentCategory | "all">("all");
-  const { favorites, isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [expandedBrands, setExpandedBrands] = useState<Set<string>>(new Set());

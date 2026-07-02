@@ -1,127 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 import type { UIComponent } from "@/types";
+import { safeFetch } from "@/lib/urlGuard";
+import {
+  USER_AGENT,
+  SCRAPE_MODEL,
+  extractSpecs,
+  extractComponentJson,
+  stripCodeFences,
+  isAllowedByRobots,
+  mapWithConcurrency,
+} from "@/lib/scrape-shared";
 
-const SCHEMA_PROMPT = `
-You are extracting audio component specs from a manufacturer's product page.
-Return a single JSON object matching this TypeScript interface (no prose, no markdown):
 
-{
-  "id": "kebab-case-slug",
-  "name": "Full Product Name",
-  "category": "dac" | "headphone_amp" | "preamp" | "power_amp" | "tube_amp_se" | "tube_amp_pp" | "integrated" | "turntable" | "source" | "headphone" | "speaker",
-  "manufacturer": "Brand Name",
-  "inputs": [
-    {
-      "domain": "digital" | "line" | "phono" | "speaker" | "headphone",
-      "connector": "usb" | "coax" | "optical" | "aes" | "i2s" | "rca" | "xlr" | "trs" | "xlr4" | "speaker_binding",
-      "balanced": true | false,
-      "specs": { ... }
-    }
-  ],
-  "outputs": [ ... same Port structure ... ],
-  "notes": "any relevant caveats"
-}
-
-Port specs by domain:
-- digital input:    { "kind": "digital_in",      "formats": ["pcm"] or ["pcm","dsd"], "maxSampleRateKhz": number, "maxBitDepth": number }
-- digital output:   { "kind": "digital_out",     "formats": [...], "maxSampleRateKhz": number, "maxBitDepth": number }
-- line input:       { "kind": "line_in",         "inputImpedanceOhm": number, "inputSensitivityVrms": number, "maxInputVrms": number | null }
-- line output:      { "kind": "line_out",        "outputImpedanceOhm": number, "maxOutputVrms": number, "gainDb": number | null }
-- phono input:      { "kind": "phono_in",        "cartridgeType": "mm" | "mc" | "both", "inputImpedanceOhm": number, "inputCapacitancePf": number | null, "gainDb": number }
-- phono output:     { "kind": "phono_out",       "cartridgeType": "mm" | "mc", "outputVoltageMv": number, "internalImpedanceOhm": number | null, "recommendedLoadImpedanceOhm": number | null, "recommendedLoadCapacitancePf": number | null }
-- speaker output:   { "kind": "speaker_out",     "powerW": [{"ohm":8,"watts":N},{"ohm":4,"watts":N}], "ratedMinImpedanceOhm": number, "outputImpedanceOhm": number, "gainDb": number, "inputSensitivityVrms": number }
-- headphone output: { "kind": "headphone_out",   "outputImpedanceOhm": number, "maxVrms": number, "maxCurrentMa": number, "gainDb": number | null }
-- headphone load:   { "kind": "headphone_load",  "nominalImpedanceOhm": number, "sensitivity": {"value": number, "unit": "dB/mW" | "dB/V"} }
-- speaker load:     { "kind": "speaker_load",    "nominalImpedanceOhm": number, "minImpedanceOhm": number, "sensitivityDb_2_83V_1m": number, "powerHandlingW": number }
-
-IMPORTANT extraction rules:
-- Populate EVERY numeric spec field you can find on the page. Do NOT leave a field null if the value exists anywhere on the page.
-
-PHONO RULES (critical — do NOT model phono as line):
-- Phono inputs (MM/MC) MUST use domain "phono" with kind "phono_in" — NOT "line".
-- If the amp has switchable MM/MC, set cartridgeType to "both".
-- Phono impedance (e.g. 47kΩ) goes into the phono_in port, NOT into line inputs.
-- Phono sensitivity (e.g. 3mV) is the cartridge output the stage expects — set gainDb based on type: ~40 dB for MM, ~60 dB for MC (use exact value if stated).
-- For turntables/cartridges: category is "turntable", output domain is "phono" with kind "phono_out".
-
-LINE INPUT RULES:
-- Line input impedance is often listed separately from phono impedance. Do NOT use phono impedance for line inputs.
-- If no line input impedance is stated on the page, use null — do NOT copy from the phono section.
-- General "input impedance" in a non-phono context applies to line inputs.
-
-AMP/OUTPUT RULES:
-- For integrated/power amps: ALWAYS create a speaker_out output port with the power ratings.
-- If a line output section mentions both "fixed" and "variable" outputs, create TWO separate line_out ports.
-- The "preamp output" or "pre out" or "variable output" is a line_out port.
-- General specs like "output impedance" that aren't tied to a specific port should be applied to ALL relevant output ports.
-
-CATEGORY RULES:
-- Turntables → "turntable"
-- Standalone phono preamps → "preamp" (with phono_in input and line_out output)
-
-Unit conversion rules:
-- kOhms/kΩ → multiply by 1000 (47kΩ = 47000)
-- mV to Vrms → divide by 1000 (3mV = 0.003 Vrms)
-- A to mA → multiply by 1000
-- Vp-p to Vrms → Vpp / 2.83
-- If a spec is genuinely not found anywhere on the page, use null.
-- If the page is for an accessory or non-audio component, return { "skip": true }.
-`.trim();
-
-/** Extract spec text from raw HTML (enhanced from crawl.ts) */
-function extractSpecs(html: string): { title: string; specsText: string; fullText: string } {
-  const $ = cheerio.load(html);
-  $("nav, header, footer, script, style, noscript, svg").remove();
-
-  const specChunks: string[] = [];
-
-  // 1. Tables and definition lists
-  $("table").each((_, el) => {
-    specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-  });
-  $("dl").each((_, el) => {
-    specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-  });
-
-  // 2. Elements with spec-related class/id
-  $("[class*='spec'], [class*='Spec'], [id*='spec'], [id*='Spec']").each((_, el) => {
-    specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-  });
-
-  // 3. Sections near spec-related headings (Input, Output, Power, etc.)
-  const specHeadingRe = /\b(spec|input|output|feature|phono|amplif|power|impedance|frequenc|signal|dac|digital|analog|connect|general)\b/i;
-  $("h2, h3, h4").each((_, heading) => {
-    const headingText = $(heading).text().trim();
-    if (specHeadingRe.test(headingText)) {
-      // Grab the heading + all sibling content until the next heading
-      let text = headingText + ": ";
-      let next = $(heading).next();
-      for (let i = 0; i < 10 && next.length; i++) {
-        const tag = next.prop("tagName")?.toLowerCase() ?? "";
-        if (["h1", "h2", "h3", "h4"].includes(tag)) break;
-        text += next.text().replace(/\s+/g, " ").trim() + " ";
-        next = next.next();
-      }
-      if (text.length > 20) specChunks.push(text.trim());
-    }
-  });
-
-  // 4. Any remaining <ul>/<ol> lists that look like specs (contain numbers/units)
-  const unitRe = /\d+\s*(ohm|Ω|hz|khz|mhz|db|watt|w\b|vrms|mv|ma\b|bit)/i;
-  $("ul, ol").each((_, el) => {
-    const text = $(el).text().replace(/\s+/g, " ").trim();
-    if (unitRe.test(text) && text.length > 20) {
-      specChunks.push(text);
-    }
-  });
-
-  const title = $("h1").first().text().trim() || $("title").text().split("|")[0].trim();
-  const specsText = [...new Set(specChunks)].join("\n\n");
-  const fullText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 12000);
-
-  return { title, specsText, fullText };
-}
 
 // ─── Web search enrichment ───────────────────────────────────────────
 
@@ -190,14 +81,22 @@ function findMissingSpecs(component: UIComponent): { portType: "inputs" | "outpu
   return missing;
 }
 
-/** Search DuckDuckGo and return result URLs (skips PDFs and manual-library sites) */
+/**
+ * Search DuckDuckGo's HTML endpoint and return result URLs (skips PDFs and
+ * manual-library sites). NOTE: this scrapes an HTML page that offers no API
+ * guarantee — it is a deliberately isolated, best-effort fallback and may break
+ * or be blocked at any time. Failures degrade to "no results", never an error.
+ */
 async function webSearch(query: string, maxResults = 5): Promise<string[]> {
   const encoded = encodeURIComponent(query);
-  const res = await fetch(`https://html.duckduckgo.com/html/?q=${encoded}`, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`https://html.duckduckgo.com/html/?q=${encoded}`, {
+      headers: { "User-Agent": USER_AGENT },
+    });
+  } catch {
+    return [];
+  }
   if (!res.ok) return [];
 
   const html = await res.text();
@@ -220,18 +119,11 @@ async function webSearch(query: string, maxResults = 5): Promise<string[]> {
   return urls;
 }
 
-/** Fetch a page and extract text content (best-effort, with timeout) */
+/** Fetch a page and extract text content (best-effort, with timeout + SSRF + robots guard) */
 async function fetchPageText(url: string): Promise<string> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    if (!(await isAllowedByRobots(url))) return "";
+    const res = await safeFetch(url, { headers: { "User-Agent": USER_AGENT } }, { timeoutMs: 10000 });
     if (!res.ok) return "";
     const contentType = res.headers.get("content-type") ?? "";
     // Skip PDFs and binary content
@@ -275,11 +167,11 @@ export async function enrichWithWebSearch(component: UIComponent): Promise<UICom
   }
   if (urls.length === 0) return component;
 
-  // Fetch up to 8 pages in parallel for speed
-  const fetched = await Promise.all(urls.slice(0, 8).map(async (u) => {
+  // Fetch up to 8 pages, at most 2 at a time with a small delay — polite to hosts.
+  const fetched = await mapWithConcurrency(urls.slice(0, 8), 2, async (u) => {
     const text = await fetchPageText(u);
     return { url: u, text };
-  }));
+  }, 500);
   const pageTexts: string[] = [];
   const usedUrls: string[] = [];
   for (const { url: u, text } of fetched) {
@@ -310,15 +202,14 @@ ${pageTexts.join("\n\n")}`;
   try {
     const client = new Anthropic();
     const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: SCRAPE_MODEL,
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }],
     });
 
     const textBlock = message.content.find(b => b.type === "text");
     const text = textBlock?.type === "text" ? textBlock.text : "{}";
-    const json = text.replace(/^```[a-z]*\n?/m, "").replace(/\n?```$/m, "").trim();
-    const patches = JSON.parse(json) as {
+    const patches = JSON.parse(stripCodeFences(text)) as {
       inputs?: Record<string, Record<string, unknown>>;
       outputs?: Record<string, Record<string, unknown>>;
     };
@@ -412,24 +303,7 @@ function normalizedToComponent(raw: Record<string, any>): UIComponent {
 
 /** Call Claude with text context and return a UIComponent */
 async function extractComponentWithClaude(inputText: string): Promise<UIComponent> {
-  const client = new Anthropic();
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
-    messages: [
-      { role: "user", content: `${SCHEMA_PROMPT}\n\nProduct page content:\n${inputText}` },
-    ],
-  });
-
-  const textBlock = message.content.find((b) => b.type === "text");
-  const text = textBlock?.type === "text" ? textBlock.text : "";
-
-  const json = text
-    .replace(/^```[a-z]*\n?/m, "")
-    .replace(/\n?```$/m, "")
-    .trim();
-
-  const result: Record<string, unknown> = JSON.parse(json);
+  const result = await extractComponentJson(inputText);
   if (result["skip"]) {
     throw new Error("This page does not appear to be an audio component.");
   }
@@ -473,11 +347,11 @@ async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
     );
   }
 
-  // Fetch up to 8 pages in parallel
-  const fetched = await Promise.all(urls.slice(0, 8).map(async (u) => {
+  // Fetch up to 8 pages, at most 2 at a time with a small delay — polite to hosts.
+  const fetched = await mapWithConcurrency(urls.slice(0, 8), 2, async (u) => {
     const text = await fetchPageText(u);
     return { url: u, text };
-  }));
+  }, 500);
   const sources = fetched.filter(s => s.text.length > 200);
 
   if (sources.length === 0) {
@@ -507,22 +381,18 @@ async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
 
 /** Scrape a single product URL and normalize via Claude API */
 export async function scrapeUrl(url: string): Promise<UIComponent> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  // Respect the site's robots.txt: don't fetch a disallowed product page
+  // directly; use public review/spec sources instead.
+  if (!(await isAllowedByRobots(url))) {
+    return await scrapeViaWebSearch(url);
+  }
   let res: Response;
   try {
-    res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      signal: controller.signal,
-    });
+    res = await safeFetch(url, { headers: { "User-Agent": USER_AGENT } }, { timeoutMs: 15000 });
   } catch {
-    clearTimeout(timeout);
     // Primary fetch failed — fall back to web search
     return await scrapeViaWebSearch(url);
   }
-  clearTimeout(timeout);
   if (!res.ok) {
     // Server returned an error — fall back to web search
     return await scrapeViaWebSearch(url);

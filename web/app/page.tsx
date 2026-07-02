@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { getComponents } from "@/lib/getComponents";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const catalog = await getComponents();
+  const componentCount = catalog.length;
+  const brandCount = new Set(catalog.map((c) => c.manufacturer ?? "Other")).size;
+
   return (
     <div>
       {/* ═══ HERO ═══ */}
@@ -116,12 +121,12 @@ export default function HomePage() {
               alignItems: "center",
             }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>12k+</div>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>{componentCount}</div>
                 <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#a8916d", marginTop: "2px", fontFamily: "var(--pa-font-ui)" }}>Components</div>
               </div>
               <div style={{ width: "1px", height: "36px", background: "rgba(250,245,238,0.15)" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>340</div>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#fbbf24" }}>{brandCount}</div>
                 <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#a8916d", marginTop: "2px", fontFamily: "var(--pa-font-ui)" }}>Brands</div>
               </div>
               <div style={{ width: "1px", height: "36px", background: "rgba(250,245,238,0.15)" }} />

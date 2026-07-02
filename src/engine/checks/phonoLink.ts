@@ -1,4 +1,6 @@
 import type { CheckResult } from "../checkResult";
+import { incompleteSpecs } from "../checkResult";
+import { THRESHOLDS as T } from "../thresholds";
 import type { PhonoOut, PhonoIn, InterconnectCable } from "../../types";
 
 /**
@@ -34,12 +36,7 @@ export function phonoImpedanceLoading(
   stage: PhonoIn,
 ): CheckResult {
   if (!stage.inputImpedanceOhm) {
-    return {
-      id: "phono_impedance",
-      label: "Impedance loading",
-      verdict: "info",
-      explanation: "Phono stage input impedance not available.",
-    };
+    return incompleteSpecs("phono_impedance", "Impedance loading", "Phono stage input impedance not available.");
   }
 
   // MM: standard is 47 kΩ — check if stage provides it
@@ -59,7 +56,7 @@ export function phonoImpedanceLoading(
       };
     }
     // Standard 47 kΩ check for MM
-    const isStandard = stage.inputImpedanceOhm >= 40000 && stage.inputImpedanceOhm <= 50000;
+    const isStandard = stage.inputImpedanceOhm >= T.mmLoadMinOhm && stage.inputImpedanceOhm <= T.mmLoadMaxOhm;
     return {
       id: "phono_impedance",
       label: "Impedance loading",
@@ -75,7 +72,7 @@ export function phonoImpedanceLoading(
   // MC: input impedance should be ≥10× cartridge internal impedance
   if (cart.internalImpedanceOhm) {
     const ratio = stage.inputImpedanceOhm / cart.internalImpedanceOhm;
-    const verdict = ratio >= 10 ? "pass" : ratio >= 5 ? "warn" : "fail";
+    const verdict = ratio >= T.mcLoadRatioPass ? "pass" : ratio >= T.mcLoadRatioWarn ? "warn" : "fail";
     return {
       id: "phono_impedance",
       label: "Impedance loading",
@@ -126,12 +123,7 @@ export function phonoCapacitanceLoading(
   const totalPf = cableCap + stageCap;
 
   if (totalPf === 0) {
-    return {
-      id: "phono_capacitance",
-      label: "Capacitance loading",
-      verdict: "info",
-      explanation: "Cable and/or phono stage capacitance not known — cannot evaluate.",
-    };
+    return incompleteSpecs("phono_capacitance", "Capacitance loading", "Cable and/or phono stage capacitance not known — cannot evaluate.");
   }
 
   // If cartridge specifies recommended range, use that
@@ -154,7 +146,12 @@ export function phonoCapacitanceLoading(
   }
 
   // Generic MM range: 100–300 pF is usually safe
-  const verdict = totalPf >= 100 && totalPf <= 300 ? "pass" : totalPf >= 50 && totalPf <= 400 ? "info" : "warn";
+  const verdict =
+    totalPf >= T.mmCapPassMinPf && totalPf <= T.mmCapPassMaxPf
+      ? "pass"
+      : totalPf >= T.mmCapInfoMinPf && totalPf <= T.mmCapInfoMaxPf
+        ? "info"
+        : "warn";
   return {
     id: "phono_capacitance",
     label: "Capacitance loading",
@@ -178,13 +175,9 @@ export function phonoGainAdequacy(
   cart: PhonoOut,
   stage: PhonoIn,
 ): CheckResult {
-  if (!cart.outputVoltageMv || !stage.gainDb) {
-    return {
-      id: "phono_gain",
-      label: "Phono gain",
-      verdict: "info",
-      explanation: "Cartridge output voltage or phono stage gain not available.",
-    };
+  // gainDb of 0 is a stated (if odd) value — only null/undefined means unknown.
+  if (!cart.outputVoltageMv || stage.gainDb == null) {
+    return incompleteSpecs("phono_gain", "Phono gain", "Cartridge output voltage or phono stage gain not available.");
   }
 
   // Calculate output level: cartridge mV × gain = output Vrms
@@ -198,16 +191,16 @@ export function phonoGainAdequacy(
   let verdict: CheckResult["verdict"];
   let explanation: string;
 
-  if (outputVrms < 0.2) {
+  if (outputVrms < T.phonoOutFailVrms) {
     verdict = "fail";
     explanation = `Phono stage output will be only ~${outputMv.toFixed(0)} mV — too low for line-level inputs. Need more gain.`;
-  } else if (outputVrms < 0.3) {
+  } else if (outputVrms < T.phonoOutWarnLowVrms) {
     verdict = "warn";
     explanation = `Phono stage output ~${outputMv.toFixed(0)} mV — on the low side for line level. May need to turn up the volume.`;
-  } else if (outputVrms <= 3) {
+  } else if (outputVrms <= T.phonoOutPassMaxVrms) {
     verdict = "pass";
     explanation = `Phono stage output ~${outputVrms.toFixed(1)} Vrms — good line-level output from ${cart.outputVoltageMv} mV cartridge with ${stage.gainDb} dB gain.`;
-  } else if (outputVrms <= 5) {
+  } else if (outputVrms <= T.phonoOutInfoMaxVrms) {
     verdict = "info";
     explanation = `Phono stage output ~${outputVrms.toFixed(1)} Vrms — on the high side; monitor for clipping downstream.`;
   } else {

@@ -1,4 +1,5 @@
 import type { CheckResult } from "./checkResult";
+import { THRESHOLDS as T } from "./thresholds";
 import type { Chain, Component } from "../types";
 
 /** Pull a numeric gainDb off whatever output port a component exposes. */
@@ -17,7 +18,7 @@ function componentGainDb(component: Component): number {
  */
 export function gainStructure(chain: Chain): CheckResult {
   const totalGainDb = chain.nodes.reduce((sum, n) => sum + componentGainDb(n.component), 0);
-  const verdict = totalGainDb > 40 ? "warn" : "info";
+  const verdict = totalGainDb > T.systemGainWarnDb ? "warn" : "info";
   return {
     id: "system_gain_structure",
     label: "Overall gain structure",

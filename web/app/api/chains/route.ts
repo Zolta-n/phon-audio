@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { chainBodySchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   const supabase = await createServerSupabaseClient();
@@ -25,12 +26,8 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as {
-    name: string;
-    context: object;
-    nodes: { componentId: string; cable?: object }[];
-    isPublic?: boolean;
-  };
+  const { data: body, error: parseError } = await parseBody(req, chainBodySchema);
+  if (parseError) return parseError;
 
   // Insert chain
   const { data: chain, error: chainError } = await supabase

@@ -112,3 +112,59 @@ test("headphone output impedance rule", () => {
   const highZout: HeadphoneOut = { ...hpAmp, outputImpedanceOhm: 10 };
   assert.equal(headphoneOutputImpedance(hp, highZout).verdict, "fail"); // 3.2x
 });
+
+// ---- Edge cases added with the 2026-07 engine fixes -------------------------
+
+import { hfRolloff } from "../src/engine/checks/lineLink";
+import { powerHandling } from "../src/engine/checks/speakerLink";
+import type { InterconnectCable } from "../src/types";
+
+test("power headroom: empty powerW array is info, never NaN", () => {
+  const noPower: SpeakerOut = { ...amp, powerW: [] };
+  const r = speakerPowerHeadroom(speaker, noPower, { targetSplDb: 85, crestFactorDb: 15, distanceM: 3 });
+  assert.equal(r.verdict, "info");
+  assert.doesNotMatch(r.explanation, /NaN/);
+  const ph = powerHandling(speaker, noPower);
+  assert.equal(ph.verdict, "info");
+  assert.doesNotMatch(ph.explanation, /NaN/);
+});
+
+test("power headroom: load below the amp's lowest rated impedance caps at warn", () => {
+  // Amp only rated at 8 Ω; 4 Ω speaker relies on the optimistic clamp.
+  const eightOhmOnly: SpeakerOut = { ...amp, powerW: [{ ohm: 8, watts: 100 }] };
+  const fourOhm: SpeakerLoad = { ...speaker, nominalImpedanceOhm: 4, minImpedanceOhm: 3.2 };
+  const r = speakerPowerHeadroom(fourOhm, eightOhmOnly, { targetSplDb: 80, crestFactorDb: 6, distanceM: 2 });
+  assert.equal(r.verdict, "warn");
+  assert.match(r.explanation, /extrapolated/);
+});
+
+test("0 Ω output impedance is treated as ideal, not missing", () => {
+  assert.equal(impedanceBridging(0, 47000).verdict, "pass");
+  const idealAmp: SpeakerOut = { ...amp, outputImpedanceOhm: 0 };
+  assert.equal(dampingFactor(speaker, idealAmp).verdict, "pass");
+  const hp: HeadphoneLoad = { kind: "headphone_load", nominalImpedanceOhm: 32, sensitivity: { value: 100, unit: "dB/mW" } };
+  const idealHpAmp: HeadphoneOut = { ...hpAmp, outputImpedanceOhm: 0 };
+  assert.equal(headphoneOutputImpedance(hp, idealHpAmp).verdict, "pass");
+});
+
+test("hf rolloff: short low-cap run passes, long run off a high-Z source fails", () => {
+  const short: InterconnectCable = { kind: "interconnect", lengthM: 1, capacitancePfPerM: 100, balanced: true };
+  assert.equal(hfRolloff(100, short).verdict, "pass");
+  // 2 kΩ source into 10 m of 300 pF/m ≈ 26.5 kHz corner → warn
+  const long: InterconnectCable = { kind: "interconnect", lengthM: 10, capacitancePfPerM: 300, balanced: false };
+  assert.equal(hfRolloff(2000, long).verdict, "warn");
+  // 10 kΩ source into the same run ≈ 5.3 kHz corner → fail, with fail-specific wording
+  const r = hfRolloff(10000, long);
+  assert.equal(r.verdict, "fail");
+  assert.match(r.explanation, /audible band/);
+  // no cable → info
+  assert.equal(hfRolloff(100).verdict, "info");
+});
+
+test("power handling: tiny amp warns (clipping risk), big clean amp is info", () => {
+  const tiny: SpeakerOut = { ...amp, powerW: [{ ohm: 8, watts: 15 }] };
+  assert.equal(powerHandling(speaker, tiny).verdict, "warn");
+  const big: SpeakerOut = { ...amp, powerW: [{ ohm: 8, watts: 300 }] };
+  assert.equal(powerHandling(big && speaker, big).verdict, "info");
+  assert.equal(powerHandling(speaker, amp).verdict, "pass");
+});

@@ -4,50 +4,14 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { MANUFACTURERS } from "./manufacturers.js";
 import type { ManufacturerConfig } from "./manufacturers.js";
+import {
+  extractSpecs,
+  isAllowedByRobots,
+  USER_AGENT,
+  type RawProduct,
+} from "../../lib/scrape-shared.js";
 
 const OUTPUT_DIR = path.resolve(import.meta.dirname, "output/raw");
-
-interface RawProduct {
-  manufacturer: string;
-  url: string;
-  title: string;
-  specsText: string;   // extracted spec table/list text
-  fullText: string;    // full page text for AI fallback
-  scrapedAt: string;
-}
-
-async function extractSpecs(
-  html: string,
-): Promise<{ title: string; specsText: string; fullText: string }> {
-  const $ = cheerio.load(html);
-
-  // Remove nav, header, footer, scripts, styles
-  $("nav, header, footer, script, style, noscript, svg").remove();
-
-  // Extract spec tables and definition lists
-  const specChunks: string[] = [];
-
-  $("table").each((_, el) => {
-    specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-  });
-
-  $("dl").each((_, el) => {
-    specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-  });
-
-  $("[class*='spec'], [class*='Spec'], [id*='spec'], [id*='Spec']").each(
-    (_, el) => {
-      specChunks.push($(el).text().replace(/\s+/g, " ").trim());
-    },
-  );
-
-  const title =
-    $("h1").first().text().trim() || $("title").text().split("|")[0].trim();
-  const specsText = specChunks.join("\n\n");
-  const fullText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 8000);
-
-  return { title, specsText, fullText };
-}
 
 async function crawlManufacturer(config: ManufacturerConfig): Promise<void> {
   console.log(`\nCrawling ${config.name}...`);
@@ -62,6 +26,10 @@ async function crawlManufacturer(config: ManufacturerConfig): Promise<void> {
 
   for (const listingUrl of config.listingUrls) {
     try {
+      if (!(await isAllowedByRobots(listingUrl))) {
+        console.log(`  Skip (robots.txt disallows): ${listingUrl}`);
+        continue;
+      }
       let html: string;
       if (browser) {
         const page = await browser.newPage();
@@ -73,11 +41,12 @@ async function crawlManufacturer(config: ManufacturerConfig): Promise<void> {
         await page.close();
       } else {
         const res = await fetch(listingUrl, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (compatible; PhonAudioBot/1.0; +https://phon-audio.com/bot)",
-          },
+          headers: { "User-Agent": USER_AGENT },
         });
+        if (!res.ok) {
+          console.error(`  HTTP ${res.status} on ${listingUrl} — skipping`);
+          continue;
+        }
         html = await res.text();
       }
 
@@ -118,6 +87,10 @@ async function crawlManufacturer(config: ManufacturerConfig): Promise<void> {
     }
 
     try {
+      if (!(await isAllowedByRobots(url))) {
+        console.log(`  Skip (robots.txt disallows): ${url}`);
+        continue;
+      }
       let html: string;
       if (browser) {
         const page = await browser.newPage();
@@ -126,15 +99,16 @@ async function crawlManufacturer(config: ManufacturerConfig): Promise<void> {
         await page.close();
       } else {
         const res = await fetch(url, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (compatible; PhonAudioBot/1.0; +https://phon-audio.com/bot)",
-          },
+          headers: { "User-Agent": USER_AGENT },
         });
+        if (!res.ok) {
+          console.error(`  HTTP ${res.status} on ${url} — skipping`);
+          continue;
+        }
         html = await res.text();
       }
 
-      const { title, specsText, fullText } = await extractSpecs(html);
+      const { title, specsText, fullText } = extractSpecs(html);
       const raw: RawProduct = {
         manufacturer: config.name,
         url,
@@ -174,4 +148,7 @@ async function main() {
   }
   console.log("\nCrawl complete.");
 }
-main();
+main().catch((e) => {
+  console.error("Crawl failed:", e);
+  process.exit(1);
+});

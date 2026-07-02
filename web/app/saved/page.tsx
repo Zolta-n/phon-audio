@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { redirect } from "next/navigation";
-import SavedChainsList from "@/components/SavedChainsList";
+import SavedChainsList, { type SavedChain } from "@/components/SavedChainsList";
 
 export default async function SavedPage() {
   const supabase = await createServerSupabaseClient();
@@ -66,7 +65,7 @@ export default async function SavedPage() {
           </Link>
         </div>
       ) : (
-        <SavedChainsList chains={chains as any} />
+        <SavedChainsList chains={chains as unknown as SavedChain[]} />
       )}
     </div>
   );

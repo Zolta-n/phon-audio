@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="text-blue-500 text-3xl">◎</span>
+          <span className="text-amber-600 text-3xl">Ω</span>
           <h1 className="text-2xl font-bold text-slate-900 mt-3 mb-1">Sign in to Phon.Audio</h1>
           <p className="text-slate-500 text-sm">Save and share your signal chains</p>
         </div>
@@ -64,7 +64,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
               {error && (

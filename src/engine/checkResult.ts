@@ -26,3 +26,21 @@ export function worstVerdict(results: CheckResult[]): Verdict {
     return order.indexOf(r.verdict) > order.indexOf(worst) ? r.verdict : worst;
   }, "pass");
 }
+
+/**
+ * Roll-up for the chain's headline verdict. Unlike worstVerdict, "info" is
+ * neutral here — informational notes (missing specs, always-info system checks)
+ * must not stop a well-matched chain from reading as an overall pass. A chain
+ * with no warn/fail is "pass" if anything actually passed, else "info".
+ */
+export function overallVerdict(results: CheckResult[]): Verdict {
+  if (results.some((r) => r.verdict === "fail")) return "fail";
+  if (results.some((r) => r.verdict === "warn")) return "warn";
+  if (results.some((r) => r.verdict === "pass")) return "pass";
+  return "info";
+}
+
+/** Shared "spec missing" result so every check reports it identically. */
+export function incompleteSpecs(id: string, label: string, explanation: string): CheckResult {
+  return { id, label, verdict: "info", explanation };
+}

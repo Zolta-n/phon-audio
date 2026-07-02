@@ -71,4 +71,7 @@ async function main() {
   }
   console.log("\nSeed complete.");
 }
-main();
+main().catch((e) => {
+  console.error("Seed failed:", e);
+  process.exit(1);
+});

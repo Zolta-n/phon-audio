@@ -8,12 +8,5 @@ export function createClient() {
   );
 }
 
-// Service client (bypasses RLS — for scraper scripts only)
-export function createServiceClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  );
-}
-
-// Server client: import from "@/lib/supabase-server" in server components/routes
+// Server client: import from "@/lib/supabase-server" in server components/routes.
+// Service-role client: import from "@/lib/supabase-admin" (server-only).

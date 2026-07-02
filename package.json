@@ -10,8 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "test": "node --import tsx --test test/*.test.ts",
-    "demo": "tsx examples/demo.ts",
-    "ui": "tsx ui/server.ts"
+    "demo": "tsx examples/demo.ts"
   },
   "keywords": [
     "audio",
