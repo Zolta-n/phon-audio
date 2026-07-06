@@ -61,38 +61,24 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
     });
   };
 
-  const pillStyle = (active: boolean, accent?: boolean) => ({
-    padding: "6px 16px",
-    borderRadius: "var(--pa-radius-pill)",
-    border: "1.5px solid",
-    borderColor: active ? (accent ? "var(--pa-accent-deep)" : "var(--pa-accent)") : "var(--pa-border)",
-    background: active ? (accent ? "var(--pa-accent-deep)" : "var(--pa-accent)") : "var(--pa-bg)",
-    color: active ? "#fff" : "var(--pa-muted)",
-    fontSize: "0.78rem",
-    cursor: "pointer",
-    fontFamily: "var(--pa-font-ui)",
-    fontWeight: 500 as const,
-    transition: "background-color 0.15s, border-color 0.15s, color 0.15s",
-  });
-
   return (
     <div>
       {/* Search bar + Add button */}
       <div style={{
         display: "flex",
-        gap: "12px",
-        marginBottom: "20px",
+        gap: "14px",
+        marginBottom: "26px",
         alignItems: "center",
       }}>
         <input
           type="text"
-          placeholder="Search by name or brand..."
+          placeholder="Search by name or brand…"
           value={query}
           onChange={e => setQuery(e.target.value)}
           className="pa-input"
-          style={{ flex: 1, width: "auto", padding: "10px 16px", fontSize: "0.9rem" }}
+          style={{ flex: 1, width: "auto", padding: "14px 20px" }}
         />
-        <Link href="/components/add" className="pa-btn pa-btn-primary" style={{ padding: "10px 20px", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+        <Link href="/components/add" className="pa-btn pa-btn-primary" style={{ padding: "14px 26px", fontSize: "0.68rem", whiteSpace: "nowrap" }}>
           + Add Component
         </Link>
       </div>
@@ -100,18 +86,21 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
       {/* Category pills + Favorites */}
       <div style={{
         display: "flex",
-        gap: "8px",
-        marginBottom: brands.length > 1 ? "12px" : "28px",
+        gap: "9px",
+        marginBottom: brands.length > 1 ? "14px" : "44px",
         flexWrap: "wrap",
       }}>
-        <button onClick={() => { setCategory("all"); setShowFavoritesOnly(false); }} style={pillStyle(category === "all" && !showFavoritesOnly)}>
-          All ({catalog.length})
+        <button
+          onClick={() => { setCategory("all"); setShowFavoritesOnly(false); }}
+          className={category === "all" && !showFavoritesOnly ? "pa-chip pa-chip--active" : "pa-chip"}
+        >
+          All · {catalog.length}
         </button>
         <button
           onClick={() => setShowFavoritesOnly(prev => !prev)}
-          style={pillStyle(showFavoritesOnly)}
+          className={showFavoritesOnly ? "pa-chip pa-chip--active" : "pa-chip"}
         >
-          {"\u2665"} Favorites ({favCount})
+          ♥ Favorites · {favCount}
         </button>
         {CATEGORY_ORDER.map(cat => {
           const count = catalog.filter(c => c.category === cat).length;
@@ -120,9 +109,9 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
             <button
               key={cat}
               onClick={() => { setCategory(cat); setShowFavoritesOnly(false); }}
-              style={pillStyle(category === cat && !showFavoritesOnly)}
+              className={category === cat && !showFavoritesOnly ? "pa-chip pa-chip--active" : "pa-chip"}
             >
-              {CATEGORY_LABELS[cat]} ({count})
+              {CATEGORY_LABELS[cat]} · {count}
             </button>
           );
         })}
@@ -132,24 +121,24 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
       {brands.length > 1 && (
         <div style={{
           display: "flex",
-          gap: "6px",
-          marginBottom: "28px",
+          gap: "9px",
+          marginBottom: "44px",
           flexWrap: "wrap",
           alignItems: "center",
         }}>
           <span style={{
-            fontSize: "0.7rem",
+            fontSize: "0.58rem",
             color: "var(--pa-muted)",
             fontFamily: "var(--pa-font-ui)",
             textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginRight: "4px",
-          }}>Brands:</span>
+            letterSpacing: "0.2em",
+            marginRight: "6px",
+          }}>Brands</span>
           {brands.map(brand => (
             <button
               key={brand}
               onClick={() => toggleBrand(brand)}
-              style={pillStyle(selectedBrands.has(brand), true)}
+              className={selectedBrands.has(brand) ? "pa-chip pa-chip--active" : "pa-chip"}
             >
               {brand}
             </button>
@@ -160,12 +149,15 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
               style={{
                 background: "none",
                 border: "none",
-                color: "var(--pa-accent)",
-                fontSize: "0.75rem",
+                borderBottom: "1px solid var(--pa-rail)",
+                color: "var(--pa-accent2)",
+                fontSize: "0.66rem",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
                 cursor: "pointer",
                 fontFamily: "var(--pa-font-ui)",
-                textDecoration: "underline",
-                padding: "4px 8px",
+                padding: "0 0 2px",
+                marginLeft: "6px",
               }}
             >
               Clear
@@ -181,30 +173,38 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
         const remaining = components.length - BRAND_LIMIT;
 
         return (
-          <div key={mfr} style={{ marginBottom: "32px" }}>
+          <div key={mfr} style={{ marginBottom: "48px" }}>
             <div style={{
-              fontFamily: "var(--pa-font-serif)",
-              fontSize: "1rem",
-              color: "var(--pa-muted)",
-              marginBottom: "12px",
               display: "flex",
               alignItems: "baseline",
-              gap: "8px",
+              gap: "14px",
+              marginBottom: "20px",
+              borderBottom: "1px solid var(--pa-border)",
+              paddingBottom: "12px",
             }}>
-              <span style={{ fontWeight: 600, color: "var(--pa-text)" }}>{mfr}</span>
-              <span style={{ fontSize: "0.75rem", fontFamily: "var(--pa-font-ui)" }}>
-                ({components.length})
+              <span style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.5rem", color: "var(--pa-text)" }}>
+                {mfr}
+              </span>
+              <span style={{
+                fontSize: "0.62rem",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--pa-faint)",
+                fontFamily: "var(--pa-font-ui)",
+              }}>
+                {components.length} component{components.length === 1 ? "" : "s"}
               </span>
             </div>
             <div style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "16px",
+              gap: "20px",
             }}>
-              {visible.map(c => (
+              {visible.map((c, i) => (
                 <ComponentCard
                   key={c.id}
                   component={c}
+                  index={i}
                   isFavorite={isFavorite(c.id)}
                   onToggleFavorite={toggleFavorite}
                 />
@@ -216,15 +216,16 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
                 style={{
                   background: "none",
                   border: "none",
-                  color: "var(--pa-accent)",
-                  fontSize: "0.82rem",
+                  color: "var(--pa-accent2)",
+                  fontSize: "0.66rem",
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
                   cursor: "pointer",
                   fontFamily: "var(--pa-font-ui)",
-                  padding: "10px 0",
-                  fontWeight: 500,
+                  padding: "16px 0 0",
                 }}
               >
-                Show {remaining} more from {mfr}
+                Show {remaining} more from {mfr} →
               </button>
             )}
           </div>
@@ -236,15 +237,14 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
           textAlign: "center",
           padding: "60px 20px",
           color: "var(--pa-muted)",
-          fontFamily: "var(--pa-font-ui)",
         }}>
-          <div style={{ fontSize: "1.1rem", marginBottom: "8px" }}>
+          <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.2rem", marginBottom: "8px", color: "var(--pa-text)" }}>
             {showFavoritesOnly ? "No favorites yet" : "No components found"}
           </div>
-          <div style={{ fontSize: "0.85rem" }}>
+          <div style={{ fontSize: "0.9rem", fontStyle: "italic" }}>
             {showFavoritesOnly
               ? "Click the heart on any component to add it to your favorites"
-              : <>Try a different search or{" "}<Link href="/components/add" style={{ color: "var(--pa-accent)" }}>add a new component</Link></>
+              : <>Try a different search or{" "}<Link href="/components/add" style={{ color: "var(--pa-accent2)" }}>add a new component</Link></>
             }
           </div>
         </div>

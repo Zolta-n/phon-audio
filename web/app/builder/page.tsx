@@ -54,27 +54,7 @@ export default async function BuilderPage({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - var(--pa-nav-h))" }}>
-      <div style={{
-        background: "var(--pa-dark)",
-        borderBottom: "1px solid rgba(217,119,6,0.2)",
-        padding: "20px 32px",
-      }}>
-        <h1 style={{
-          fontFamily: "var(--font-playfair), Georgia, serif",
-          fontSize: "1.5rem",
-          fontWeight: 700,
-          color: "var(--pa-cream)",
-          letterSpacing: "-0.01em",
-          marginBottom: "4px",
-        }}>Chain Builder</h1>
-        <p style={{
-          fontSize: "0.85rem",
-          color: "rgba(253,246,236,0.5)",
-          fontFamily: "var(--pa-font-ui)",
-        }}>
-          Add components, set listening context, then evaluate your signal chain.
-        </p>
-      </div>
+      {/* Header band (with the live score chip) is rendered inside ChainBuilder. */}
       <ChainBuilder catalog={catalog} initialDemo={demo} savedChain={savedChain} loadFailed={loadFailed} />
     </div>
   );

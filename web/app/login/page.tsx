@@ -37,15 +37,15 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="text-pa-accent text-3xl" style={{ fontFamily: "var(--pa-font-serif)" }}>Ω</span>
-          <h1 className="text-2xl font-bold text-pa-text mt-3 mb-1" style={{ fontFamily: "var(--pa-font-serif)" }}>Sign in to Phon.Audio</h1>
+          <span className="text-pa-accent text-3xl" style={{ fontFamily: "var(--pa-font-display)" }}>Ω</span>
+          <h1 className="text-2xl font-bold text-pa-text mt-3 mb-1" style={{ fontFamily: "var(--pa-font-display)" }}>Sign in to Phon.Audio</h1>
           <p className="text-pa-muted text-sm">Save and share your signal chains</p>
         </div>
 
         <div className="bg-pa-cream rounded-xl border border-pa-border p-8" style={{ boxShadow: "var(--pa-shadow-md)" }}>
           {sent ? (
             <div className="text-center">
-              <p className="text-pa-accent text-2xl mb-3" style={{ fontFamily: "var(--pa-font-serif)" }}>Ω</p>
+              <p className="text-pa-accent text-2xl mb-3" style={{ fontFamily: "var(--pa-font-display)" }}>Ω</p>
               <p className="font-semibold text-pa-text mb-2">Check your inbox</p>
               <p className="text-sm text-pa-muted">
                 We sent a magic link to <strong>{email}</strong>.

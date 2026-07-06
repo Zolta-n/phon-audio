@@ -91,7 +91,7 @@ export default function SavedChainsList({ chains: initialChains }: { chains: Sav
           }}>
             {/* Chain info */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1rem", color: "#1e293b", marginBottom: "6px" }}>
+              <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1rem", color: "#1e293b", marginBottom: "6px" }}>
                 {chain.name}
               </div>
               <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" }}>

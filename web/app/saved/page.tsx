@@ -14,7 +14,7 @@ export default async function SavedPage() {
           Sign in to save your signal chains and access them from any device.
         </p>
         <div className="bg-pa-cream rounded-xl border border-pa-border p-10 text-center text-pa-muted">
-          <p className="text-pa-accent text-4xl mb-4" style={{ fontFamily: "var(--pa-font-serif)" }}>&Omega;</p>
+          <p className="text-pa-accent text-4xl mb-4" style={{ fontFamily: "var(--pa-font-display)" }}>&Omega;</p>
           <p className="font-medium text-pa-text mb-4">Sign in to view saved chains</p>
           <Link
             href="/login"
@@ -52,7 +52,7 @@ export default async function SavedPage() {
 
       {!chains?.length ? (
         <div className="bg-pa-cream rounded-xl border border-pa-border p-10 text-center text-pa-muted">
-          <p className="text-pa-accent text-3xl mb-3" style={{ fontFamily: "var(--pa-font-serif)" }}>&Omega;</p>
+          <p className="text-pa-accent text-3xl mb-3" style={{ fontFamily: "var(--pa-font-display)" }}>&Omega;</p>
           <p className="font-medium text-pa-text mb-2">No chains yet</p>
           <p className="text-sm text-pa-muted mb-4">
             Build a signal chain in the builder and click Save to keep it here.

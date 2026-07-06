@@ -133,7 +133,7 @@ export default async function ComponentPage({
               {CATEGORY_LABELS[component.category]}
               {component.manufacturer ? ` \u00B7 ${component.manufacturer}` : ""}
             </p>
-            <h1 className="text-2xl font-bold text-pa-text mb-2" style={{ fontFamily: "var(--pa-font-serif)" }}>{component.name}</h1>
+            <h1 className="text-2xl font-bold text-pa-text mb-2" style={{ fontFamily: "var(--pa-font-display)" }}>{component.name}</h1>
             {component.note && (
               <p className="text-sm text-amber-700 bg-amber-50 rounded px-3 py-1.5 border border-amber-200">
                 {component.note}

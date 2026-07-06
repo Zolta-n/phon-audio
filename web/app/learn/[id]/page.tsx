@@ -60,29 +60,20 @@ export default async function LearnParameterPage({
         ← All parameters
       </Link>
 
-      {/* Group eyebrow */}
-      <p
-        style={{
-          marginTop: "28px",
-          color: "var(--pa-accent)",
-          fontSize: "0.78rem",
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          fontFamily: "var(--pa-font-ui)",
-        }}
-      >
-        {entry.group}
-      </p>
+      {/* Group kicker */}
+      <div className="pa-kicker" style={{ marginTop: "28px", marginBottom: "10px" }}>
+        <span>{entry.group}</span>
+      </div>
 
       {/* Title */}
       <h1
         style={{
-          fontFamily: "var(--font-playfair), Georgia, serif",
+          fontFamily: "var(--pa-font-display)",
           fontSize: "2.4rem",
+          fontWeight: 500,
           lineHeight: 1.1,
           color: "var(--pa-text)",
-          margin: "6px 0 14px",
+          margin: "0 0 14px",
         }}
       >
         {entry.label}
@@ -90,9 +81,9 @@ export default async function LearnParameterPage({
 
       <p
         style={{
-          fontFamily: "var(--font-lora), Georgia, serif",
           fontSize: "1.15rem",
-          lineHeight: 1.5,
+          lineHeight: 1.6,
+          fontStyle: "italic",
           color: "var(--pa-muted)",
           marginBottom: "44px",
         }}
@@ -106,9 +97,9 @@ export default async function LearnParameterPage({
           <h2
             style={{
               fontFamily: "var(--pa-font-ui)",
-              fontSize: "0.82rem",
+              fontSize: "0.66rem",
               fontWeight: 700,
-              letterSpacing: "0.1em",
+              letterSpacing: "0.26em",
               textTransform: "uppercase",
               color: "var(--pa-accent2)",
               borderBottom: "1px solid var(--pa-border)",
@@ -120,10 +111,9 @@ export default async function LearnParameterPage({
           </h2>
           <p
             style={{
-              fontFamily: "var(--font-lora), Georgia, serif",
               fontSize: "1.05rem",
               lineHeight: 1.7,
-              color: "var(--pa-text)",
+              color: "var(--pa-list-text)",
             }}
           >
             {entry[tier]}
@@ -139,20 +129,7 @@ export default async function LearnParameterPage({
           borderTop: "1px solid var(--pa-border)",
         }}
       >
-        <Link
-          href="/builder"
-          style={{
-            background: "var(--pa-accent)",
-            color: "#fff",
-            padding: "11px 24px",
-            borderRadius: "var(--pa-radius-sm)",
-            textDecoration: "none",
-            fontSize: "0.9rem",
-            fontWeight: 500,
-            fontFamily: "var(--pa-font-ui)",
-            letterSpacing: "0.04em",
-          }}
-        >
+        <Link href="/builder" className="pa-btn pa-btn-primary" style={{ padding: "13px 28px" }}>
           Check this in your chain →
         </Link>
       </div>

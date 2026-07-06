@@ -37,30 +37,35 @@ export default function Palette({
     return result;
   }, [catalog, showFavoritesOnly, isFavorite]);
 
+  const rowBorder = "1px solid rgba(232,217,196,0.6)";
+
   return (
     <aside style={{
-      background: "var(--pa-cream)",
+      background: "var(--pa-panel)",
       borderRadius: "var(--pa-radius-lg)",
-      border: "1.5px solid var(--pa-border)",
-      padding: "16px 0",
-      overflowY: "auto",
+      border: "1px solid var(--pa-border)",
+      overflow: "hidden",
+      alignSelf: "start",
       maxHeight: "calc(100vh - var(--pa-nav-h) - 6rem)",
+      overflowY: "auto",
     }}>
       <div style={{
-        fontSize: "0.65rem",
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.16em",
-        color: "var(--pa-accent-deep)",
-        padding: "0 16px 12px",
+        padding: "18px 18px 14px",
         borderBottom: "1px solid var(--pa-border)",
-        marginBottom: "8px",
-        fontFamily: "var(--pa-font-ui)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        Components
+        <span style={{
+          fontSize: "0.62rem",
+          letterSpacing: "0.24em",
+          textTransform: "uppercase",
+          color: "var(--pa-accent2)",
+          fontWeight: 700,
+          fontFamily: "var(--pa-font-ui)",
+        }}>
+          Component Library
+        </span>
         <button
           onClick={() => setShowFavoritesOnly(prev => !prev)}
           title={showFavoritesOnly ? "Show all" : "Show favorites only"}
@@ -69,7 +74,7 @@ export default function Palette({
             border: "none",
             fontSize: "0.85rem",
             cursor: "pointer",
-            color: showFavoritesOnly ? "var(--pa-accent)" : "#d4b896",
+            color: showFavoritesOnly ? "var(--pa-accent)" : "var(--pa-rail)",
             padding: "0 2px",
             lineHeight: 1,
             transition: "color 0.15s",
@@ -79,7 +84,7 @@ export default function Palette({
         </button>
       </div>
       {catalog.length === 0 ? (
-        <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)" }}>Loading catalog…</p>
+        <p style={{ fontSize: "0.75rem", color: "var(--pa-muted)", padding: "12px 18px" }}>Loading catalog…</p>
       ) : (
         CATEGORY_ORDER.map((cat) => {
           if (!byCategory[cat]) return null;
@@ -87,24 +92,28 @@ export default function Palette({
           const mfrNames = Object.keys(catMfrs).sort();
           const isCatOpen = openCategory === cat;
           return (
-            <div key={cat} style={{ marginBottom: "2px" }}>
-              {/* Category type label */}
-              <div className="pa-listrow" style={{
-                fontSize: "0.6rem",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--pa-accent-deep)",
-                padding: "10px 16px 6px",
-                fontWeight: 700,
-                fontFamily: "var(--pa-font-ui)",
-                cursor: "pointer",
-              }}
+            <div key={cat}>
+              {/* Category row */}
+              <div
+                className="pa-listrow"
                 onClick={() => setOpenCategory(isCatOpen ? null : cat)}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "11px 18px",
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.2em",
+                  fontFamily: "var(--pa-font-ui)",
+                  textTransform: "uppercase",
+                  color: "#7a3d10",
+                  fontWeight: 700,
+                  borderBottom: rowBorder,
+                  cursor: "pointer",
+                }}
               >
-                {CATEGORY_LABELS[cat]}
-                <span style={{ float: "right", color: "var(--pa-accent)", fontSize: "0.72rem" }}>
-                  {isCatOpen ? "▼" : "▶"}
-                </span>
+                <span>{CATEGORY_LABELS[cat]}</span>
+                <span style={{ color: "var(--pa-accent)", fontSize: "0.6rem" }}>{isCatOpen ? "▼" : "▶"}</span>
               </div>
               {/* Manufacturer list under this category */}
               {isCatOpen && mfrNames.map((mfr) => {
@@ -119,17 +128,17 @@ export default function Palette({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "9px 16px",
+                        padding: "9px 18px 9px 24px",
                         cursor: "pointer",
                         fontSize: "0.82rem",
-                        color: isMfrOpen ? "var(--pa-accent-deep)" : "#5c3a1e",
+                        color: isMfrOpen ? "var(--pa-accent2)" : "var(--pa-list-text)",
                         fontWeight: isMfrOpen ? 600 : 400,
-                        letterSpacing: "0.03em",
-                        fontFamily: "var(--pa-font-ui)",
+                        fontFamily: "var(--pa-font-serif)",
+                        borderBottom: rowBorder,
                       }}
                     >
                       <span>{mfr}</span>
-                      <span style={{ color: "var(--pa-accent)", fontSize: "0.72rem" }}>{isMfrOpen ? "▼" : "▶"}</span>
+                      <span style={{ color: "var(--pa-accent)", fontSize: "0.6rem" }}>{isMfrOpen ? "▼" : "▶"}</span>
                     </div>
                     {isMfrOpen && (() => {
                       const mfrKey = `${cat}::${mfr}`;
@@ -138,7 +147,7 @@ export default function Palette({
                       const visible = isExpanded ? allComps : allComps.slice(0, 5);
                       const remaining = allComps.length - 5;
                       return (
-                        <div style={{ background: "var(--pa-surface)" }}>
+                        <div style={{ background: "var(--pa-inset)" }}>
                           {visible.map((c) => (
                             <div
                               key={c.id}
@@ -148,20 +157,20 @@ export default function Palette({
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "6px",
-                                padding: "7px 16px 7px 28px",
-                                fontSize: "0.78rem",
-                                color: "#7c5a3a",
+                                gap: "8px",
+                                padding: "8px 18px 8px 30px",
+                                fontSize: "0.82rem",
+                                color: "var(--pa-list-text)",
+                                fontFamily: "var(--pa-font-serif)",
                                 cursor: "pointer",
-                                borderBottom: "1px solid var(--pa-border)",
-                                fontFamily: "var(--pa-font-ui)",
+                                borderBottom: rowBorder,
                               }}
                             >
                               <span
                                 onClick={e => { e.stopPropagation(); toggleFavorite(c.id); }}
                                 style={{
-                                  fontSize: "0.72rem",
-                                  color: isFavorite(c.id) ? "var(--pa-accent)" : "#d4b896",
+                                  fontSize: "0.7rem",
+                                  color: isFavorite(c.id) ? "var(--pa-accent)" : "rgba(122,92,58,0.4)",
                                   cursor: "pointer",
                                   flexShrink: 0,
                                   lineHeight: 1,
@@ -175,14 +184,13 @@ export default function Palette({
                                 {c.name}
                               </span>
                               <span style={{
-                                fontSize: "0.58rem",
-                                letterSpacing: "0.06em",
+                                fontSize: "0.52rem",
+                                letterSpacing: "0.1em",
                                 textTransform: "uppercase",
-                                color: "var(--pa-accent-hover)",
-                                background: "#fef3c7",
-                                padding: "1px 5px",
-                                borderRadius: "var(--pa-radius-sm)",
-                                border: "1px solid #fcd34d",
+                                color: "var(--pa-accent2)",
+                                border: "1px solid var(--pa-border-2)",
+                                padding: "2px 6px",
+                                borderRadius: "3px",
                                 flexShrink: 0,
                                 fontFamily: "var(--pa-font-ui)",
                               }}>
@@ -195,13 +203,15 @@ export default function Palette({
                               className="pa-listrow"
                               onClick={() => setExpandedMfrs(prev => new Set(prev).add(mfrKey))}
                               style={{
-                                fontSize: "0.72rem",
-                                color: "var(--pa-accent)",
-                                padding: "6px 16px 6px 28px",
+                                fontSize: "0.66rem",
+                                letterSpacing: "0.14em",
+                                textTransform: "uppercase",
+                                color: "var(--pa-accent2)",
+                                padding: "7px 18px 7px 30px",
                                 cursor: "pointer",
                                 fontFamily: "var(--pa-font-ui)",
-                                fontWeight: 500,
-                                borderBottom: "1px solid var(--pa-border)",
+                                fontWeight: 600,
+                                borderBottom: rowBorder,
                               }}
                             >
                               +{remaining} more

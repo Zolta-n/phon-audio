@@ -25,7 +25,15 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <Link href="/login" className="pa-navlink pa-navlink--accent">
+      <Link
+        href="/login"
+        className="pa-navlink"
+        style={{
+          color: "var(--pa-cream)",
+          borderBottom: "1px solid var(--pa-accent)",
+          paddingBottom: "3px",
+        }}
+      >
         Sign in
       </Link>
     );
@@ -46,21 +54,21 @@ export default function AuthButton() {
       </Link>
       <span style={{
         color: "var(--pa-accent)",
-        fontSize: "0.8rem",
+        fontSize: "0.72rem",
+        letterSpacing: "0.08em",
         fontFamily: "var(--pa-font-ui)",
       }}>
         {displayName}
       </span>
       <button
         onClick={handleSignOut}
-        className="pa-btn pa-btn-outline-light"
+        className="pa-btn"
         style={{
-          padding: "4px 10px",
-          fontSize: "0.75rem",
-          fontWeight: 400,
-          color: "#a08060",
+          padding: "5px 12px",
+          fontSize: "0.6rem",
+          color: "var(--pa-navtext)",
           borderColor: "rgba(217,119,6,0.3)",
-          borderRadius: "var(--pa-radius-sm)",
+          background: "transparent",
         }}
       >
         Sign out

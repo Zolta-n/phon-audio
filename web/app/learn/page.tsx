@@ -9,94 +9,111 @@ export const metadata: Metadata = {
   alternates: { canonical: "/learn" },
 };
 
+const ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii"];
+
 export default function LearnIndexPage() {
   const groups = explainersByGroup();
 
   return (
-    <div style={{ maxWidth: "880px", margin: "0 auto", padding: "56px 24px 80px" }}>
-      <p
-        style={{
-          color: "var(--pa-accent)",
-          fontSize: "0.78rem",
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          fontFamily: "var(--pa-font-ui)",
-        }}
-      >
-        Reference
-      </p>
+    <div style={{ maxWidth: "920px", margin: "0 auto", padding: "72px 24px 96px" }}>
+      <div className="pa-kicker pa-fade-up" style={{ marginBottom: "18px", animationDuration: "0.8s" }}>
+        <span>Reference</span>
+      </div>
       <h1
+        className="pa-fade-up"
         style={{
-          fontFamily: "var(--font-playfair), Georgia, serif",
-          fontSize: "2.6rem",
-          lineHeight: 1.1,
+          fontFamily: "var(--pa-font-display)",
+          fontSize: "3.4rem",
+          lineHeight: 1.08,
           color: "var(--pa-text)",
-          margin: "6px 0 14px",
+          margin: "0 0 18px",
+          fontWeight: 500,
+          animationDuration: "0.8s",
+          animationDelay: "0.1s",
         }}
       >
-        The parameters, explained
+        The parameters, <em style={{ color: "var(--pa-accent2)" }}>explained</em>
       </h1>
       <p
+        className="pa-fade-up"
         style={{
-          fontFamily: "var(--font-lora), Georgia, serif",
-          fontSize: "1.15rem",
-          lineHeight: 1.6,
+          fontSize: "1.14rem",
+          lineHeight: 1.8,
           color: "var(--pa-muted)",
-          maxWidth: "620px",
-          marginBottom: "48px",
+          maxWidth: "640px",
+          margin: "0 0 64px",
+          animationDuration: "0.8s",
+          animationDelay: "0.2s",
         }}
       >
         Every check the engine runs, plus the room and listening settings that
-        feed it — each one explained three ways, from plain-language to the
-        nerd-level detail.
+        feed it — each explained three ways, from plain language to nerd-level
+        detail.
       </p>
 
-      {groups.map(({ group, items }) => (
-        <section key={group} style={{ marginBottom: "44px" }}>
-          <h2
+      {groups.map(({ group, items }, gi) => (
+        <section key={group} style={{ marginBottom: "52px" }}>
+          <div
             style={{
-              fontFamily: "var(--pa-font-ui)",
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--pa-accent2)",
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
               borderBottom: "1px solid var(--pa-border)",
-              paddingBottom: "8px",
-              marginBottom: "18px",
+              paddingBottom: "10px",
+              marginBottom: "20px",
             }}
           >
-            {group}
-          </h2>
+            <h2
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                letterSpacing: "0.26em",
+                textTransform: "uppercase",
+                color: "var(--pa-accent2)",
+                margin: 0,
+                fontFamily: "var(--pa-font-ui)",
+              }}
+            >
+              {group}
+            </h2>
+            <span
+              style={{
+                fontFamily: "var(--pa-font-display)",
+                fontStyle: "italic",
+                color: "var(--pa-rail)",
+                fontSize: "0.95rem",
+              }}
+            >
+              {ROMAN[gi] ?? gi + 1}
+            </span>
+          </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: "12px",
+              gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
+              gap: "14px",
             }}
           >
             {items.map((e) => (
               <Link
                 key={e.slug}
                 href={`/learn/${e.slug}`}
+                className="pa-card pa-card--interactive"
                 style={{
                   display: "block",
-                  background: "var(--pa-surface)",
-                  border: "1px solid var(--pa-border)",
-                  borderRadius: "var(--pa-radius-md)",
-                  padding: "16px 18px",
+                  borderRadius: "10px",
+                  padding: "22px 24px",
                   textDecoration: "none",
                 }}
               >
                 <span
                   style={{
                     display: "block",
-                    fontFamily: "var(--font-playfair), Georgia, serif",
-                    fontSize: "1.1rem",
+                    fontFamily: "var(--pa-font-display)",
+                    fontSize: "1.2rem",
                     color: "var(--pa-text)",
-                    marginBottom: "5px",
+                    marginBottom: "7px",
                   }}
                 >
                   {e.label}
@@ -104,9 +121,8 @@ export default function LearnIndexPage() {
                 <span
                   style={{
                     display: "block",
-                    fontFamily: "var(--font-lora), Georgia, serif",
                     fontSize: "0.9rem",
-                    lineHeight: 1.45,
+                    lineHeight: 1.55,
                     color: "var(--pa-muted)",
                   }}
                 >

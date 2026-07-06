@@ -11,6 +11,7 @@ import ChainNodeList from "@/components/builder/ChainNodeList";
 import SummaryPanel from "@/components/builder/SummaryPanel";
 import SaveModal from "@/components/builder/SaveModal";
 import { toEvaluateNodes, toSaveNodes } from "@/components/builder/chainSerialize";
+import { computeScore, scoreLabel } from "@/components/builder/chainScore";
 import { createClient } from "@/lib/supabase";
 
 // ---- Seed demo chains (use engine seed IDs for fallback mode) ---------------
@@ -104,6 +105,18 @@ export default function ChainBuilder({
     () => Object.fromEntries(catalog.map((c) => [c.id, c])),
     [catalog],
   );
+
+  const score = useMemo(() => (report ? computeScore(report) : null), [report]);
+
+  const chainStatus = useMemo(() => {
+    const units = `${chain.length} unit${chain.length === 1 ? "" : "s"}`;
+    if (!report) return units;
+    const failed = report.links.some((l) => l.verdict === "fail");
+    const warned = report.links.some((l) => l.verdict === "warn");
+    if (failed) return `${units} · link issues found`;
+    if (warned) return `${units} · check warnings`;
+    return `${units} · all links verified`;
+  }, [chain.length, report]);
 
   const suggestCable = useCallback(
     (fromId: string, toId: string): string => {
@@ -252,27 +265,79 @@ export default function ChainBuilder({
     }
   };
 
-  const secondaryButton: React.CSSProperties = {
-    border: "1px solid var(--pa-accent)",
-    color: "var(--pa-accent)",
-    background: "transparent",
-    fontSize: "0.875rem",
-    padding: "8px 16px",
-    borderRadius: "var(--pa-radius-sm)",
-    cursor: "pointer",
-    fontFamily: "var(--pa-font-ui)",
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* ── Page header: kicker, title, live score chip ── */}
+      <div className="pa-page-header" style={{ padding: "36px 56px" }}>
+        <div className="pa-container" style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: "24px",
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div className="pa-kicker" style={{ marginBottom: "14px" }}>
+              <span>Workbench</span>
+            </div>
+            <h1 style={{
+              fontFamily: "var(--pa-font-display)",
+              fontSize: "2.4rem",
+              fontWeight: 500,
+              color: "var(--pa-text-on-dark)",
+              margin: "0 0 8px",
+            }}>
+              Chain Builder
+            </h1>
+            <p style={{ fontSize: "1rem", color: "var(--pa-lede)", margin: 0, fontStyle: "italic" }}>
+              Add components, set your listening context, evaluate the chain.
+            </p>
+          </div>
+          {score !== null && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 20px",
+              border: "1px solid rgba(217,119,6,0.35)",
+              borderRadius: "8px",
+              background: "rgba(20,11,0,0.5)",
+            }}>
+              <div style={{
+                fontFamily: "var(--pa-font-display)",
+                fontSize: "1.9rem",
+                color: "var(--pa-gold)",
+                lineHeight: 1,
+                textShadow: "0 0 16px rgba(251,191,36,0.45)",
+              }}>
+                {score}
+              </div>
+              <div style={{
+                fontSize: "0.56rem",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--pa-faint)",
+                fontFamily: "var(--pa-font-ui)",
+                lineHeight: 1.5,
+              }}>
+                Match score<br />
+                <span style={{ color: "var(--pa-lede)" }}>{scoreLabel(score)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div style={{
         display: "grid",
-        gridTemplateColumns: "220px 1fr 300px",
-        gap: "16px",
-        padding: "16px",
-        maxWidth: "var(--pa-container)",
+        gridTemplateColumns: "250px 1fr 320px",
+        gap: "22px",
+        padding: "28px 56px 48px",
+        maxWidth: "1440px",
         margin: "0 auto",
         width: "100%",
+        boxSizing: "border-box",
       }}>
 
         {/* ── Palette ── */}
@@ -280,29 +345,40 @@ export default function ChainBuilder({
 
         {/* ── Chain ── */}
         <section style={{
-          background: "var(--pa-cream)",
+          background: "var(--pa-panel)",
           borderRadius: "var(--pa-radius-lg)",
-          border: "1.5px solid var(--pa-border)",
-          padding: "20px",
+          border: "1px solid var(--pa-border)",
+          padding: "24px 26px",
           display: "flex",
           flexDirection: "column",
         }}>
           <div style={{
-            fontFamily: "var(--pa-font-serif)",
-            fontSize: "1rem",
-            color: "#3d2200",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
             borderBottom: "1px solid var(--pa-border)",
-            paddingBottom: "12px",
-            marginBottom: "12px",
+            paddingBottom: "14px",
+            marginBottom: "22px",
           }}>
-            Signal Chain
+            <span style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.25rem", color: "var(--pa-text)" }}>
+              Signal Chain
+            </span>
+            <span style={{
+              fontSize: "0.58rem",
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: "var(--pa-muted)",
+              fontFamily: "var(--pa-font-ui)",
+            }}>
+              {chainStatus}
+            </span>
           </div>
 
           {loadFailed && (
             <div style={{
-              background: "#fff5f5",
-              border: "1px solid #feb2b2",
-              color: "#c53030",
+              background: "#fdf0ee",
+              border: "1px solid #e8b4a8",
+              color: "#a33a24",
               borderRadius: "var(--pa-radius-md)",
               padding: "8px 12px",
               marginBottom: "12px",
@@ -313,43 +389,39 @@ export default function ChainBuilder({
             </div>
           )}
 
-          {/* Graphical chain diagram — always visible */}
+          {/* Rack-unit chain diagram — always visible */}
           {chain.length > 0 ? (
-            <div style={{
-              background: "var(--pa-surface)",
-              border: "1px solid var(--pa-border)",
-              borderRadius: "var(--pa-radius-md)",
-              padding: "16px",
-              marginBottom: "12px",
-            }}>
-              <ChainDiagram chain={chain} report={report} />
+            <div style={{ marginBottom: "26px" }}>
+              <ChainDiagram chain={chain} report={report} onRemoveAt={removeAt} />
             </div>
           ) : (
             <div style={{
-              background: "var(--pa-surface)",
-              border: "1px dashed var(--pa-border)",
-              borderRadius: "var(--pa-radius-md)",
+              background: "var(--pa-inset)",
+              border: "1px dashed var(--pa-border-2)",
+              borderRadius: "10px",
               padding: "40px 20px",
               textAlign: "center",
-              marginBottom: "12px",
+              marginBottom: "22px",
               color: "var(--pa-muted)",
-              fontSize: "0.85rem",
-              fontFamily: "var(--pa-font-ui)",
+              fontSize: "0.9rem",
+              fontStyle: "italic",
             }}>
-              ← Add components from the panel to build your chain
+              ← Add components from the library to build your chain
             </div>
           )}
 
           {/* Insert mode hint */}
           {insertAtIdx !== null && (
             <div style={{
-              background: "#fffbeb",
+              background: "var(--pa-inset)",
               border: "1px solid var(--pa-accent)",
               borderRadius: "var(--pa-radius-md)",
               padding: "6px 12px",
-              marginBottom: "8px",
-              fontSize: "0.78rem",
-              color: "var(--pa-accent)",
+              marginBottom: "12px",
+              fontSize: "0.72rem",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--pa-accent2)",
               fontFamily: "var(--pa-font-ui)",
               display: "flex",
               alignItems: "center",
@@ -373,13 +445,12 @@ export default function ChainBuilder({
             </div>
           )}
 
-          {/* Compact chain node list (for cable editing + remove) */}
+          {/* Connections: cable editing + insert-between */}
           {chain.length > 0 && (
             <ChainNodeList
               chain={chain}
               insertAtIdx={insertAtIdx}
               onToggleInsertAt={(idx) => setInsertAtIdx(insertAtIdx === idx ? null : idx)}
-              onRemoveAt={removeAt}
               onSetCableAt={setCableAt}
             />
           )}
@@ -387,11 +458,11 @@ export default function ChainBuilder({
           {/* Room view — only for speaker chains */}
           {chain.some(e => e.component.category === "speaker") && (
             <div style={{
-              margin: "12px 0",
+              margin: "0 0 22px",
               padding: "16px",
-              background: "var(--pa-surface)",
+              background: "var(--pa-inset)",
               border: "1px solid var(--pa-border)",
-              borderRadius: "var(--pa-radius-md)",
+              borderRadius: "10px",
             }}>
               <RoomCanvas
                 distanceM={ctx.distanceM}
@@ -403,43 +474,22 @@ export default function ChainBuilder({
           )}
 
           {/* Actions */}
-          <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", marginTop: "auto", flexWrap: "wrap" }}>
             <button
               onClick={evaluate}
               disabled={evaluating || chain.length < 2}
-              style={{
-                background: evaluating || chain.length < 2 ? "var(--pa-border)" : "var(--pa-dark)",
-                color: "#fff",
-                fontSize: "0.875rem",
-                fontWeight: 500,
-                padding: "8px 16px",
-                borderRadius: "var(--pa-radius-sm)",
-                border: "none",
-                cursor: evaluating || chain.length < 2 ? "not-allowed" : "pointer",
-                fontFamily: "var(--pa-font-ui)",
-              }}
+              className="pa-btn pa-btn-dark"
+              style={{ padding: "13px 28px" }}
             >
               {evaluating ? "Evaluating…" : "Evaluate"}
             </button>
-            <button onClick={() => loadDemo("speaker")} style={secondaryButton}>
+            <button onClick={() => loadDemo("speaker")} className="pa-btn pa-btn-outline-accent">
               Speaker demo
             </button>
-            <button onClick={() => loadDemo("headphone")} style={secondaryButton}>
+            <button onClick={() => loadDemo("headphone")} className="pa-btn pa-btn-outline-accent">
               HP demo
             </button>
-            <button
-              onClick={() => { setChain([]); setReport(null); }}
-              style={{
-                background: "var(--pa-surface)",
-                color: "var(--pa-muted)",
-                fontSize: "0.875rem",
-                padding: "8px 16px",
-                borderRadius: "var(--pa-radius-sm)",
-                border: "1px solid var(--pa-border)",
-                cursor: "pointer",
-                fontFamily: "var(--pa-font-ui)",
-              }}
-            >
+            <button onClick={() => { setChain([]); setReport(null); }} className="pa-btn pa-btn-neutral">
               Clear
             </button>
           </div>
@@ -461,12 +511,12 @@ export default function ChainBuilder({
 
       {/* ── Results ── */}
       {(error || report) && (
-        <div id="results" style={{ maxWidth: "var(--pa-container)", margin: "0 auto", width: "100%", padding: "0 16px 40px" }}>
+        <div id="results" style={{ maxWidth: "1440px", margin: "0 auto", width: "100%", padding: "0 56px 48px", boxSizing: "border-box" }}>
           {error && (
             <div style={{
-              background: "#fff5f5",
-              border: "1px solid #feb2b2",
-              color: "#c53030",
+              background: "#fdf0ee",
+              border: "1px solid #e8b4a8",
+              color: "#a33a24",
               borderRadius: "var(--pa-radius-md)",
               padding: "12px 16px",
               fontSize: "0.875rem",
@@ -477,17 +527,17 @@ export default function ChainBuilder({
           )}
           {report && (
             <div style={{
-              background: "var(--pa-bg)",
+              background: "var(--pa-panel)",
               borderRadius: "var(--pa-radius-lg)",
               border: "1px solid var(--pa-border)",
               padding: "24px",
             }}>
               <p style={{
-                fontSize: "0.7rem",
+                fontSize: "0.62rem",
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: "var(--pa-muted)",
+                letterSpacing: "0.24em",
+                color: "var(--pa-accent2)",
                 marginBottom: "16px",
                 fontFamily: "var(--pa-font-ui)",
               }}>

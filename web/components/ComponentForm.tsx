@@ -98,7 +98,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         flexDirection: "column",
         gap: "14px",
       }}>
-        <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+        <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
           Basic Information
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
@@ -152,7 +152,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         gap: "12px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+          <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
             Inputs ({inputs.length})
           </div>
           <button onClick={() => addPort("input")} style={{
@@ -183,7 +183,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
         gap: "12px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+          <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
             Outputs ({outputs.length})
           </div>
           <button onClick={() => addPort("output")} style={{

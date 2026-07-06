@@ -37,27 +37,22 @@ export default function EditComponentPage() {
   return (
     <div style={{ minHeight: "calc(100vh - var(--pa-nav-h))" }}>
       {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #1a0f00, #3d2200)",
-        padding: "48px 48px 40px",
-        borderBottom: "1px solid rgba(217,119,6,0.2)",
-      }}>
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+      <div className="pa-page-header pa-page-header--glow-left" style={{ padding: "44px 56px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative" }}>
+          <div className="pa-kicker" style={{ marginBottom: "14px" }}>
+            <span>The Library</span>
+          </div>
           <h1 style={{
-            fontFamily: "var(--pa-font-serif)",
-            fontSize: "2rem",
-            fontWeight: 700,
-            color: "#faf5ee",
-            marginBottom: "8px",
+            fontFamily: "var(--pa-font-display)",
+            fontSize: "2.4rem",
+            fontWeight: 500,
+            color: "var(--pa-text-on-dark)",
+            margin: "0 0 10px",
           }}>
             Edit Component
           </h1>
-          <p style={{
-            fontSize: "0.95rem",
-            color: "#d4b896",
-            fontFamily: "var(--pa-font-ui)",
-          }}>
-            {component ? component.name : "Loading..."}
+          <p style={{ fontSize: "1rem", color: "var(--pa-lede)", margin: 0, fontStyle: "italic" }}>
+            {component ? component.name : "Loading…"}
           </p>
         </div>
       </div>

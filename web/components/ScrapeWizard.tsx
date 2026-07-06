@@ -109,7 +109,7 @@ export default function ScrapeWizard() {
         padding: "60px 20px",
       }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>{"\u2713"}</div>
-        <div style={{ fontSize: "1.1rem", color: "var(--pa-text)", fontFamily: "var(--pa-font-serif)", marginBottom: "12px" }}>
+        <div style={{ fontSize: "1.1rem", color: "var(--pa-text)", fontFamily: "var(--pa-font-display)", marginBottom: "12px" }}>
           Component saved!
         </div>
         <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>

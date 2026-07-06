@@ -32,10 +32,11 @@ export default function SummaryPanel({
 
   return (
     <aside style={{
-      background: "var(--pa-cream)",
+      background: "var(--pa-panel)",
       borderRadius: "var(--pa-radius-lg)",
-      border: "1.5px solid var(--pa-border)",
-      padding: "16px",
+      border: "1px solid var(--pa-border)",
+      padding: "22px",
+      alignSelf: "start",
       overflowY: "auto",
       maxHeight: "calc(100vh - var(--pa-nav-h) - 6rem)",
     }}>
@@ -43,32 +44,19 @@ export default function SummaryPanel({
       <button
         onClick={onEvaluate}
         disabled={evaluating || !canEvaluate}
-        style={{
-          width: "100%",
-          marginBottom: "16px",
-          background: evaluating || !canEvaluate ? "var(--pa-border)" : "var(--pa-accent)",
-          color: "#fff",
-          fontSize: "0.9rem",
-          fontWeight: 700,
-          padding: "11px",
-          borderRadius: "var(--pa-radius-sm)",
-          border: "none",
-          cursor: evaluating || !canEvaluate ? "not-allowed" : "pointer",
-          fontFamily: "var(--pa-font-ui)",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-        }}
+        className="pa-btn pa-btn-primary"
+        style={{ width: "100%", marginBottom: "22px", padding: "14px", letterSpacing: "0.22em" }}
       >
         {evaluating ? "Evaluating…" : "Evaluate Chain"}
       </button>
 
       <div style={{
-        fontFamily: "var(--pa-font-serif)",
-        fontSize: "0.95rem",
-        color: "#3d2200",
+        fontFamily: "var(--pa-font-display)",
+        fontSize: "1.15rem",
+        color: "var(--pa-text)",
         borderBottom: "1px solid var(--pa-border)",
         paddingBottom: "12px",
-        marginBottom: "16px",
+        marginBottom: "18px",
       }}>
         Room Settings
       </div>
@@ -76,21 +64,21 @@ export default function SummaryPanel({
 
       {/* Compatibility check summary */}
       {report && (
-        <div style={{ marginTop: "16px" }}>
+        <div style={{ marginTop: "22px" }}>
           {/* Compatibility card */}
           <div style={{
-            background: "#fef3e2",
-            border: "1.5px solid #fcd34d",
-            borderRadius: "var(--pa-radius-md)",
-            padding: "12px",
-            marginBottom: "12px",
+            background: "var(--pa-inset)",
+            border: "1px solid var(--pa-border-2)",
+            borderRadius: "8px",
+            padding: "16px",
+            marginBottom: "18px",
           }}>
             <div style={{
-              fontSize: "0.65rem",
-              letterSpacing: "0.12em",
+              fontSize: "0.58rem",
+              letterSpacing: "0.2em",
               textTransform: "uppercase",
-              color: "var(--pa-accent-deep)",
-              marginBottom: "10px",
+              color: "var(--pa-accent2)",
+              marginBottom: "12px",
               fontWeight: 700,
               fontFamily: "var(--pa-font-ui)",
             }}>
@@ -101,63 +89,64 @@ export default function SummaryPanel({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "5px 0",
-                borderBottom: idx < topChecks.length - 1 ? "1px solid rgba(252,211,77,0.3)" : "none",
-                fontSize: "0.72rem",
-                fontFamily: "var(--pa-font-ui)",
+                gap: "10px",
+                padding: "7px 0",
+                borderBottom: idx < topChecks.length - 1 ? "1px solid rgba(224,203,166,0.5)" : "none",
+                fontSize: "0.74rem",
               }}>
-                <span style={{ color: "#7c5a3a" }}>{chk.label}</span>
+                <span style={{ color: "var(--pa-muted)" }}>{chk.label}</span>
                 <span style={{
                   fontWeight: 600,
-                  color: chk.verdict === "pass" ? "#16a34a" : chk.verdict === "fail" ? "#c0392b" : "var(--pa-accent)",
+                  whiteSpace: "nowrap",
+                  color: chk.verdict === "pass" ? "var(--pa-ok-on-cream)" : chk.verdict === "fail" ? "#c0392b" : "var(--pa-warn-on-cream)",
                 }}>
-                  {chk.valueStr} {chk.verdict === "pass" ? "✓" : chk.verdict === "fail" ? "✕" : "⚡"}
+                  {chk.valueStr} {chk.verdict === "pass" ? "✓" : chk.verdict === "fail" ? "✕" : "⚠"}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Score badge */}
+          {/* Score card */}
           <div style={{
-            background: "linear-gradient(135deg, var(--pa-accent), var(--pa-accent-hover))",
-            borderRadius: "var(--pa-radius-md)",
-            padding: "12px",
+            background: "linear-gradient(180deg, #2b1a09, #140b00)",
+            border: "1px solid var(--pa-rack-border)",
+            borderRadius: "10px",
+            padding: "18px",
             textAlign: "center",
-            color: "#fff",
-            marginBottom: "12px",
+            marginBottom: "16px",
+            boxShadow: "inset 0 1px 0 rgba(255,215,150,0.15)",
           }}>
-            <div style={{ fontFamily: "var(--pa-font-serif)", fontSize: "2.2rem", lineHeight: 1 }}>
+            <div style={{
+              fontFamily: "var(--pa-font-display)",
+              fontSize: "2.6rem",
+              lineHeight: 1,
+              color: "var(--pa-gold)",
+              textShadow: "0 0 18px rgba(251,191,36,0.45)",
+            }}>
               {score}
             </div>
             <div style={{
-              fontSize: "0.7rem",
-              letterSpacing: "0.08em",
+              fontSize: "0.56rem",
+              letterSpacing: "0.22em",
               textTransform: "uppercase",
-              opacity: 0.85,
-              marginTop: "4px",
+              color: "var(--pa-faint)",
+              marginTop: "8px",
               fontFamily: "var(--pa-font-ui)",
             }}>
               out of 100 — {scoreLabel(score)}
+            </div>
+            <div className="pa-vu" style={{ justifyContent: "center", height: "18px", marginTop: "12px" }}>
+              <i /><i /><i /><i /><i />
             </div>
           </div>
 
           <button
             onClick={onSave}
             disabled={saving}
-            style={{
-              width: "100%",
-              background: "var(--pa-accent)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--pa-radius-md)",
-              padding: "9px",
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              cursor: saving ? "wait" : "pointer",
-              fontFamily: "var(--pa-font-ui)",
-            }}
+            className="pa-btn pa-btn-invert"
+            style={{ width: "100%", padding: "12px", letterSpacing: "0.2em", cursor: saving ? "wait" : "pointer" }}
           >
-            {saving ? "Saving…" : saveMsg || "Save"}
+            {saving ? "Saving…" : saveMsg || "Save Chain"}
           </button>
         </div>
       )}

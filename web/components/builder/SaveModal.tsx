@@ -29,7 +29,7 @@ export default function SaveModal({
         background: "#fff", padding: "28px",
         width: "100%", maxWidth: "400px", boxShadow: "var(--pa-shadow-lg)",
       }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ fontFamily: "var(--pa-font-serif)", fontSize: "1.1rem", color: "var(--pa-text)", marginBottom: "16px" }}>
+        <h3 style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.1rem", color: "var(--pa-text)", marginBottom: "16px" }}>
           Save Chain
         </h3>
         <label style={{ fontSize: "0.78rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", display: "block", marginBottom: "6px" }}>
