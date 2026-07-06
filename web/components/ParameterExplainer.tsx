@@ -7,6 +7,8 @@ import {
   TIER_LABELS,
   type ExplainerTier,
 } from "@/lib/explainers";
+import { FIGURES } from "@/components/figures";
+import Equation from "@/components/Equation";
 
 const TIERS: ExplainerTier[] = ["simple", "theory", "expert"];
 const STORAGE_KEY = "pa-explainer-tier";
@@ -60,6 +62,9 @@ function useTierPreference(): [ExplainerTier, (t: ExplainerTier) => void] {
  * "Learn more" disclosure shown under a result row. Looks the parameter up by
  * its engine check id (or context field name); renders nothing if there's no
  * explainer for that id.
+ *
+ * On the expert tier the disclosure also renders the parameter's figure
+ * (from the FIGURES registry) and its display equations.
  */
 export default function ParameterExplainer({ id }: { id: string }) {
   const entry = EXPLAINERS[id];
@@ -67,6 +72,8 @@ export default function ParameterExplainer({ id }: { id: string }) {
   const [tier, setTier] = useTierPreference();
 
   if (!entry) return null;
+
+  const Figure = FIGURES[entry.slug];
 
   return (
     <div className="mt-1">
@@ -114,9 +121,27 @@ export default function ParameterExplainer({ id }: { id: string }) {
             })}
           </div>
 
+          {tier === "expert" && Figure && (
+            <div
+              className="mb-2 rounded-md border"
+              style={{
+                background: "var(--pa-cream)",
+                borderColor: "var(--pa-border)",
+                padding: "12px 8px 4px",
+              }}
+            >
+              <Figure />
+            </div>
+          )}
+
           <p className="text-xs leading-relaxed" style={{ color: "var(--pa-text)" }}>
             {entry[tier]}
           </p>
+
+          {tier === "expert" &&
+            entry.equations?.map((eq) => (
+              <Equation key={eq.caption} mathml={eq.mathml} caption={eq.caption} />
+            ))}
 
           <Link
             href={`/learn/${entry.slug}`}

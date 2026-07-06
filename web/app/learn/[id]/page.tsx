@@ -7,6 +7,8 @@ import {
   getExplainer,
   type ExplainerTier,
 } from "@/lib/explainers";
+import { FIGURES } from "@/components/figures";
+import Equation from "@/components/Equation";
 
 const TIER_ORDER: ExplainerTier[] = ["simple", "theory", "expert"];
 
@@ -38,6 +40,8 @@ export default async function LearnParameterPage({
   const entry = getExplainer(id);
   if (!entry) notFound();
 
+  const Figure = FIGURES[entry.slug];
+
   return (
     <article
       style={{
@@ -60,20 +64,29 @@ export default async function LearnParameterPage({
         ← All parameters
       </Link>
 
-      {/* Group kicker */}
-      <div className="pa-kicker" style={{ marginTop: "28px", marginBottom: "10px" }}>
-        <span>{entry.group}</span>
-      </div>
+      {/* Group eyebrow */}
+      <p
+        style={{
+          marginTop: "28px",
+          color: "var(--pa-accent)",
+          fontSize: "0.78rem",
+          fontWeight: 600,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          fontFamily: "var(--pa-font-ui)",
+        }}
+      >
+        {entry.group}
+      </p>
 
       {/* Title */}
       <h1
         style={{
-          fontFamily: "var(--pa-font-display)",
+          fontFamily: "var(--font-playfair), Georgia, serif",
           fontSize: "2.4rem",
-          fontWeight: 500,
           lineHeight: 1.1,
           color: "var(--pa-text)",
-          margin: "0 0 14px",
+          margin: "6px 0 14px",
         }}
       >
         {entry.label}
@@ -81,9 +94,9 @@ export default async function LearnParameterPage({
 
       <p
         style={{
+          fontFamily: "var(--font-lora), Georgia, serif",
           fontSize: "1.15rem",
-          lineHeight: 1.6,
-          fontStyle: "italic",
+          lineHeight: 1.5,
           color: "var(--pa-muted)",
           marginBottom: "44px",
         }}
@@ -97,9 +110,9 @@ export default async function LearnParameterPage({
           <h2
             style={{
               fontFamily: "var(--pa-font-ui)",
-              fontSize: "0.66rem",
+              fontSize: "0.82rem",
               fontWeight: 700,
-              letterSpacing: "0.26em",
+              letterSpacing: "0.1em",
               textTransform: "uppercase",
               color: "var(--pa-accent2)",
               borderBottom: "1px solid var(--pa-border)",
@@ -109,15 +122,36 @@ export default async function LearnParameterPage({
           >
             {TIER_LABELS[tier]}
           </h2>
+
+          {tier === "expert" && Figure && (
+            <figure
+              style={{
+                margin: "0 0 20px",
+                padding: "24px 16px 12px",
+                background: "var(--pa-cream)",
+                border: "1px solid var(--pa-border)",
+                borderRadius: "var(--pa-radius-lg)",
+              }}
+            >
+              <Figure />
+            </figure>
+          )}
+
           <p
             style={{
+              fontFamily: "var(--font-lora), Georgia, serif",
               fontSize: "1.05rem",
               lineHeight: 1.7,
-              color: "var(--pa-list-text)",
+              color: "var(--pa-text)",
             }}
           >
             {entry[tier]}
           </p>
+
+          {tier === "expert" &&
+            entry.equations?.map((eq) => (
+              <Equation key={eq.caption} mathml={eq.mathml} caption={eq.caption} />
+            ))}
         </section>
       ))}
 
@@ -129,7 +163,20 @@ export default async function LearnParameterPage({
           borderTop: "1px solid var(--pa-border)",
         }}
       >
-        <Link href="/builder" className="pa-btn pa-btn-primary" style={{ padding: "13px 28px" }}>
+        <Link
+          href="/builder"
+          style={{
+            background: "var(--pa-accent)",
+            color: "#fff",
+            padding: "11px 24px",
+            borderRadius: "var(--pa-radius-sm)",
+            textDecoration: "none",
+            fontSize: "0.9rem",
+            fontWeight: 500,
+            fontFamily: "var(--pa-font-ui)",
+            letterSpacing: "0.04em",
+          }}
+        >
           Check this in your chain →
         </Link>
       </div>
