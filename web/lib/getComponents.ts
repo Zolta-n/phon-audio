@@ -15,13 +15,14 @@ export interface ComponentRow {
 }
 
 export function rowToComponent(row: ComponentRow): UIComponent {
-  const specs = (row.specs as { inputs?: unknown[]; outputs?: unknown[] }) ?? {};
+  const specs = (row.specs as { inputs?: unknown[]; outputs?: unknown[]; dac?: unknown }) ?? {};
   return {
     id: row.id,
     name: row.name,
     category: row.category as UIComponent["category"],
     inputs: (specs.inputs ?? []) as UIComponent["inputs"],
     outputs: (specs.outputs ?? []) as UIComponent["outputs"],
+    dac: (specs.dac ?? undefined) as UIComponent["dac"],
     note: row.notes ?? undefined,
     manufacturer: row.manufacturer ?? undefined,
     affiliateUrl: row.affiliate_url ?? null,

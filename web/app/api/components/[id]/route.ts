@@ -28,7 +28,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const { name, category, inputs, outputs, manufacturer, note } = body;
+    const { name, category, inputs, outputs, manufacturer, note, dac } = body;
 
     const supabase = createServiceClient();
 
@@ -47,11 +47,14 @@ export async function PUT(
     if (category !== undefined) update.category = category;
     if (manufacturer !== undefined) update.manufacturer = manufacturer;
     if (note !== undefined) update.notes = note;
-    if (inputs !== undefined || outputs !== undefined) {
+    if (inputs !== undefined || outputs !== undefined || dac !== undefined) {
       const existingSpecs = (existing.specs as Record<string, unknown>) ?? {};
+      const nextDac = dac !== undefined ? dac : existingSpecs.dac;
       update.specs = {
         inputs: inputs ?? existingSpecs.inputs ?? [],
         outputs: outputs ?? existingSpecs.outputs ?? [],
+        // dac: null clears the section; undefined keeps the existing one.
+        ...(nextDac ? { dac: nextDac } : {}),
       };
     }
 

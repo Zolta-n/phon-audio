@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { UIComponent, Port, ComponentCategory } from "@/types";
+import type { UIComponent, Port, ComponentCategory, DacSection } from "@/types";
 import { CATEGORY_ORDER, CATEGORY_LABELS } from "@/types";
 import PortEditor from "./PortEditor";
 import { toKebabCase } from "@/lib/strings";
@@ -43,6 +43,7 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
   const [id, setId] = useState(initial?.id ?? "");
   const [inputs, setInputs] = useState<Port[]>(initial?.inputs ?? []);
   const [outputs, setOutputs] = useState<Port[]>(initial?.outputs ?? []);
+  const [dac, setDac] = useState<DacSection>(initial?.dac ?? {});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,12 +55,14 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
     if (!name.trim()) { setError("Name is required"); return; }
     if (!componentId) { setError("ID is required"); return; }
 
+    const hasDacSpecs = Object.values(dac).some((v) => v !== undefined && v !== null && v !== "");
     const component: UIComponent = {
       id: componentId,
       name: name.trim(),
       category,
       inputs,
       outputs,
+      dac: hasDacSpecs ? dac : undefined,
       note: notes.trim() || undefined,
       manufacturer: manufacturer.trim() || undefined,
     };
@@ -201,6 +204,57 @@ export default function ComponentForm({ initial, onSave, mode }: ComponentFormPr
             No outputs defined. Click &quot;+ Add Output&quot; to add one.
           </div>
         )}
+      </div>
+
+      {/* D/A stage (optional) — feeds the engine's conversion-placement ranking */}
+      <div style={{
+        background: "var(--pa-cream)",
+        border: "1px solid var(--pa-border)",
+        borderRadius: "var(--pa-radius-lg)",
+        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+      }}>
+        <div style={{ fontFamily: "var(--pa-font-display)", fontSize: "1.05rem", color: "var(--pa-text)", fontWeight: 600 }}>
+          D/A Stage (optional)
+        </div>
+        <div style={{ fontSize: "0.78rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)" }}>
+          Fill in when the device converts digital to analog (DAC, streamer with analog out, amp with digital in).
+          Used to rank where conversion should happen in a chain — never for pass/fail verdicts.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px" }}>
+          {([
+            ["dynamicRangeDb", "Dynamic Range / SNR (dB)", "e.g. 120"],
+            ["thdPlusNPct", "THD+N (%)", "e.g. 0.0004"],
+            ["intrinsicJitterPs", "Clock Jitter (ps RMS)", "e.g. 20"],
+            ["clockAccuracyPpm", "Clock Accuracy (ppm)", "e.g. 10"],
+          ] as const).map(([key, label, placeholder]) => (
+            <div key={key}>
+              <span style={labelStyle}>{label}</span>
+              <input
+                type="number"
+                step="any"
+                className="pa-input"
+                style={inputStyle}
+                placeholder={placeholder}
+                value={dac[key] ?? ""}
+                onChange={e => setDac({ ...dac, [key]: e.target.value === "" ? undefined : Number(e.target.value) })}
+              />
+            </div>
+          ))}
+          <div>
+            <span style={labelStyle}>Chipset</span>
+            <input
+              type="text"
+              className="pa-input"
+              style={inputStyle}
+              placeholder="e.g. ES9039Q2M"
+              value={dac.chipset ?? ""}
+              onChange={e => setDac({ ...dac, chipset: e.target.value || undefined })}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Error + Save */}

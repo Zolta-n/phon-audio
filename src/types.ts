@@ -80,6 +80,14 @@ export interface DigitalOut {
   formats: ("pcm" | "dsd")[];
   maxSampleRateKhz: number;
   maxBitDepth: number;
+  /** Max native DSD rate, MHz (2.8 = DSD64, 5.6 = DSD128, 11.3 = DSD256, 22.6 = DSD512). */
+  dsdMaxRateMhz?: number;
+  /** Interface output jitter, ps RMS. Informational only — never gates a verdict. */
+  intrinsicJitterPs?: number;
+  /** Source clock accuracy, ppm. Informational only. */
+  clockAccuracyPpm?: number;
+  /** Output is galvanically isolated from the host (isolated USB, transformer-coupled S/PDIF). */
+  galvanicIsolation?: boolean;
 }
 
 // --- Input port specs -------------------------------------------------------
@@ -98,6 +106,14 @@ export interface DigitalIn {
   formats: ("pcm" | "dsd")[];
   maxSampleRateKhz: number;
   maxBitDepth: number;
+  /** Max native DSD rate, MHz, this input accepts. */
+  dsdMaxRateMhz?: number;
+  /** USB transfer mode; async = the DAC's own clock paces the link, so source jitter is irrelevant. */
+  usbMode?: "async" | "adaptive" | "synchronous";
+  /** Receiver jitter handling: "reclocking" = FIFO buffer + local clock re-time; "pll" = clock-recovery PLL. */
+  jitterRejection?: "reclocking" | "pll" | "none";
+  /** Input is galvanically isolated (optical inherently is; some USB/coax inputs add it). */
+  galvanicIsolation?: boolean;
 }
 
 // --- Phono port specs ------------------------------------------------------
@@ -169,12 +185,34 @@ export interface Port {
   specs: PortSpec;
 }
 
+/**
+ * Specs of a component's internal D/A conversion stage, if it has one.
+ * D/A quality is a property of the device's conversion stage, not of any one
+ * input — a streamer with an internal DAC has no digital input at all. When
+ * this section is absent the recommender falls back to a category heuristic.
+ * Keep in sync with web/types/index.ts.
+ */
+export interface DacSection {
+  /** Dynamic range / SNR of the analog output, dB (A-weighted, per AES17). */
+  dynamicRangeDb?: number;
+  /** THD+N at 1 kHz near full scale, percent (e.g. 0.0002 for −114 dB). */
+  thdPlusNPct?: number;
+  /** Jitter at the conversion clock, ps RMS. */
+  intrinsicJitterPs?: number;
+  /** Master clock accuracy, ppm. */
+  clockAccuracyPpm?: number;
+  /** Converter chipset, informational (e.g. "ES9039Q2M"). */
+  chipset?: string;
+}
+
 export interface Component {
   id: string;
   name: string;
   category: ComponentCategory;
   inputs: Port[];
   outputs: Port[];
+  /** Internal D/A stage specs, when the component performs D/A conversion. */
+  dac?: DacSection;
   /** Free-text note, e.g. "illustrative specs — verify before production". */
   note?: string;
 }

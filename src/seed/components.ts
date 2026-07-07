@@ -14,16 +14,37 @@ export const networkStreamer: Component = {
   id: "src-streamer",
   name: "Network Streamer",
   category: "source",
-  note: "illustrative specs",
+  note: "illustrative specs — streams via USB/coax, or converts internally to line out",
   inputs: [],
   outputs: [
     {
       domain: "digital",
       connector: "usb",
       balanced: false,
-      specs: { kind: "digital_out", formats: ["pcm", "dsd"], maxSampleRateKhz: 384, maxBitDepth: 32 },
+      specs: {
+        kind: "digital_out",
+        formats: ["pcm", "dsd"],
+        maxSampleRateKhz: 384,
+        maxBitDepth: 32,
+        dsdMaxRateMhz: 11.3,
+        intrinsicJitterPs: 80,
+        clockAccuracyPpm: 10,
+      },
+    },
+    {
+      domain: "digital",
+      connector: "coax",
+      balanced: false,
+      specs: { kind: "digital_out", formats: ["pcm"], maxSampleRateKhz: 192, maxBitDepth: 24 },
+    },
+    {
+      domain: "line",
+      connector: "rca",
+      balanced: false,
+      specs: { kind: "line_out", outputImpedanceOhm: 200, maxOutputVrms: 2.0 },
     },
   ],
+  dac: { dynamicRangeDb: 112, thdPlusNPct: 0.001 },
 };
 
 // --- DACs -------------------------------------------------------------------
@@ -33,12 +54,33 @@ export const desktopDac: Component = {
   name: "Desktop DAC (SE + balanced)",
   category: "dac",
   note: "illustrative specs",
+  dac: { dynamicRangeDb: 123, thdPlusNPct: 0.0002, intrinsicJitterPs: 15, clockAccuracyPpm: 1 },
   inputs: [
     {
       domain: "digital",
       connector: "usb",
       balanced: false,
-      specs: { kind: "digital_in", formats: ["pcm", "dsd"], maxSampleRateKhz: 384, maxBitDepth: 32 },
+      specs: {
+        kind: "digital_in",
+        formats: ["pcm", "dsd"],
+        maxSampleRateKhz: 384,
+        maxBitDepth: 32,
+        dsdMaxRateMhz: 22.6,
+        usbMode: "async",
+        jitterRejection: "reclocking",
+      },
+    },
+    {
+      domain: "digital",
+      connector: "coax",
+      balanced: false,
+      specs: { kind: "digital_in", formats: ["pcm"], maxSampleRateKhz: 192, maxBitDepth: 24, jitterRejection: "reclocking" },
+    },
+    {
+      domain: "digital",
+      connector: "optical",
+      balanced: false,
+      specs: { kind: "digital_in", formats: ["pcm"], maxSampleRateKhz: 96, maxBitDepth: 24, galvanicIsolation: true },
     },
   ],
   outputs: [
@@ -139,6 +181,60 @@ export const tubeAmp: Component = {
         outputImpedanceOhm: 1.5, // low damping factor by design
         gainDb: 26,
         inputSensitivityVrms: 0.8,
+      },
+    },
+  ],
+};
+
+// --- Integrated amps ---------------------------------------------------------
+
+export const integratedWithDac: Component = {
+  id: "int-digital",
+  name: "Integrated Amp (built-in DAC)",
+  category: "integrated",
+  note: "illustrative specs — accepts analog line or converts digital internally",
+  dac: { dynamicRangeDb: 105, thdPlusNPct: 0.004 },
+  inputs: [
+    {
+      domain: "line",
+      connector: "rca",
+      balanced: false,
+      specs: { kind: "line_in", inputImpedanceOhm: 47000, inputSensitivityVrms: 0.5, maxInputVrms: 4.0 },
+    },
+    {
+      domain: "digital",
+      connector: "coax",
+      balanced: false,
+      specs: { kind: "digital_in", formats: ["pcm"], maxSampleRateKhz: 192, maxBitDepth: 24, jitterRejection: "pll" },
+    },
+    {
+      domain: "digital",
+      connector: "optical",
+      balanced: false,
+      specs: { kind: "digital_in", formats: ["pcm"], maxSampleRateKhz: 96, maxBitDepth: 24, galvanicIsolation: true },
+    },
+    {
+      domain: "digital",
+      connector: "usb",
+      balanced: false,
+      specs: { kind: "digital_in", formats: ["pcm"], maxSampleRateKhz: 384, maxBitDepth: 32, usbMode: "async" },
+    },
+  ],
+  outputs: [
+    {
+      domain: "speaker",
+      connector: "speaker_binding",
+      balanced: false,
+      specs: {
+        kind: "speaker_out",
+        powerW: [
+          { ohm: 8, watts: 80 },
+          { ohm: 4, watts: 130 },
+        ],
+        ratedMinImpedanceOhm: 4,
+        outputImpedanceOhm: 0.08,
+        gainDb: 38,
+        inputSensitivityVrms: 0.5,
       },
     },
   ],

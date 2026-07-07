@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (parseError) return parseError;
 
   try {
-    const { id, name, category, inputs, outputs, manufacturer, note } = body;
+    const { id, name, category, inputs, outputs, manufacturer, note, dac } = body;
 
     const componentId = id || toKebabCase(`${manufacturer ?? ""} ${name}`);
 
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       name,
       category,
       manufacturer: manufacturer ?? null,
-      specs: { inputs: inputs ?? [], outputs: outputs ?? [] },
+      specs: { inputs: inputs ?? [], outputs: outputs ?? [], ...(dac ? { dac } : {}) },
       notes: note ?? null,
       verified: false,
     };

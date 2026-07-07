@@ -260,6 +260,43 @@ export default function PortEditor({ port, direction, onChange, onRemove, compon
                 })}
               </div>
             </div>
+            <NumField label="Max DSD Rate (MHz)" value={specs.dsdMaxRateMhz as number | null} onChange={v => updateSpec("dsdMaxRateMhz", v)} placeholder="e.g. 11.3 = DSD256" />
+            {kind === "digital_out" && (
+              <>
+                <NumField label="Interface Jitter (ps RMS)" value={specs.intrinsicJitterPs as number | null} onChange={v => updateSpec("intrinsicJitterPs", v)} />
+                <NumField label="Clock Accuracy (ppm)" value={specs.clockAccuracyPpm as number | null} onChange={v => updateSpec("clockAccuracyPpm", v)} />
+              </>
+            )}
+            {kind === "digital_in" && (
+              <>
+                <div style={{ minWidth: "120px" }}>
+                  <span style={labelStyle}>USB Mode</span>
+                  <select className="pa-input" style={inputStyle} value={(specs.usbMode as string) ?? ""} onChange={e => updateSpec("usbMode", e.target.value || undefined)}>
+                    <option value="">— not reported —</option>
+                    <option value="async">Asynchronous</option>
+                    <option value="adaptive">Adaptive</option>
+                    <option value="synchronous">Synchronous</option>
+                  </select>
+                </div>
+                <div style={{ minWidth: "130px" }}>
+                  <span style={labelStyle}>Jitter Rejection</span>
+                  <select className="pa-input" style={inputStyle} value={(specs.jitterRejection as string) ?? ""} onChange={e => updateSpec("jitterRejection", e.target.value || undefined)}>
+                    <option value="">— not reported —</option>
+                    <option value="reclocking">Reclocking (FIFO)</option>
+                    <option value="pll">PLL</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+              </>
+            )}
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: "var(--pa-text)", fontFamily: "var(--pa-font-ui)", paddingTop: "18px" }}>
+              <input
+                type="checkbox"
+                checked={(specs.galvanicIsolation as boolean) ?? false}
+                onChange={e => updateSpec("galvanicIsolation", e.target.checked || undefined)}
+              />
+              Galvanic isolation
+            </label>
           </>
         ) : kind === "line_in" ? (
           <>

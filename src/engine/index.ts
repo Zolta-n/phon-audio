@@ -19,7 +19,7 @@ import type {
   PhonoIn,
 } from "../types";
 import type { CheckResult, Verdict } from "./checkResult";
-import { worstVerdict, overallVerdict } from "./checkResult";
+import { overallVerdict } from "./checkResult";
 import { impedanceBridging, hfRolloff, gainStaging } from "./checks/lineLink";
 import {
   speakerPowerHeadroom,
@@ -34,7 +34,9 @@ import {
   phonoCapacitanceLoading,
   phonoGainAdequacy,
 } from "./checks/phonoLink";
-import { digitalLink } from "./checks/digitalLink";
+import { digitalLink, digitalInterfaceNotes } from "./checks/digitalLink";
+import { recommendForChain } from "./recommend";
+import type { Recommendation } from "./recommend";
 import { gainStructure, endToEndSpl } from "./system";
 
 export interface LinkReport {
@@ -48,8 +50,19 @@ export interface LinkReport {
 export interface SystemReport {
   links: LinkReport[];
   system: CheckResult[];
+  /** Advisory rankings (D/A placement, connection choice). Never affect verdicts. */
+  recommendations: Recommendation[];
   overall: Verdict;
 }
+
+export type {
+  Recommendation,
+  RecommendationOption,
+  RecommendationKind,
+  RecommendationConfidence,
+  LinkOption,
+} from "./recommend";
+export { enumerateLinkOptions } from "./recommend";
 
 // Priority for picking the link domain when more than one matches.
 const DOMAIN_PRIORITY: SignalDomain[] = ["speaker", "headphone", "line", "phono", "digital"];
@@ -72,6 +85,7 @@ function resolveLink(
   }
   return undefined;
 }
+
 
 // Which spec kinds each domain's checks expect on the out/in ports.
 const EXPECTED_KINDS: Record<SignalDomain, { out: string; in: string }> = {
@@ -120,6 +134,7 @@ function checkLink(
     case "digital":
       return [
         digitalLink(out.specs as DigitalOut, inp.specs as DigitalIn, asDigitalCable(cable)),
+        ...digitalInterfaceNotes(out, inp, asDigitalCable(cable)),
       ];
     case "line": {
       const o = out.specs as LineOut;
@@ -204,7 +219,9 @@ export function evaluateChain(chain: Chain): SystemReport {
       to: toNode.component.name,
       domain: link.domain,
       results,
-      verdict: worstVerdict(results),
+      // Info-neutral roll-up: informational notes (interface topology, missing
+      // specs) must not drag a verified link below "pass".
+      verdict: overallVerdict(results),
     });
   }
 
@@ -216,10 +233,14 @@ export function evaluateChain(chain: Chain): SystemReport {
 
   const system: CheckResult[] = [endToEndSpl(terminalPowerCheck), gainStructure(chain)];
 
+  // Advisory layer: ranks real alternatives (D/A placement, connector choice).
+  // Recommendations are not CheckResults and never influence the verdict.
+  const recommendations = recommendForChain(chain);
+
   // Headline verdict: info results are neutral here — a well-matched chain with
   // informational notes still reads as an overall pass (see overallVerdict).
   const overall = overallVerdict([...links.flatMap((l) => l.results), ...system]);
-  return { links, system, overall };
+  return { links, system, recommendations, overall };
 }
 
 /** Pretty-print a report to a string (used by the demo). */
@@ -237,6 +258,17 @@ export function formatReport(report: SystemReport): string {
   lines.push("SYSTEM");
   for (const r of report.system) {
     lines.push(`    ${icon[r.verdict]} ${r.label}: ${r.explanation}`);
+  }
+  if (report.recommendations.length > 0) {
+    lines.push("");
+    lines.push("RECOMMENDATIONS");
+    for (const rec of report.recommendations) {
+      lines.push(`    💡 ${rec.title} (${rec.confidence === "spec" ? "spec-based" : "rule of thumb"})`);
+      lines.push(`       ${rec.detail}`);
+      for (const opt of rec.options) {
+        lines.push(`         ${opt === rec.options[0] ? "★" : "·"} ${opt.label} [${opt.score.toFixed(0)}] — ${opt.rationale}`);
+      }
+    }
   }
   return lines.join("\n");
 }

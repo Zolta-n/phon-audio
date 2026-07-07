@@ -25,6 +25,8 @@ export const componentBodySchema = z.object({
   note: z.string().max(2000).optional().nullable(),
   inputs: z.array(portSchema).max(20).optional(),
   outputs: z.array(portSchema).max(20).optional(),
+  // Internal D/A stage specs (DacSection) — validated structurally like port specs.
+  dac: z.object({}).passthrough().optional().nullable(),
 });
 
 export const componentUpdateSchema = componentBodySchema

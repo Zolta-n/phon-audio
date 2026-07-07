@@ -18,6 +18,8 @@ export function toEvaluateNodes(chain: ChainEntry[]) {
         category: entry.component.category,
         inputs: entry.component.inputs ?? [],
         outputs: entry.component.outputs ?? [],
+        // D/A stage specs feed the engine's recommendation ranking.
+        ...(entry.component.dac ? { dac: entry.component.dac } : {}),
       },
       ...(cable ? { cableToNext: cable } : {}),
     };

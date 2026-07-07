@@ -3,6 +3,8 @@
 // Checks import from here so the numbers are auditable and consistent.
 // ---------------------------------------------------------------------------
 
+import type { Connector, ComponentCategory } from "../types";
+
 export const THRESHOLDS = {
   /** Line-level bridging: downstream input Z vs upstream output Z. ≥10× is the
    *  classic bridging rule; below 5× the response shift becomes clearly audible. */
@@ -59,4 +61,57 @@ export const THRESHOLDS = {
   phonoOutWarnLowVrms: 0.3,
   phonoOutPassMaxVrms: 3,
   phonoOutInfoMaxVrms: 5,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Ranking constants for the recommendation layer. These NEVER gate a verdict —
+// they only order alternatives that all already work (bit-perfect stance).
+// ---------------------------------------------------------------------------
+
+export const RANKING = {
+  /** DAC quality sub-score normalization windows (each scores 0–100 within its
+   *  window). Dynamic range: 95 dB is a competent budget DAC, 125 dB is state
+   *  of the art. */
+  dacDrFloorDb: 95,
+  dacDrCeilDb: 125,
+  /** THD+N expressed in dB (20·log10(pct/100)): −80 dB mediocre, −120 dB state of the art. */
+  dacThdFloorDb: -80,
+  dacThdCeilDb: -120,
+  /** Conversion-clock jitter, log scale: 1000 ps poor, 10 ps excellent. */
+  dacJitterFloorPs: 1000,
+  dacJitterCeilPs: 10,
+  /** Clock accuracy, log scale: 100 ppm consumer crystal, 1 ppm TCXO/OCXO grade. */
+  dacClockFloorPpm: 100,
+  dacClockCeilPpm: 1,
+  /** Weights (renormalized over the fields actually present). DR and THD+N
+   *  dominate because they are the audible-floor specs; jitter/ppm are
+   *  tie-breakers. */
+  dacWeights: { dynamicRange: 0.5, thd: 0.3, jitter: 0.15, clock: 0.05 },
+
+  /** Category heuristic scores (0–100) when no DacSection specs exist.
+   *  Dedicated DACs are optimized around the converter; streamer DAC sections
+   *  are usually current-generation; amp DAC sections are most often
+   *  cost-constrained add-ons. */
+  dacHeuristicByCategory: {
+    dac: 70,
+    source: 55,
+    headphone_amp: 50,
+    preamp: 48,
+    integrated: 45,
+  } as Partial<Record<ComponentCategory, number>>,
+  dacHeuristicDefault: 40,
+
+  /** Digital connector base scores. Async USB is re-ranked via usbModeBonus. */
+  connectorBase: { aes: 70, coax: 66, i2s: 62, usb: 60, optical: 56 } as Partial<Record<Connector, number>>,
+  /** Async USB makes the source clock irrelevant — the decisive interface property. */
+  usbModeBonus: { async: 25, adaptive: 0, synchronous: -10 },
+  /** Receiver-side jitter handling matters most on embedded-clock links (S/PDIF/AES). */
+  jitterRejectionBonus: { reclocking: 10, pll: 5, none: 0 },
+  /** Galvanic isolation breaks ground loops; optical gets it inherently. */
+  isolationBonus: 5,
+  /** Practical bit-perfect PCM ceiling per connector (kHz). Optical is reliable
+   *  to 96 on older TOSLINK parts; coax/AES top out at 192 in practice. */
+  connectorMaxPcmKhz: { usb: 768, i2s: 768, aes: 192, coax: 192, optical: 96 } as Partial<Record<Connector, number>>,
+  /** Penalty when the link's format ceiling is set by the connector, not the gear. */
+  bandwidthLimitPenalty: 20,
 } as const;

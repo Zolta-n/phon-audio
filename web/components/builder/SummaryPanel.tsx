@@ -140,6 +140,19 @@ export default function SummaryPanel({
             </div>
           </div>
 
+          {(report.recommendations?.length ?? 0) > 0 && (
+            <div style={{
+              fontSize: "0.7rem",
+              color: "var(--pa-accent2)",
+              fontFamily: "var(--pa-font-ui)",
+              letterSpacing: "0.06em",
+              textAlign: "center",
+              marginBottom: "14px",
+            }}>
+              💡 {report.recommendations!.length} optimization suggestion{report.recommendations!.length === 1 ? "" : "s"} — see results below
+            </div>
+          )}
+
           <button
             onClick={onSave}
             disabled={saving}

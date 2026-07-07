@@ -176,6 +176,67 @@ const ENTRIES: Explainer[] = [
     ],
   },
 
+  {
+    slug: "digital_interface",
+    label: "Interface clocking",
+    group: "Digital",
+    summary: "How each digital connection handles the clock — the only place interfaces truly differ.",
+    simple:
+      "Digital connections all carry the same bits, but they differ in who keeps time. With asynchronous USB the DAC uses its own clock, so the source and cable can't disturb timing at all. Coax and AES send the clock mixed into the data, and the DAC has to recover it. Optical adds electrical isolation (no hum loops) but tops out at lower sample rates. None of this changes a working link's sound — it's about engineering margins.",
+    theory:
+      "S/PDIF (coax/optical) and AES3 are self-clocking: the receiver extracts the sample clock from the biphase-mark-coded stream, so timing quality depends on the receiver's clock-recovery (a PLL, or better, a FIFO buffer re-timed by a local oscillator — \"reclocking\"). Asynchronous USB inverts the relationship: the DAC's clock pulls data from the host at its own pace, making source jitter structurally irrelevant. I2S carries clock and data on separate lines — transparent, but only standardized for very short runs. TOSLINK's optocouplers give inherent galvanic isolation but limit reliable bandwidth to ~96 kHz on many parts.",
+    expert:
+      "The engine reports the topology of the connection in use and ranks alternatives on architecture, not folklore: async USB (source-clock-immune) ≥ reclocking S/PDIF inputs (recovered clock never reaches the converter) > PLL-cleaned S/PDIF > plain clock recovery, with a bonus for galvanic isolation where ground loops are plausible and a penalty where the connector's bandwidth caps the source's format. What it will not do is translate any of this into a verdict downgrade: J-test artifacts on competent modern receivers measure 110+ dB down, below every published audibility threshold. The ranking exists because when you have three ways to plug the same two boxes together, one of them usually has more engineering margin — not because the others sound different.",
+  },
+  {
+    slug: "digital_clock_jitter",
+    label: "Clock & jitter",
+    group: "Digital",
+    summary: "Timing specs (ps jitter, ppm accuracy) — reported for completeness, never as a fault.",
+    simple:
+      "Jitter is tiny wobble in the timing of each digital sample, measured in picoseconds — trillionths of a second. Clock accuracy (ppm) is how close the player's speed is to perfect pitch. On any working modern link both sit far below what anyone can hear, so the engine shows the numbers without turning them into warnings.",
+    theory:
+      "Sampling-clock jitter converts timing error into amplitude error: sidebands around each tone whose level scales with signal frequency and jitter magnitude. For 16-bit audio, keeping jitter artifacts below the quantization floor needs roughly a nanosecond at 20 kHz; modern DAC master clocks measure in the tens of picoseconds. Clock accuracy in ppm shifts absolute pitch — 100 ppm is 0.01%, about 1/600th of a semitone — irrelevant for playback. Interface jitter (on the cable) matters only insofar as the receiver lets it reach the conversion clock, which async USB and FIFO-reclocking inputs prevent by design.",
+    expert:
+      "The audibility literature is unusually consistent here: detection thresholds for random jitter sit near 250 ns for broadband noise-like jitter and no lower than ~10 ns for the most pathological deterministic single-tone jitter, while measured conversion-clock jitter in current mid-range DACs is 10–100 ps — two to three orders of magnitude of margin. A ±10 ppm crystal holds pitch to 0.001%. This is why the engine's stance is \"report, don't gate\": the numbers are worth knowing when comparing conversion points (a 15 ps reclocked stage has more margin than an 80 ps streamer output feeding a PLL), but presenting them as pass/warn/fail would manufacture a problem the measurements say does not exist.",
+  },
+  {
+    slug: "digital_dsd_rate",
+    label: "DSD rate ceiling",
+    group: "Digital",
+    summary: "When an input accepts DSD, but at a lower maximum rate than the source can send.",
+    simple:
+      "DSD comes in speed grades — DSD64, DSD128, DSD256 and up. If your source can send a faster grade than the input accepts, those few files get converted or played at a lower rate. Regular PCM playback isn't affected at all.",
+    theory:
+      "DSD rates are multiples of 2.8224 MHz (64× the CD sample rate). A rate mismatch isn't a compatibility failure: players transcode DSD to PCM or down-rate it transparently, and DSD-over-PCM (DoP) framing needs 176.4 kHz of PCM bandwidth per DSD64 stream — which is why TOSLINK, capped near 96 kHz, can't carry even DoP DSD64 reliably while USB carries DSD512 natively.",
+    expert:
+      "The engine notes the ceiling as info because the practical impact is a format conversion, not a broken link — and because the audible difference between native DSD256 and a competent DSD→PCM transcode has never survived controlled comparison. If native DSD playback matters to your library, the note tells you which connection preserves it (usually async USB); if it doesn't, the note is safely ignorable.",
+  },
+  {
+    slug: "da_placement",
+    label: "D/A placement",
+    group: "Digital",
+    summary: "When two devices could do the D/A conversion, which one should?",
+    simple:
+      "Sometimes your chain has two built-in DACs — say, a streamer that can output analog, feeding an amplifier that also accepts digital. Only one of them ends up converting the signal, and it's worth choosing deliberately: the engine compares both converters and recommends where the conversion should happen, and which cable that implies.",
+    theory:
+      "Once a signal goes analog it stays analog, so the D/A conversion point is the one real architectural choice in a digital chain. The engine scores each candidate's conversion stage on its measured floor — dynamic range and THD+N dominate, conversion-clock jitter and clock accuracy act as tie-breakers — and recommends routing the signal so the better stage does the work: analog cable if the upstream device wins, digital cable if the downstream one does.",
+    expert:
+      "Weighting favors DR (50%) and THD+N (30%) because those set the audible noise-and-distortion floor; jitter (15%) and clock ppm (5%) are margin metrics. Scores are normalized over 95–125 dB DR and −80 to −120 dB THD+N — the realistic span from budget to state-of-the-art converters. When a device publishes no conversion specs, the engine falls back to a category prior (dedicated DAC > streamer section > amp add-on section) and flags the whole comparison as a rule of thumb, because a spec-vs-heuristic comparison is a guess wearing a lab coat. One honesty note to keep in mind: the compatibility checks in the report run over the connection you actually built — the recommendation tells you when a different connection would use the better converter.",
+  },
+  {
+    slug: "digital_connection",
+    label: "Digital connection choice",
+    group: "Digital",
+    summary: "USB, coax, optical or AES — ranked by clocking architecture and isolation, not sound.",
+    simple:
+      "When both devices share several digital inputs, any of them will deliver the identical bits — so the engine ranks them by engineering margin instead: asynchronous USB is immune to source timing, coax and AES depend on the receiver's clock handling, and optical is immune to hum loops but limited in bandwidth. Pick the top one, use the matching cable, and stop thinking about it.",
+    theory:
+      "The ranking starts from each interface's clocking architecture (async USB removes source jitter by construction; embedded-clock links inherit whatever the receiver's PLL or reclocking buffer achieves), adds galvanic isolation where present (optical inherently; some USB and coax inputs add it), and subtracts a penalty when the connector's practical bandwidth caps the source — TOSLINK's ~96 kHz limit against a 384 kHz source, or DSD beyond DSD64 over DoP.",
+    expert:
+      "Base ordering (AES > coax > I2S > USB > optical) reflects transport robustness: AES3's 110 Ω balanced spec drives 100 m runs, coax S/PDIF is solid to ~10 m, TOSLINK's LED rise time limits both length and rate. The async-USB bonus (+25) then usually promotes USB to the top when the input declares its mode, because clock immunity outweighs transport pedigree at domestic cable lengths. Receiver-side jitter rejection earns +10 (reclocking) or +5 (PLL) on embedded-clock links; isolation +5; a bandwidth cap costs −20. Confidence is \"spec-based\" only when at least one declared interface spec informed the ranking — a table of defaults is honest as a rule of thumb, not as a measurement.",
+  },
+
   // ---- Line-level ---------------------------------------------------------
   {
     slug: "impedance_bridging",

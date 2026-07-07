@@ -19,6 +19,15 @@ export interface Port {
   specs: PortSpec;
 }
 
+/** Internal D/A stage specs. Keep in sync with DacSection in src/types.ts. */
+export interface DacSection {
+  dynamicRangeDb?: number;
+  thdPlusNPct?: number;
+  intrinsicJitterPs?: number;
+  clockAccuracyPpm?: number;
+  chipset?: string;
+}
+
 /** A component as returned by /api/components (DB row unwrapped into engine shape) */
 export interface UIComponent {
   id: string;
@@ -26,6 +35,7 @@ export interface UIComponent {
   category: ComponentCategory;
   inputs: Port[];
   outputs: Port[];
+  dac?: DacSection;
   note?: string;
   manufacturer?: string;
   affiliateUrl?: string | null;
@@ -68,6 +78,7 @@ export const CABLE_DEFS: CableDef[] = [
   { id: "usb",              label: "USB (1.5 m)",                   cable: { kind: "digital",       lengthM: 1.5, connector: "usb",  maxLengthM: 5 } },
   { id: "coax",             label: "Coax S/PDIF (1.5 m)",          cable: { kind: "digital",       lengthM: 1.5, connector: "coax", maxLengthM: 10 } },
   { id: "optical",          label: "Optical (1.5 m)",               cable: { kind: "digital",       lengthM: 1.5, connector: "optical", maxLengthM: 10 } },
+  { id: "aes",              label: "AES/EBU (1.5 m)",               cable: { kind: "digital",       lengthM: 1.5, connector: "aes",  maxLengthM: 100 } },
   { id: "xlr-1m",           label: "XLR Interconnect (1 m, bal.)", cable: { kind: "interconnect",  lengthM: 1.0, capacitancePfPerM: 100, balanced: true } },
   { id: "xlr-3m",           label: "XLR Interconnect (3 m, bal.)", cable: { kind: "interconnect",  lengthM: 3.0, capacitancePfPerM: 100, balanced: true } },
   { id: "rca-1m",           label: "RCA Interconnect (1 m)",       cable: { kind: "interconnect",  lengthM: 1.0, capacitancePfPerM: 150, balanced: false } },
@@ -142,6 +153,14 @@ export const CABLE_SUGGESTION: Partial<Record<string, string>> = {
   "headphone_amp->headphone": "none",
 };
 
+/** Map an engine-recommended digital connector to a CABLE_DEFS id. */
+export const CONNECTOR_TO_CABLE_ID: Partial<Record<string, string>> = {
+  usb: "usb",
+  coax: "coax",
+  optical: "optical",
+  aes: "aes",
+};
+
 // ---- Result types (mirror of engine's CheckResult / SystemReport) ----------
 
 export type Verdict = "pass" | "info" | "warn" | "fail";
@@ -164,8 +183,33 @@ export interface LinkReport {
   verdict: Verdict;
 }
 
+// Mirror of the engine's recommendation types (src/engine/recommend.ts).
+export type RecommendationKind = "da_placement" | "digital_connection";
+export type RecommendationConfidence = "spec" | "heuristic";
+
+export interface RecommendationOption {
+  label: string;
+  score: number;
+  rationale: string;
+  connector?: string;
+}
+
+export interface Recommendation {
+  id: string;
+  kind: RecommendationKind;
+  confidence: RecommendationConfidence;
+  title: string;
+  detail: string;
+  fromIndex: number;
+  toIndex: number;
+  suggestedConnector?: string;
+  options: RecommendationOption[];
+}
+
 export interface SystemReport {
   links: LinkReport[];
   system: CheckResult[];
+  /** Optional: pre-recommendation reports (older saved payloads) lack this. */
+  recommendations?: Recommendation[];
   overall: Verdict;
 }
