@@ -392,7 +392,13 @@ export default function ChainBuilder({
           {/* Rack-unit chain diagram — always visible */}
           {chain.length > 0 ? (
             <div style={{ marginBottom: "26px" }}>
-              <ChainDiagram chain={chain} report={report} onRemoveAt={removeAt} />
+              <ChainDiagram
+                chain={chain}
+                report={report}
+                onRemoveAt={removeAt}
+                insertAtIdx={insertAtIdx}
+                onToggleInsertAt={(idx) => setInsertAtIdx(insertAtIdx === idx ? null : idx)}
+              />
             </div>
           ) : (
             <div style={{

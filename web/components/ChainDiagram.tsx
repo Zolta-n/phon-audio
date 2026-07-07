@@ -37,10 +37,14 @@ export default function ChainDiagram({
   chain,
   report,
   onRemoveAt,
+  insertAtIdx,
+  onToggleInsertAt,
 }: {
   chain: ChainEntry[];
   report: SystemReport | null;
   onRemoveAt?: (idx: number) => void;
+  insertAtIdx?: number | null;
+  onToggleInsertAt?: (idx: number) => void;
 }) {
   return (
     <div style={{
@@ -177,6 +181,35 @@ export default function ChainDiagram({
           </div>
         );
       })}
+      {onToggleInsertAt && chain.length > 1 && chain.slice(0, -1).map((entry, k) => (
+        <button
+          key={`insert-${entry.component.id}-${k}`}
+          onClick={() => onToggleInsertAt(k + 1)}
+          title="Insert component here"
+          style={{
+            position: "absolute",
+            // center of gap k in an N-column equal grid: (k+1)(W+gap)/N − gap/2
+            left: `calc((100% + 18px) * ${k + 1} / ${chain.length} - 9px)`,
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 2,
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            border: insertAtIdx === k + 1 ? "1px solid var(--pa-accent)" : "1px solid var(--pa-border-2)",
+            background: insertAtIdx === k + 1 ? "var(--pa-accent)" : "var(--pa-inset)",
+            color: insertAtIdx === k + 1 ? "var(--pa-cream)" : "var(--pa-accent2)",
+            fontSize: "0.9rem",
+            lineHeight: 1,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          +
+        </button>
+      ))}
     </div>
   );
 }
