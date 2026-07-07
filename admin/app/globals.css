@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* Utilitarian internal-tool theme — deliberately not the consumer design system. */
+:root {
+  --adm-bg:      #12100d;
+  --adm-surface: #1b1815;
+  --adm-panel:   #211d19;
+  --adm-border:  #363028;
+  --adm-border-2:#4a4136;
+  --adm-text:    #ece5da;
+  --adm-muted:   #a3947f;
+  --adm-accent:  #d97706;
+  --adm-accent-hover: #b45309;
+  --adm-ok:      #4ade80;
+  --adm-warn:    #fbbf24;
+  --adm-err:     #f87171;
+  --adm-info:    #60a5fa;
+}
+
+@theme inline {
+  --color-adm-bg: var(--adm-bg);
+  --color-adm-surface: var(--adm-surface);
+  --color-adm-panel: var(--adm-panel);
+  --color-adm-border: var(--adm-border);
+  --color-adm-border-2: var(--adm-border-2);
+  --color-adm-text: var(--adm-text);
+  --color-adm-muted: var(--adm-muted);
+  --color-adm-accent: var(--adm-accent);
+  --color-adm-accent-hover: var(--adm-accent-hover);
+  --color-adm-ok: var(--adm-ok);
+  --color-adm-warn: var(--adm-warn);
+  --color-adm-err: var(--adm-err);
+  --color-adm-info: var(--adm-info);
+}
+
+body {
+  background: var(--adm-bg);
+  color: var(--adm-text);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.adm-card {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+}
+
+.adm-input {
+  width: 100%;
+  background: var(--adm-panel);
+  border: 1px solid var(--adm-border-2);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.875rem;
+  color: var(--adm-text);
+}
+.adm-input:focus {
+  outline: 2px solid var(--adm-accent);
+  outline-offset: 0;
+  border-color: var(--adm-accent);
+}
+
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--adm-border-2);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--adm-text);
+  background: var(--adm-panel);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.adm-btn:hover { border-color: var(--adm-accent); }
+.adm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.adm-btn-primary {
+  background: var(--adm-accent);
+  border-color: var(--adm-accent);
+  color: #180e00;
+}
+.adm-btn-primary:hover { background: var(--adm-accent-hover); border-color: var(--adm-accent-hover); }
+
+.adm-btn-danger { border-color: var(--adm-err); color: var(--adm-err); }
+
+.adm-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.adm-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--adm-muted);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--adm-border-2);
+  white-space: nowrap;
+}
+.adm-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--adm-border);
+  vertical-align: top;
+}
+.adm-table tbody tr:hover { background: rgba(217, 119, 6, 0.05); }
+
+.adm-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid var(--adm-border-2);
+  color: var(--adm-muted);
+  white-space: nowrap;
+}
+.adm-badge-ok   { color: var(--adm-ok);   border-color: color-mix(in srgb, var(--adm-ok) 45%, transparent); }
+.adm-badge-warn { color: var(--adm-warn); border-color: color-mix(in srgb, var(--adm-warn) 45%, transparent); }
+.adm-badge-err  { color: var(--adm-err);  border-color: color-mix(in srgb, var(--adm-err) 45%, transparent); }
+.adm-badge-info { color: var(--adm-info); border-color: color-mix(in srgb, var(--adm-info) 45%, transparent); }
+.adm-badge-accent { color: var(--adm-accent); border-color: color-mix(in srgb, var(--adm-accent) 45%, transparent); }

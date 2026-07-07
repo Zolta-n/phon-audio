@@ -49,7 +49,7 @@ Rules:
 `.trim();
 
 /** Identify null spec fields across all ports */
-function findMissingSpecs(component: UIComponent): { portType: "inputs" | "outputs"; index: number; field: string }[] {
+export function findMissingSpecs(component: UIComponent): { portType: "inputs" | "outputs"; index: number; field: string }[] {
   const missing: { portType: "inputs" | "outputs"; index: number; field: string }[] = [];
 
   const checkPorts = (ports: UIComponent["inputs"] | UIComponent["outputs"], portType: "inputs" | "outputs") => {
@@ -318,7 +318,20 @@ async function extractComponentWithClaude(inputText: string): Promise<UIComponen
 async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
   const manufacturer = manufacturerFromUrl(url);
   const product = productNameFromUrl(url);
+  return await searchAndExtract(manufacturer, product, url);
+}
+
+/**
+ * Build a component from web search alone — for items known only by
+ * manufacturer + product name (no URL), e.g. the admin discovery pipeline.
+ */
+export async function scrapeByQuery(manufacturer: string, product: string): Promise<UIComponent> {
+  return await searchAndExtract(manufacturer, product);
+}
+
+async function searchAndExtract(manufacturer: string, product: string, originUrl?: string): Promise<UIComponent> {
   const query = `${manufacturer} ${product}`.trim();
+  const origin = originUrl ? new URL(originUrl).hostname : "the product page";
 
   if (!query || query.length < 3) {
     throw new Error("Could not determine product name from the URL.");
@@ -343,7 +356,7 @@ async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
 
   if (urls.length === 0) {
     throw new Error(
-      `Could not reach ${new URL(url).hostname} and no alternative sources found for "${query}". Try Manual Entry instead.`
+      `Could not reach ${origin} and no alternative sources found for "${query}". Try Manual Entry instead.`
     );
   }
 
@@ -356,24 +369,26 @@ async function scrapeViaWebSearch(url: string): Promise<UIComponent> {
 
   if (sources.length === 0) {
     throw new Error(
-      `Could not reach ${new URL(url).hostname} and alternative sources were not accessible. Try Manual Entry instead.`
+      `Could not reach ${origin} and alternative sources were not accessible. Try Manual Entry instead.`
     );
   }
 
   const inputText = [
     `Manufacturer: ${manufacturer}`,
     `Product: ${product}`,
-    `Original URL: ${url}`,
+    originUrl ? `Original URL: ${originUrl}` : "",
     `\nData gathered from web reviews and spec pages:\n`,
     ...sources.map(s => `--- Source: ${s.url} ---\n${s.text}`),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   const component = await extractComponentWithClaude(inputText);
 
   const sourceList = sources.slice(0, 3).map(s => s.url).join(", ");
   component.note = [
     component.note,
-    `Specs extracted from web sources (original site unreachable): ${sourceList}`,
+    originUrl
+      ? `Specs extracted from web sources (original site unreachable): ${sourceList}`
+      : `Specs extracted from web sources: ${sourceList}`,
   ].filter(Boolean).join(" ");
 
   return component;
