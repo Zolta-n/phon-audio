@@ -4,7 +4,8 @@ import { parseBody, scrapeBodySchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
 import { assertPublicUrl, UrlGuardError } from "@/lib/urlGuard";
 
-export const maxDuration = 120;
+// Vercel Pro caps non-streaming functions at 60s; Hobby needs Fluid compute for >10s.
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabaseClient();
