@@ -1,0 +1,12 @@
+{
+  "name": "phon-audio",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "web (Next.js)",
+      "visibility": "public",
+      "onAutoForward": "notify"
+    }
+  }
+}
