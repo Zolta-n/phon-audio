@@ -6,11 +6,15 @@ and migrates reviewed records into the live `components` catalog.
 
 ## Pipeline
 
-1. **Discovery** (`npm run discover`, terminal): scrapes Reddit (official API),
-   forums (Head-Fi, ASR, Steve Hoffman) and magazines (Stereophile, What Hi-Fi,
-   Darko.Audio) → LLM entity extraction → popularity-ranked
-   `discovered_brands` / `discovered_components`, fuzzy-matched against the
-   existing catalog (`matched_component_id` null = not in the app yet).
+1. **Discovery** ("Run discovery" on `/discovery`, or `npm run discover` in a
+   terminal): scrapes Reddit (official API), forums (Head-Fi, ASR, Steve
+   Hoffman) and magazines (Stereophile, What Hi-Fi, Darko.Audio) → LLM entity
+   extraction → popularity-ranked `discovered_brands` / `discovered_components`,
+   fuzzy-matched against the existing catalog (`matched_component_id` null =
+   not in the app yet). Both entry points call
+   `scripts/discover/pipeline.ts`; the UI route (`POST /api/discover`) starts
+   the run in the background and the page polls `admin_scrape_runs` until it
+   settles (one discovery run at a time — concurrent runs would double counts).
 2. **Selection** (`/discovery`): filter by category / status / in-DB, queue
    items for collection or reject them.
 3. **Collection** (`/collection`): sequential queue; per item ~30–90 s —
@@ -42,8 +46,9 @@ npm run discover -- --sources=reddit --subs=audiophile --limit=25   # smoke test
 npm run discover -- --sources=head-fi,stereophile
 ```
 
-Raw snippets are cached under `scripts/discover/output/` (gitignored); runs are
-tracked in `admin_scrape_runs` and visible on `/runs`.
+CLI runs cache raw snippets under `scripts/discover/output/` (gitignored;
+UI-triggered runs skip the dump); runs are tracked in `admin_scrape_runs` and
+visible on `/runs`.
 
 ## Architecture notes
 
