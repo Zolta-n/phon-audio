@@ -45,21 +45,26 @@ alter table public.chains      enable row level security;
 alter table public.chain_nodes enable row level security;
 
 -- Components are public-read
+drop policy if exists "components_public_read" on public.components;
 create policy "components_public_read" on public.components
   for select using (true);
 
 -- Chains: owner reads/writes; public chains are readable by all
+drop policy if exists "chains_owner_all" on public.chains;
 create policy "chains_owner_all" on public.chains
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+drop policy if exists "chains_public_read" on public.chains;
 create policy "chains_public_read" on public.chains
   for select using (is_public = true);
 
 -- Chain nodes follow chain access
+drop policy if exists "chain_nodes_owner_all" on public.chain_nodes;
 create policy "chain_nodes_owner_all" on public.chain_nodes
   for all using (
     exists (select 1 from public.chains where id = chain_id and user_id = auth.uid())
   );
+drop policy if exists "chain_nodes_public_read" on public.chain_nodes;
 create policy "chain_nodes_public_read" on public.chain_nodes
   for select using (
     exists (select 1 from public.chains where id = chain_id and is_public = true)
@@ -102,10 +107,3 @@ create trigger chains_set_updated_at
 create index if not exists components_category_idx on public.components (category, name);
 create index if not exists chains_user_id_idx      on public.chains (user_id);
 create index if not exists chain_nodes_chain_id_idx on public.chain_nodes (chain_id);
-
--- Explicit WITH CHECK on the owner policy (Postgres reuses USING for writes,
--- but stating it makes the write rule auditable). Idempotent re-create:
-drop policy if exists "chains_owner_all" on public.chains;
-create policy "chains_owner_all" on public.chains
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
