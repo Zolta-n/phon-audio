@@ -3,13 +3,24 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FieldMeta, MissingField, StagedComponentRow } from "../../../lib/rows";
+import type { Confidence, FieldMeta, MissingField, StagedComponentRow } from "../../../lib/rows";
 
 const CATEGORIES = [
   "source", "turntable", "dac", "preamp", "power_amp",
   "tube_amp_se", "tube_amp_pp", "integrated",
   "headphone_amp", "speaker", "headphone",
 ];
+
+/** Badge colour per confidence tier — strong sourcing reads calmer than weak. */
+const CONFIDENCE_BADGE: Record<Confidence, string> = {
+  measured: "adm-badge-ok",
+  rated: "adm-badge-ok",
+  inferred: "adm-badge-warn",
+  derived: "adm-badge-info",
+  estimated_from_graph: "adm-badge-warn",
+  typical_for_chipset: "adm-badge-warn",
+  estimated_typical: "adm-badge-err",
+};
 
 type Port = { domain?: string; connector?: string; balanced?: boolean; specs?: Record<string, unknown> };
 type Specs = { inputs?: Port[]; outputs?: Port[]; dac?: Record<string, unknown> };
@@ -146,24 +157,29 @@ export function StagedEditor({ row }: { row: StagedComponentRow }) {
             const needsVerify = fm?.status === "verify";
             return (
               <div key={field}>
-                <label className="flex items-center gap-2 text-xs mb-0.5">
+                <label className="flex items-center gap-2 text-xs mb-0.5 flex-wrap">
                   <span className={isMissing ? "text-adm-err" : needsVerify ? "text-adm-warn" : "text-adm-muted"}>
                     {field}
                   </span>
                   {isMissing && <span className="adm-badge adm-badge-err">missing</span>}
-                  {!isMissing && needsVerify && (
-                    <span className="adm-badge adm-badge-warn" title={fm?.source}>
-                      verify
-                      {fm?.source && (
-                        <>
-                          {" · "}
-                          <a href={fm.source} target="_blank" rel="noreferrer" className="underline">
-                            source
-                          </a>
-                        </>
-                      )}
+                  {!isMissing && fm && (
+                    <span className={`adm-badge ${CONFIDENCE_BADGE[fm.confidence] ?? ""}`} title={fm.source}>
+                      {fm.confidence}
                     </span>
                   )}
+                  {!isMissing && fm?.corroborated && (
+                    <span className="adm-badge adm-badge-ok" title="≥2 independent sources agreed">
+                      ✓ 2+ sources
+                    </span>
+                  )}
+                  {!isMissing && fm?.source &&
+                    (fm.source.startsWith("http") ? (
+                      <a href={fm.source} target="_blank" rel="noreferrer" className="underline text-adm-muted">
+                        source
+                      </a>
+                    ) : (
+                      <span className="text-adm-muted">{fm.source}</span>
+                    ))}
                 </label>
                 <input
                   className="adm-input"
@@ -277,8 +293,11 @@ export function StagedEditor({ row }: { row: StagedComponentRow }) {
       </div>
       <p className="text-xs text-adm-muted mt-3">
         Values are parsed as JSON where possible — numbers stay numbers, arrays like{" "}
-        <code>[{'{'}"ohm":8,"watts":100{'}'}]</code> stay arrays. Red = not found anywhere; amber =
-        filled from reviews, needs verification.
+        <code>[{'{'}"ohm":8,"watts":100{'}'}]</code> stay arrays. Each filled field shows its
+        confidence tier (<span className="text-adm-ok">measured/rated</span> &gt;{" "}
+        <span className="text-adm-info">derived</span> &gt;{" "}
+        <span className="text-adm-warn">inferred</span>); “✓ 2+ sources” means independent sources
+        agreed. Corroboration is a hint — the catalog <code>verified</code> flag stays a human call.
       </p>
     </div>
   );

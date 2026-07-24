@@ -52,11 +52,32 @@ export interface DiscoveredComponentRow {
 
 export type ReviewStatus = "pending" | "approved" | "rejected" | "migrated";
 
+/**
+ * Confidence tier for a spec value, ordered weakest → strongest sourcing.
+ * Kept in sync with `Confidence` in web/lib/sources.ts (CONFIDENCE_RANK there is
+ * the single source of authority ordering).
+ */
+export type Confidence =
+  | "estimated_typical"
+  | "typical_for_chipset"
+  | "estimated_from_graph"
+  | "derived"
+  | "inferred"
+  | "rated"
+  | "measured";
+
 /** Per-field provenance, keyed by spec path e.g. "outputs.0.gainDb". */
 export interface FieldMeta {
   source?: string;
-  confidence: "measured" | "rated" | "inferred";
+  confidence: Confidence;
   status: "filled" | "verify";
+  /**
+   * True when ≥2 independent sources agreed on this value within tolerance
+   * (the auto-corroboration signal). Distinct from the human-only `verified`
+   * flag on the public `components` table — corroboration is a hint for the
+   * reviewer, not a substitute for human review.
+   */
+  corroborated?: boolean;
 }
 
 export interface MissingField {

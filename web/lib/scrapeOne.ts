@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 import type { UIComponent } from "@/types";
 import { safeFetch } from "@/lib/urlGuard";
+import { measurementSourcesFor } from "@/lib/sources";
 import {
   USER_AGENT,
   SCRAPE_MODEL,
@@ -11,6 +12,15 @@ import {
   isAllowedByRobots,
   mapWithConcurrency,
 } from "@/lib/scrape-shared";
+
+/**
+ * Per-field provenance reported by the enrichment pass, keyed by spec path
+ * (e.g. "outputs.0.gainDb"). `agreedSources` is how many distinct fetched
+ * sources stated a consistent value — ≥2 is the cross-check corroboration bar.
+ */
+export interface EnrichProvenance {
+  [path: string]: { source?: string; agreedSources: number };
+}
 
 
 
@@ -32,6 +42,15 @@ Use this exact structure:
 
 Where <index> is the 0-based port index, and <specField> is the specific null field name.
 
+Additionally include a "provenance" object attributing each value you fill:
+
+{
+  "provenance": {
+    "<inputs|outputs>.<index>.<specField>": { "source": "<the Source URL you took it from>", "agreedSources": <count of distinct sources stating a consistent value> },
+    ...
+  }
+}
+
 Rules:
 - Extract values from the review/measurement text. If a value is mentioned anywhere in the text, USE it.
 - If a general "input impedance" is given without specifying which input, apply it to ALL line inputs.
@@ -44,6 +63,8 @@ Rules:
 - If a review mentions both measured and rated specs, prefer the measured value.
 - Also look for specs in comparison tables, spec boxes, "at a glance" sections.
 - If power output at 4 ohms is mentioned and powerW is missing that entry, include it.
+- In "provenance", set agreedSources to the number of DISTINCT Source URLs that stated a
+  consistent value for that field (within rounding). Use 1 if only one source had it.
 - Return {} if no missing specs could be found.
 - Return ONLY JSON, no prose, no markdown.
 `.trim();
@@ -58,7 +79,9 @@ export function findMissingSpecs(component: UIComponent): { portType: "inputs" |
       const kind = specs.kind as string | undefined;
       let expectedFields: string[] = [];
 
-      if (kind === "line_in") expectedFields = ["inputImpedanceOhm", "inputSensitivityVrms", "maxInputVrms"];
+      // maxInputVrms is optional and almost never published per-input — omit it
+      // from the missing set so it doesn't flag red on every line input.
+      if (kind === "line_in") expectedFields = ["inputImpedanceOhm", "inputSensitivityVrms"];
       else if (kind === "line_out") expectedFields = ["outputImpedanceOhm", "maxOutputVrms", "gainDb"];
       else if (kind === "phono_in") expectedFields = ["inputImpedanceOhm", "gainDb"];
       else if (kind === "phono_out") expectedFields = ["outputVoltageMv", "cartridgeType"];
@@ -81,13 +104,76 @@ export function findMissingSpecs(component: UIComponent): { portType: "inputs" |
   return missing;
 }
 
+// Sites that block scraping or serve PDFs — skip them regardless of backend.
+const SKIP_DOMAINS = /\b(manualslib|manualzilla|manualshelf|manymanuals|manual\.nz|hifiengine)\b/i;
+
+function isUsableResultUrl(url: string): boolean {
+  return url.startsWith("http") && !url.endsWith(".pdf") && !SKIP_DOMAINS.test(url);
+}
+
 /**
- * Search DuckDuckGo's HTML endpoint and return result URLs (skips PDFs and
- * manual-library sites). NOTE: this scrapes an HTML page that offers no API
- * guarantee — it is a deliberately isolated, best-effort fallback and may break
- * or be blocked at any time. Failures degrade to "no results", never an error.
+ * One search result. `content` is the search backend's own extracted page text
+ * (Tavily `raw_content`) when available — using it directly avoids re-scraping,
+ * which fails on JS-heavy pages (forums, SPAs). Empty when the backend can't
+ * supply text (DuckDuckGo), signalling the caller to fall back to fetchPageText.
  */
-async function webSearch(query: string, maxResults = 5): Promise<string[]> {
+interface SearchHit {
+  url: string;
+  content: string;
+}
+
+/**
+ * Tavily Search API (JSON, POST). A stable, documented endpoint built for
+ * agent/LLM web search that isn't IP-blocked on datacenter/serverless hosts —
+ * the reliable backend for collection running outside a residential network.
+ * Requests `raw_content` so we can extract from the page text Tavily already
+ * cleaned. `includeDomains` biases results toward bench-measurement sources.
+ * Returns [] on any failure so search degrades gracefully, never throws.
+ */
+async function tavilySearch(query: string, maxResults: number, includeDomains?: string[]): Promise<SearchHit[]> {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return [];
+  let res: Response;
+  try {
+    res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        query,
+        max_results: Math.min(maxResults, 20),
+        search_depth: "basic", // 1 credit/query; "advanced" costs 2
+        include_raw_content: true,
+        ...(includeDomains?.length ? { include_domains: includeDomains } : {}),
+      }),
+    });
+  } catch {
+    return [];
+  }
+  if (!res.ok) return [];
+  let data: { results?: { url?: string; content?: string; raw_content?: string }[] };
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    return [];
+  }
+  const hits: SearchHit[] = [];
+  for (const r of data.results ?? []) {
+    if (hits.length >= maxResults) break;
+    if (r.url && isUsableResultUrl(r.url)) {
+      hits.push({ url: r.url, content: (r.raw_content || r.content || "").slice(0, 20000) });
+    }
+  }
+  return hits;
+}
+
+/**
+ * Scrape DuckDuckGo's HTML endpoint for result URLs. Legacy fallback used only
+ * when no TAVILY_API_KEY is configured: it scrapes an HTML page with no API
+ * guarantee and is blocked outright on many datacenter IPs (returns a 202
+ * challenge with zero results). Yields URLs with empty content so the caller
+ * scrapes each page itself. Failures degrade to "no results", never throw.
+ */
+async function duckDuckGoSearch(query: string, maxResults: number): Promise<SearchHit[]> {
   const encoded = encodeURIComponent(query);
   let res: Response;
   try {
@@ -101,22 +187,40 @@ async function webSearch(query: string, maxResults = 5): Promise<string[]> {
 
   const html = await res.text();
   const $ = cheerio.load(html);
-  const urls: string[] = [];
-
-  // Sites that block scraping or serve PDFs — skip them
-  const skipDomains = /\b(manualslib|manualzilla|manualshelf|manymanuals|manual\.nz|hifiengine)\b/i;
+  const hits: SearchHit[] = [];
 
   $("a.result__a").each((_, el) => {
-    if (urls.length >= maxResults) return;
+    if (hits.length >= maxResults) return;
     const href = $(el).attr("href") ?? "";
     const match = href.match(/uddg=([^&]+)/);
     const actualUrl = match ? decodeURIComponent(match[1]) : href;
-    if (actualUrl.startsWith("http") && !actualUrl.endsWith(".pdf") && !skipDomains.test(actualUrl)) {
-      urls.push(actualUrl);
+    if (isUsableResultUrl(actualUrl)) {
+      hits.push({ url: actualUrl, content: "" });
     }
   });
 
-  return urls;
+  return hits;
+}
+
+/**
+ * Return search hits for a query. Prefers the Tavily Search API when
+ * TAVILY_API_KEY is set (reliable on datacenter/serverless hosts, supplies page
+ * text), else falls back to scraping DuckDuckGo. Best-effort — [] on failure.
+ */
+async function webSearchHits(query: string, maxResults = 5, opts?: { includeDomains?: string[] }): Promise<SearchHit[]> {
+  if (process.env.TAVILY_API_KEY) return tavilySearch(query, maxResults, opts?.includeDomains);
+  return duckDuckGoSearch(query, maxResults);
+}
+
+/**
+ * Text for a hit: use the backend's own extracted content when it's substantial
+ * (no re-fetch needed), else scrape the page as a fallback. Normalizes whitespace.
+ */
+async function hitText(hit: SearchHit): Promise<string> {
+  if (hit.content && hit.content.length > 200) {
+    return hit.content.replace(/\s+/g, " ").trim().slice(0, 15000);
+  }
+  return fetchPageText(hit.url);
 }
 
 /** Fetch a page and extract text content (best-effort, with timeout + SSRF + robots guard) */
@@ -140,38 +244,46 @@ async function fetchPageText(url: string): Promise<string> {
   }
 }
 
-/** Search the web for missing specs and enrich the component */
-export async function enrichWithWebSearch(component: UIComponent): Promise<UIComponent> {
+/**
+ * Search the web for missing specs and enrich the component. When `opts.provenance`
+ * is supplied it is populated with per-field source + agreement info the caller
+ * uses to set confidence tiers and the ≥2-source corroboration flag.
+ */
+export async function enrichWithWebSearch(
+  component: UIComponent,
+  opts?: { provenance?: EnrichProvenance },
+): Promise<UIComponent> {
   const missing = findMissingSpecs(component);
   if (missing.length === 0) return component;
 
   const name = `${component.manufacturer ?? ""} ${component.name}`.trim();
 
-  // Run multiple targeted searches in parallel for better coverage
-  // Include site-specific searches for top measurement sites
-  const searches = [
-    `site:audiosciencereview.com ${name} review`,
-    `${name} review measurements output impedance specifications`,
-    `${name} specifications input impedance output voltage gain`,
-    `${name} review stereophile OR soundnews OR headfi OR head-fi`,
+  // Broad measurement/spec queries let the search backend surface bench-review
+  // articles (Stereophile/ASR measurements pages) over forum threads, plus one
+  // query biased to this category's known measurement hosts. Values from those
+  // hosts are later weighted `measured` over manufacturer `rated` claims.
+  const measurementDomains = measurementSourcesFor(component.category);
+  const searches: { q: string; includeDomains?: string[] }[] = [
+    { q: `${name} measurements specifications review` },
+    { q: `${name} specifications input impedance output voltage gain power` },
+    { q: `${name} review measurements`, includeDomains: measurementDomains },
   ];
 
-  const searchResults = await Promise.all(searches.map(q => webSearch(q)));
-  // Deduplicate URLs across all searches
+  const hitLists = await Promise.all(searches.map((s) => webSearchHits(s.q, 5, { includeDomains: s.includeDomains })));
+  // Deduplicate hits by URL across all searches.
   const seen = new Set<string>();
-  const urls: string[] = [];
-  for (const results of searchResults) {
-    for (const u of results) {
-      if (!seen.has(u)) { seen.add(u); urls.push(u); }
+  const hits: SearchHit[] = [];
+  for (const list of hitLists) {
+    for (const h of list) {
+      if (!seen.has(h.url)) { seen.add(h.url); hits.push(h); }
     }
   }
-  if (urls.length === 0) return component;
+  if (hits.length === 0) return component;
 
-  // Fetch up to 8 pages, at most 2 at a time with a small delay — polite to hosts.
-  const fetched = await mapWithConcurrency(urls.slice(0, 8), 2, async (u) => {
-    const text = await fetchPageText(u);
-    return { url: u, text };
-  }, 500);
+  // Prefer the backend's own page text; scrape only hits it couldn't supply.
+  const fetched = await mapWithConcurrency(hits.slice(0, 8), 2, async (h) => {
+    return { url: h.url, text: await hitText(h) };
+  }, 300);
   const pageTexts: string[] = [];
   const usedUrls: string[] = [];
   for (const { url: u, text } of fetched) {
@@ -212,7 +324,18 @@ ${pageTexts.join("\n\n")}`;
     const patches = JSON.parse(stripCodeFences(text)) as {
       inputs?: Record<string, Record<string, unknown>>;
       outputs?: Record<string, Record<string, unknown>>;
+      provenance?: Record<string, { source?: string; agreedSources?: number }>;
     };
+
+    // Surface per-field provenance to the caller (confidence + corroboration).
+    if (opts?.provenance && patches.provenance) {
+      for (const [path, prov] of Object.entries(patches.provenance)) {
+        opts.provenance[path] = {
+          source: prov.source,
+          agreedSources: Math.max(1, Number(prov.agreedSources) || 1),
+        };
+      }
+    }
 
     // Apply patches to the component
     const enriched = { ...component, inputs: [...component.inputs], outputs: [...component.outputs] };
@@ -337,34 +460,32 @@ async function searchAndExtract(manufacturer: string, product: string, originUrl
     throw new Error("Could not determine product name from the URL.");
   }
 
-  // Run targeted searches in parallel
-  const searches = [
-    `site:audiosciencereview.com "${query}"`,
-    `"${query}" specifications review measurements`,
-    `"${query}" specs impedance gain power output`,
-    `${query} review stereophile OR soundnews OR headfi OR audioholics`,
+  // Run targeted searches in parallel; one is biased to bench-measurement hosts.
+  const searches: { q: string; includeDomains?: string[] }[] = [
+    { q: `${query} specifications review measurements` },
+    { q: `${query} specs impedance gain power output` },
+    { q: `${query} review measurements`, includeDomains: measurementSourcesFor(undefined) },
   ];
 
-  const searchResults = await Promise.all(searches.map(q => webSearch(q)));
+  const hitLists = await Promise.all(searches.map((s) => webSearchHits(s.q, 5, { includeDomains: s.includeDomains })));
   const seen = new Set<string>();
-  const urls: string[] = [];
-  for (const results of searchResults) {
-    for (const u of results) {
-      if (!seen.has(u)) { seen.add(u); urls.push(u); }
+  const hits: SearchHit[] = [];
+  for (const list of hitLists) {
+    for (const h of list) {
+      if (!seen.has(h.url)) { seen.add(h.url); hits.push(h); }
     }
   }
 
-  if (urls.length === 0) {
+  if (hits.length === 0) {
     throw new Error(
       `Could not reach ${origin} and no alternative sources found for "${query}". Try Manual Entry instead.`
     );
   }
 
-  // Fetch up to 8 pages, at most 2 at a time with a small delay — polite to hosts.
-  const fetched = await mapWithConcurrency(urls.slice(0, 8), 2, async (u) => {
-    const text = await fetchPageText(u);
-    return { url: u, text };
-  }, 500);
+  // Prefer the backend's own page text; scrape only hits it couldn't supply.
+  const fetched = await mapWithConcurrency(hits.slice(0, 8), 2, async (h) => {
+    return { url: h.url, text: await hitText(h) };
+  }, 300);
   const sources = fetched.filter(s => s.text.length > 200);
 
   if (sources.length === 0) {
