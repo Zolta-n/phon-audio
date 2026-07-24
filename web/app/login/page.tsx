@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +36,27 @@ export default function LoginPage() {
     setLoading(false);
   }
 
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "email",
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push("/builder");
+  }
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-4">
       <div className="w-full max-w-sm">
@@ -47,10 +71,40 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-pa-accent text-2xl mb-3" style={{ fontFamily: "var(--pa-font-display)" }}>Ω</p>
               <p className="font-semibold text-pa-text mb-2">Check your inbox</p>
-              <p className="text-sm text-pa-muted">
-                We sent a magic link to <strong>{email}</strong>.
-                Click it to sign in — no password needed.
+              <p className="text-sm text-pa-muted mb-5">
+                We sent a link and a 6-digit code to <strong>{email}</strong>.
+                Click the link, or enter the code below if your email provider
+                pre-scans links.
               </p>
+              <form onSubmit={handleVerifyCode} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-sm font-medium text-pa-text mb-1.5">
+                    6-digit code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="123456"
+                    className="pa-input"
+                  />
+                </div>
+                {error && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="pa-btn pa-btn-primary w-full"
+                >
+                  {loading ? "Verifying…" : "Verify code"}
+                </button>
+              </form>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
