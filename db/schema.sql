@@ -107,3 +107,24 @@ create trigger chains_set_updated_at
 create index if not exists components_category_idx on public.components (category, name);
 create index if not exists chains_user_id_idx      on public.chains (user_id);
 create index if not exists chain_nodes_chain_id_idx on public.chain_nodes (chain_id);
+
+-- ---------------------------------------------------------------------------
+-- Favorites (2026-07) — previously localStorage-only, lost across devices/
+-- browsers. Persist per-account instead.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.favorites (
+  user_id      uuid references auth.users(id) on delete cascade,
+  component_id text references public.components(id) on delete cascade,
+  created_at   timestamptz default now(),
+  primary key (user_id, component_id)
+);
+
+alter table public.favorites enable row level security;
+
+drop policy if exists "favorites_owner_all" on public.favorites;
+create policy "favorites_owner_all" on public.favorites
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index if not exists favorites_user_id_idx on public.favorites (user_id);
