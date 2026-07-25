@@ -77,10 +77,16 @@ export const evaluateBodySchema = z.object({
     .max(20),
 });
 
-export const scrapeBodySchema = z.object({
-  url: z.string().url().max(2000),
-  enrich: z.boolean().optional(),
-});
+export const scrapeBodySchema = z
+  .object({
+    url: z.string().url().max(2000).optional(),
+    manufacturer: z.string().max(200).optional(),
+    name: z.string().max(200).optional(),
+    enrich: z.boolean().optional(),
+  })
+  .refine((b) => !!b.url || (!!b.manufacturer?.trim() && !!b.name?.trim()), {
+    message: "Provide a product URL, or both a brand and a model name.",
+  });
 
 /** Parse a request body against a schema; returns data or a 400 Response. */
 export async function parseBody<T>(

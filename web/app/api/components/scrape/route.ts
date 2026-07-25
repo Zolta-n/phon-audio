@@ -1,4 +1,5 @@
-import { scrapeUrl, enrichWithWebSearch } from "@/lib/scrapeOne";
+import { scrapeUrl, scrapeByQuery, enrichWithWebSearch } from "@/lib/scrapeOne";
+import { fillDacFromChipset } from "@/lib/chipsets";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { parseBody, scrapeBodySchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
@@ -26,14 +27,22 @@ export async function POST(req: Request) {
   if (parseError) return parseError;
 
   try {
-    await assertPublicUrl(body.url);
-
-    let component = await scrapeUrl(body.url);
-
-    // Enrich with web search if requested (default: true)
-    if (body.enrich !== false) {
-      component = await enrichWithWebSearch(component);
+    // Base extraction: a product URL if given, else brand + model via web search.
+    let component;
+    if (body.url) {
+      await assertPublicUrl(body.url);
+      component = await scrapeUrl(body.url);
+    } else {
+      component = await scrapeByQuery(body.manufacturer!.trim(), body.name!.trim());
     }
+
+    // Enrich with web search if requested (default: true). Public route runs only
+    // the cheap passes — the slow/costly PDF + vision-graph passes are admin-only.
+    if (body.enrich !== false) {
+      component = await enrichWithWebSearch(component, { pdf: false, graph: false });
+    }
+    // DAC chipset baseline (cheap, deterministic): fill null THD+N / dynamic range.
+    fillDacFromChipset(component.dac);
 
     return Response.json({ component });
   } catch (err) {

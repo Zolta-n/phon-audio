@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chipsetBaseline } from "../web/lib/chipsets";
+import { chipsetBaseline, fillDacFromChipset } from "../web/lib/chipsets";
 
 test("recognizes a known chipset and returns baseline specs", () => {
   const b = chipsetBaseline("ES9038PRO");
@@ -32,4 +32,20 @@ test("returns null for unknown or empty chipset", () => {
   assert.equal(chipsetBaseline(""), null);
   assert.equal(chipsetBaseline(undefined), null);
   assert.equal(chipsetBaseline(null), null);
+});
+
+test("fillDacFromChipset fills only empty fields and never overwrites", () => {
+  const dac = { chipset: "ES9038PRO", dynamicRangeDb: 128, thdPlusNPct: null as number | null };
+  const filled = fillDacFromChipset(dac);
+  assert.deepEqual(filled, ["thdPlusNPct"]); // dynamicRangeDb was already set → untouched
+  assert.equal(dac.dynamicRangeDb, 128);
+  assert.ok(typeof dac.thdPlusNPct === "number");
+});
+
+test("fillDacFromChipset is a no-op for unknown chip or missing dac", () => {
+  const dac = { chipset: "MysteryDAC", dynamicRangeDb: null as number | null };
+  assert.deepEqual(fillDacFromChipset(dac), []);
+  assert.equal(dac.dynamicRangeDb, null);
+  assert.deepEqual(fillDacFromChipset(null), []);
+  assert.deepEqual(fillDacFromChipset(undefined), []);
 });

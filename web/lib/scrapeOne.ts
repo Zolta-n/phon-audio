@@ -470,14 +470,15 @@ async function enrichFromGraphs(
 /**
  * Search the web for missing specs and enrich the component. When `opts.provenance`
  * is supplied it is populated with per-field source + agreement info the caller
- * uses to set confidence tiers and the ≥2-source corroboration flag. Runs three
- * passes, highest-authority first — web review/measurement text, then a
+ * uses to set confidence tiers and the ≥2-source corroboration flag. Runs up to
+ * three passes, highest-authority first — web review/measurement text, then a
  * manufacturer PDF, then digitized measurement graphs — each filling only fields
- * still null after the previous.
+ * still null after the previous. `opts.pdf`/`opts.graph` default to `true`; public
+ * routes pass `false` to skip the slow/expensive PDF + vision passes.
  */
 export async function enrichWithWebSearch(
   component: UIComponent,
-  opts?: { provenance?: EnrichProvenance },
+  opts?: { provenance?: EnrichProvenance; pdf?: boolean; graph?: boolean },
 ): Promise<UIComponent> {
   const missing = findMissingSpecs(component);
   if (missing.length === 0) return component;
@@ -549,10 +550,11 @@ ${pageTexts.join("\n\n")}`;
 
   // Pass 2 — manufacturer PDF (datasheet/service manual). Pass 3 — measurement
   // graphs. Each is gated internally on fields still missing and never overwrites
-  // an earlier pass's value.
-  enriched = await enrichFromPdf(enriched, opts);
+  // an earlier pass's value. Both are opt-out (default on) — public routes skip
+  // them to stay fast/cheap; the admin pipeline runs them.
+  if (opts?.pdf !== false) enriched = await enrichFromPdf(enriched, opts);
   // Graphs live on bench-measurement pages — only those are worth re-fetching.
-  enriched = await enrichFromGraphs(enriched, usedUrls.filter(isMeasurementUrl), opts);
+  if (opts?.graph !== false) enriched = await enrichFromGraphs(enriched, usedUrls.filter(isMeasurementUrl), opts);
 
   return enriched;
 }

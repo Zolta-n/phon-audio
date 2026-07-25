@@ -15,6 +15,32 @@ export interface ChipsetBaseline {
   thdPlusNPct?: number;
 }
 
+/** The chip-baselineable fields on a DAC section. */
+export type ChipsetField = "dynamicRangeDb" | "thdPlusNPct";
+
+/** Minimal shape of the DacSection we fill (avoids importing the engine type). */
+type DacLike = { chipset?: string | null; dynamicRangeDb?: number | null; thdPlusNPct?: number | null };
+
+/**
+ * Fill a DAC section's THD+N / dynamic-range from its chipset's datasheet
+ * baseline, but ONLY where the field is currently null/absent — never overwrites a
+ * real value. Mutates `dac` in place; returns the field names it filled (for the
+ * caller to tag `typical_for_chipset` provenance). No-op if the chip is unknown.
+ */
+export function fillDacFromChipset(dac: DacLike | null | undefined): ChipsetField[] {
+  if (!dac) return [];
+  const baseline = chipsetBaseline(dac.chipset);
+  if (!baseline) return [];
+  const filled: ChipsetField[] = [];
+  for (const field of ["dynamicRangeDb", "thdPlusNPct"] as const) {
+    if (dac[field] == null && baseline[field] != null) {
+      dac[field] = baseline[field];
+      filled.push(field);
+    }
+  }
+  return filled;
+}
+
 // Keyed by a normalized chip id (uppercase alphanumerics). Longer, more specific
 // keys are matched first so "ES9038PRO" wins over a bare "ES9038".
 const CHIPSETS: Record<string, ChipsetBaseline> = {

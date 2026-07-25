@@ -8,7 +8,7 @@ import {
   type EnrichProvenance,
 } from "@/lib/scrapeOne";
 import { deriveSpecs } from "@/lib/deriveSpecs";
-import { chipsetBaseline } from "@/lib/chipsets";
+import { fillDacFromChipset } from "@/lib/chipsets";
 import { confidenceForUrl } from "@/lib/sources";
 import type { UIComponent } from "@/types";
 import type { createServiceClient } from "./supabase-admin";
@@ -128,19 +128,12 @@ export async function collectOne(db: Db, discoveredId: string, runId?: string): 
 
     // 2b. DAC chipset baseline: when the chip is known but its own THD+N /
     //     dynamic-range aren't, fill from the chip datasheet (typical_for_chipset).
-    const dac = enriched.dac;
-    const baseline = dac ? chipsetBaseline(dac.chipset) : null;
-    if (dac && baseline) {
-      for (const field of ["dynamicRangeDb", "thdPlusNPct"] as const) {
-        if (dac[field] == null && baseline[field] != null) {
-          dac[field] = baseline[field];
-          fieldMeta[`dac.${field}`] = {
-            source: `typical for ${dac.chipset}`,
-            confidence: "typical_for_chipset",
-            status: "verify",
-          };
-        }
-      }
+    for (const field of fillDacFromChipset(enriched.dac)) {
+      fieldMeta[`dac.${field}`] = {
+        source: `typical for ${enriched.dac?.chipset}`,
+        confidence: "typical_for_chipset",
+        status: "verify",
+      };
     }
 
     // 3. Derive still-null fields from other known fields on the same port.
