@@ -7,7 +7,7 @@ import {
   findMissingSpecs,
   type EnrichProvenance,
 } from "@/lib/scrapeOne";
-import { deriveSpecs } from "@/lib/deriveSpecs";
+import { applyDerivedSpecs } from "@/lib/deriveSpecs";
 import { fillDacFromChipset } from "@/lib/chipsets";
 import { confidenceForUrl } from "@/lib/sources";
 import type { UIComponent } from "@/types";
@@ -137,17 +137,12 @@ export async function collectOne(db: Db, discoveredId: string, runId?: string): 
     }
 
     // 3. Derive still-null fields from other known fields on the same port.
-    for (const d of deriveSpecs(enriched)) {
-      const port = (d.portType === "inputs" ? enriched.inputs : enriched.outputs)[d.index];
-      const specs = port?.specs as Record<string, unknown> | undefined;
-      if (specs && specs[d.field] == null) {
-        specs[d.field] = d.value;
-        fieldMeta[`${d.portType}.${d.index}.${d.field}`] = {
-          source: `derived: ${d.basis}`,
-          confidence: "derived",
-          status: "verify",
-        };
-      }
+    for (const d of applyDerivedSpecs(enriched)) {
+      fieldMeta[`${d.portType}.${d.index}.${d.field}`] = {
+        source: `derived: ${d.basis}`,
+        confidence: "derived",
+        status: "verify",
+      };
     }
 
     // 4. Whatever is still null gets flagged for the review UI.

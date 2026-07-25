@@ -67,12 +67,13 @@ Rules:
 - If a general "output impedance" is given, apply it to ALL line/headphone outputs.
 - If "gain" or "voltage gain" is mentioned, apply to the relevant outputs.
 - For amplifiers: "output voltage" or "max output" for pre-out/line-out is maxOutputVrms.
-- For speaker amps: damping factor × speaker impedance = rough output impedance estimate is NOT valid — only use directly stated values.
+- For speaker amps, outputImpedanceOhm: use a stated figure; if ONLY a damping factor (DF) is given, compute outputImpedanceOhm = nominalImpedance / DF (e.g. 8 / 180 = 0.044) — this is valid.
+- speaker_out ratedMinImpedanceOhm = the LOWEST impedance the amp is rated or stable into (from the lowest power rung, or "stable into X Ω" / "handles 2-ohm dips"), NOT the nominal 8 Ω.
 - Convert units: kΩ → ohms (×1000), mV → Vrms (÷1000), A → mA (×1000), dBV → approximate dB/V.
 - Look for measurement data: "measured output impedance", "measured gain", "measured power" etc.
 - If a review mentions both measured and rated specs, prefer the measured value.
 - Also look for specs in comparison tables, spec boxes, "at a glance" sections.
-- If power output at 4 ohms is mentioned and powerW is missing that entry, include it.
+- Capture EVERY rated power@impedance pair (8 Ω, 4 Ω, 2 Ω, …) into powerW, not just one rung.
 - In "provenance", set agreedSources to the number of DISTINCT Source URLs that stated a
   consistent value for that field (within rounding). Use 1 if only one source had it.
 - Return {} if no missing specs could be found.

@@ -1,5 +1,6 @@
 import { scrapeUrl, scrapeByQuery, enrichWithWebSearch } from "@/lib/scrapeOne";
 import { fillDacFromChipset } from "@/lib/chipsets";
+import { applyDerivedSpecs } from "@/lib/deriveSpecs";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { parseBody, scrapeBodySchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
@@ -41,7 +42,9 @@ export async function POST(req: Request) {
     if (body.enrich !== false) {
       component = await enrichWithWebSearch(component, { pdf: false, graph: false });
     }
-    // DAC chipset baseline (cheap, deterministic): fill null THD+N / dynamic range.
+    // Physics-derived fills (gain↔sensitivity, ratedMin from power rungs, …) +
+    // DAC chipset baseline — both cheap/deterministic, fill nulls only.
+    applyDerivedSpecs(component);
     fillDacFromChipset(component.dac);
 
     return Response.json({ component });

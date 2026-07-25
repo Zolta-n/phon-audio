@@ -54,7 +54,7 @@ export default function RecollectComponentPage() {
             Re-collect Component
           </h1>
           <p style={{ fontSize: "1rem", color: "var(--pa-lede)", margin: 0, fontStyle: "italic" }}>
-            {component ? component.name : "Searching the web for missing specs…"}
+            {component ? component.name : "Re-collecting fresh from the web…"}
           </p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function RecollectComponentPage() {
               Re-collecting specs…
             </div>
             <div style={{ fontSize: "0.82rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", lineHeight: 1.7 }}>
-              Filling only the fields that are still empty — your existing values are kept.<br />
+              Re-collecting from scratch with the current tools — review the result before saving.<br />
               This may take 30-60 seconds.
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function RecollectComponentPage() {
               padding: "12px 16px", marginBottom: "20px", fontSize: "0.85rem",
               color: "#166534", fontFamily: "var(--pa-font-ui)",
             }}>
-              Re-collected — review the filled-in fields below, then save to update the component.
+              Re-collected fresh — review below and save to update the component. This replaces the current specs, so double-check anything you previously corrected by hand.
             </div>
             <ComponentForm initial={component} onSave={handleSave} mode="review" />
           </div>

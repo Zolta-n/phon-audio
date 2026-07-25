@@ -55,7 +55,7 @@ Port specs by domain:
 - line output:      { "kind": "line_out",        "outputImpedanceOhm": number, "maxOutputVrms": number, "gainDb": number | null }
 - phono input:      { "kind": "phono_in",        "cartridgeType": "mm" | "mc" | "both", "inputImpedanceOhm": number, "inputCapacitancePf": number | null, "gainDb": number }
 - phono output:     { "kind": "phono_out",       "cartridgeType": "mm" | "mc", "outputVoltageMv": number, "internalImpedanceOhm": number | null, "recommendedLoadImpedanceOhm": number | null, "recommendedLoadCapacitancePf": number | null }
-- speaker output:   { "kind": "speaker_out",     "powerW": [{"ohm":8,"watts":N},{"ohm":4,"watts":N}], "ratedMinImpedanceOhm": number, "outputImpedanceOhm": number, "gainDb": number, "inputSensitivityVrms": number }
+- speaker output:   { "kind": "speaker_out",     "powerW": [{"ohm":8,"watts":N},{"ohm":4,"watts":N},{"ohm":2,"watts":N}], "ratedMinImpedanceOhm": number, "outputImpedanceOhm": number, "gainDb": number, "inputSensitivityVrms": number }
 - headphone output: { "kind": "headphone_out",   "outputImpedanceOhm": number, "maxVrms": number, "maxCurrentMa": number, "gainDb": number | null }
 - headphone load:   { "kind": "headphone_load",  "nominalImpedanceOhm": number, "sensitivity": {"value": number, "unit": "dB/mW" | "dB/V"} }
 - speaker load:     { "kind": "speaker_load",    "nominalImpedanceOhm": number, "minImpedanceOhm": number, "sensitivityDb_2_83V_1m": number, "powerHandlingW": number }
@@ -77,6 +77,9 @@ LINE INPUT RULES:
 
 AMP/OUTPUT RULES:
 - For integrated/power amps: ALWAYS create a speaker_out output port with the power ratings.
+- powerW: list EVERY rated power@impedance pair on the page (e.g. 220W@8Ω, 380W@4Ω, 750W@2Ω) — not just the nominal 8Ω rung.
+- ratedMinImpedanceOhm = the LOWEST speaker impedance the amp is rated or stable into, NOT the nominal 8Ω. Infer it from: the lowest impedance in the power ratings (a 2Ω power figure means it is rated to 2Ω), or a stated "stable into X Ω" / "X-ohm capable" / "handles low-impedance loads / 2-ohm dips" claim. If only an 8Ω rating exists and nothing lower is mentioned, use 8.
+- outputImpedanceOhm: use a directly stated figure if given. If ONLY a damping factor (DF) is published, compute it: outputImpedanceOhm = nominalImpedance / DF (e.g. 8 / 180 = 0.044). This is valid — do it.
 - If a line output section mentions both "fixed" and "variable" outputs, create TWO separate line_out ports.
 - The "preamp output" or "pre out" or "variable output" is a line_out port.
 - General specs like "output impedance" that aren't tied to a specific port should be applied to ALL relevant output ports.

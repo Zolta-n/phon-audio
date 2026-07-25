@@ -70,6 +70,15 @@ export function deriveSpecs(component: ComponentLike): DerivedField[] {
         if (vout != null && gain != null) {
           push("inputSensitivityVrms", vout / Math.pow(10, gain / 20), `from ${gain} dB gain at ${round(vout)} Vrms full output`);
         }
+        // An amp rated to deliver power at a low impedance is, by definition,
+        // rated at least that low — the lowest power rung bounds ratedMinImpedanceOhm.
+        const rungOhms = (Array.isArray(specs.powerW) ? specs.powerW : [])
+          .map((p) => num((p as SpecRecord)?.ohm))
+          .filter((o): o is number => o != null && o > 0);
+        if (rungOhms.length > 0) {
+          const lowest = Math.min(...rungOhms);
+          push("ratedMinImpedanceOhm", lowest, `lowest rated power rung is ${lowest}Ω`);
+        }
       }
 
       // Headphone out: if rated power into reference loads is given, the max
@@ -93,6 +102,25 @@ export function deriveSpecs(component: ComponentLike): DerivedField[] {
   walk(component.inputs, "inputs");
   walk(component.outputs, "outputs");
   return out;
+}
+
+/**
+ * Apply `deriveSpecs` to a component in place, filling only currently-null fields,
+ * and return the derivations that were actually applied. Mirrors
+ * `fillDacFromChipset` so every collection path (admin + consumer) derives fields
+ * consistently; callers that track provenance use the return to tag `derived`.
+ */
+export function applyDerivedSpecs(component: ComponentLike): DerivedField[] {
+  const applied: DerivedField[] = [];
+  for (const d of deriveSpecs(component)) {
+    const port = (d.portType === "inputs" ? component.inputs : component.outputs)?.[d.index];
+    const specs = port?.specs as SpecRecord | undefined;
+    if (specs && specs[d.field] == null) {
+      specs[d.field] = d.value;
+      applied.push(d);
+    }
+  }
+  return applied;
 }
 
 function round(n: number): number {
