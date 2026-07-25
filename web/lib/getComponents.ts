@@ -58,6 +58,8 @@ export async function getComponents(): Promise<UIComponent[]> {
     const { data, error } = await supabase
       .from("components")
       .select("id, name, category, specs, affiliate_url, image_url, manufacturer, notes")
+      // Hide admin-deactivated (soft-deleted) components from the public catalog.
+      .neq("active", false)
       .order("category")
       .order("name");
     if (error) throw error;

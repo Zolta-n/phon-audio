@@ -14,9 +14,14 @@ create table if not exists public.components (
   manufacturer text,
   notes       text,
   verified    boolean default false,      -- human-reviewed flag
+  active      boolean not null default true, -- false = hidden from the public catalog (soft delete)
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
 );
+
+-- Idempotent: add the `active` column for existing databases (the inline column
+-- above only applies on a fresh create). Powers admin deactivate/soft-delete.
+alter table public.components add column if not exists active boolean not null default true;
 
 -- Chains saved by users
 create table if not exists public.chains (
