@@ -206,6 +206,12 @@ export default async function ComponentPage({
           Edit specs
         </Link>
         <Link
+          href={`/components/${component.id}/recollect`}
+          className="pa-btn pa-btn-secondary"
+        >
+          Re-collect
+        </Link>
+        <Link
           href="/components"
           className="pa-btn pa-btn-ghost"
         >

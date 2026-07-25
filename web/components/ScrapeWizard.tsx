@@ -12,24 +12,36 @@ const inputStyle: React.CSSProperties = {
   width: "auto",
 };
 
+type FindMode = "url" | "name";
+
 export default function ScrapeWizard() {
   const [step, setStep] = useState<Step>("input");
+  const [mode, setMode] = useState<FindMode>("url");
   const [url, setUrl] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [model, setModel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [scraped, setScraped] = useState<UIComponent | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
 
   const handleScrape = async () => {
     setError(null);
-    if (!url.trim()) { setError("Please enter a URL"); return; }
-    try { new URL(url); } catch { setError("Invalid URL format"); return; }
+    let payload: Record<string, string>;
+    if (mode === "url") {
+      if (!url.trim()) { setError("Please enter a URL"); return; }
+      try { new URL(url); } catch { setError("Invalid URL format"); return; }
+      payload = { url };
+    } else {
+      if (!manufacturer.trim() || !model.trim()) { setError("Enter both a brand and a model name"); return; }
+      payload = { manufacturer: manufacturer.trim(), name: model.trim() };
+    }
 
     setStep("loading");
     try {
       const res = await fetch("/api/components/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Scraping failed");
@@ -72,7 +84,7 @@ export default function ScrapeWizard() {
           Extracting specs...
         </div>
         <div style={{ fontSize: "0.82rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", lineHeight: 1.7 }}>
-          1. Fetching the manufacturer page<br />
+          1. {mode === "url" ? "Fetching the manufacturer page" : "Searching the web for the product"}<br />
           2. Extracting specs with AI<br />
           3. Searching the web for missing parameters (reviews, measurements)<br />
           4. Merging results<br /><br />
@@ -133,8 +145,24 @@ export default function ScrapeWizard() {
   }
 
   // step === "input"
+  const toggleBtn = (m: FindMode): React.CSSProperties => ({
+    padding: "6px 14px",
+    fontSize: "0.82rem",
+    color: mode === m ? "#fff" : "var(--pa-muted)",
+    background: mode === m ? "var(--pa-accent)" : "var(--pa-bg)",
+    border: "1.5px solid var(--pa-border)",
+    borderRadius: "var(--pa-radius-sm)",
+    cursor: "pointer",
+    fontFamily: "var(--pa-font-ui)",
+    fontWeight: mode === m ? 600 : 400,
+  });
+
   return (
     <div>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+        <button onClick={() => { setMode("url"); setError(null); }} style={toggleBtn("url")}>Have a URL</button>
+        <button onClick={() => { setMode("name"); setError(null); }} style={toggleBtn("name")}>Find by brand + model</button>
+      </div>
       <p style={{
         fontSize: "0.88rem",
         color: "var(--pa-muted)",
@@ -142,21 +170,45 @@ export default function ScrapeWizard() {
         marginBottom: "16px",
         lineHeight: 1.6,
       }}>
-        Paste a product page URL from the manufacturer&apos;s website. The system will extract specs automatically using AI.
+        {mode === "url"
+          ? "Paste a product page URL from the manufacturer's website. The system extracts specs automatically using AI."
+          : "Enter the brand and model — no URL needed. The system searches the web for specs and measurements automatically using AI."}
       </p>
-      <div style={{ display: "flex", gap: "10px" }}>
-        <input
-          type="url"
-          className="pa-input" style={inputStyle}
-          placeholder="https://www.schiit.com/products/modi"
-          value={url}
-          onChange={e => setUrl(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleScrape()}
-        />
-        <button onClick={handleScrape} className="pa-btn pa-btn-primary" style={{ padding: "10px 24px", fontSize: "0.88rem", whiteSpace: "nowrap" }}>
-          Find Specs
-        </button>
-      </div>
+      {mode === "url" ? (
+        <div style={{ display: "flex", gap: "10px" }}>
+          <input
+            type="url"
+            className="pa-input" style={inputStyle}
+            placeholder="https://www.schiit.com/products/modi"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleScrape()}
+          />
+          <button onClick={handleScrape} className="pa-btn pa-btn-primary" style={{ padding: "10px 24px", fontSize: "0.88rem", whiteSpace: "nowrap" }}>
+            Find Specs
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: "10px" }}>
+          <input
+            className="pa-input" style={{ ...inputStyle, flex: "0 0 34%" }}
+            placeholder="Brand (e.g. SMSL)"
+            value={manufacturer}
+            onChange={e => setManufacturer(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleScrape()}
+          />
+          <input
+            className="pa-input" style={inputStyle}
+            placeholder="Model (e.g. SU-9)"
+            value={model}
+            onChange={e => setModel(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleScrape()}
+          />
+          <button onClick={handleScrape} className="pa-btn pa-btn-primary" style={{ padding: "10px 24px", fontSize: "0.88rem", whiteSpace: "nowrap" }}>
+            Find Specs
+          </button>
+        </div>
+      )}
       {error && (
         <div style={{
           background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "var(--pa-radius-md)",

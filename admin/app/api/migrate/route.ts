@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parseBody } from "@/lib/validation";
 import { requireAdminApi } from "../../../lib/adminAuth";
 import { createServiceClient } from "../../../lib/supabase-admin";
+import { rateLimit } from "../../../lib/rateLimit";
 import type { StagedComponentRow } from "../../../lib/rows";
 
 const migrateBodySchema = z.object({
@@ -11,8 +12,12 @@ const migrateBodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const { error: authError } = await requireAdminApi();
+  const { user, error: authError } = await requireAdminApi();
   if (authError) return authError;
+
+  if (!rateLimit(`migrate:${user.id}`, 30, 5 * 60_000)) {
+    return Response.json({ error: "Rate limit exceeded. Try again in a few minutes." }, { status: 429 });
+  }
 
   const { data, error } = await parseBody(req, migrateBodySchema);
   if (error) return error;
@@ -60,6 +65,9 @@ export async function POST(req: Request) {
         specs: row.specs,
         notes: row.notes,
         image_url: row.image_url,
+        // `verified` stays a HUMAN-review flag, flipped in the catalog by a
+        // person — never by migration, and never by the ≥2-source auto-
+        // corroboration signal (that lives per-field in staged field_meta).
         verified: false,
       },
       { onConflict: "id" }
