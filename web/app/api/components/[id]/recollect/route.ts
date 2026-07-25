@@ -37,8 +37,10 @@ export async function POST(
   try {
     // Fresh collect by brand + model (cheap passes), then physics-derived fills +
     // chipset baseline — same path as by-name Add New.
+    // Re-collect is a deliberate "improve this component" action (review-gated),
+    // so it also pulls well-known specs from model knowledge to fill web gaps.
     const fresh = await scrapeByQuery(existing.manufacturer ?? "", existing.name);
-    const enriched = await enrichWithWebSearch(fresh, { pdf: false, graph: false });
+    const enriched = await enrichWithWebSearch(fresh, { pdf: false, graph: false, modelKnowledge: true });
     applyDerivedSpecs(enriched);
     fillDacFromChipset(enriched.dac);
 

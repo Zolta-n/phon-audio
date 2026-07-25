@@ -15,6 +15,7 @@ import type { ComponentCategory } from "../types";
  * Mirrors FieldMeta["confidence"] in admin/lib/rows.ts — keep the two in sync.
  */
 export type Confidence =
+  | "model_knowledge" // recalled from the model's training knowledge, no source page — weakest, always verify
   | "estimated_typical" // ballpark from category norms; last resort
   | "typical_for_chipset" // baseline pulled from a DAC chip datasheet
   | "estimated_from_graph" // digitized from a chart image (Phase 1b)
@@ -25,13 +26,14 @@ export type Confidence =
 
 /** Higher wins when two sources disagree. Also drives the reviewer UI badges. */
 export const CONFIDENCE_RANK: Record<Confidence, number> = {
-  estimated_typical: 0,
-  typical_for_chipset: 1,
-  estimated_from_graph: 2,
-  derived: 3,
-  inferred: 4,
-  rated: 5,
-  measured: 6,
+  model_knowledge: 0,
+  estimated_typical: 1,
+  typical_for_chipset: 2,
+  estimated_from_graph: 3,
+  derived: 4,
+  inferred: 5,
+  rated: 6,
+  measured: 7,
 };
 
 /**

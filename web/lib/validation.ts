@@ -83,6 +83,7 @@ export const scrapeBodySchema = z
     manufacturer: z.string().max(200).optional(),
     name: z.string().max(200).optional(),
     enrich: z.boolean().optional(),
+    modelKnowledge: z.boolean().optional(),
   })
   .refine((b) => !!b.url || (!!b.manufacturer?.trim() && !!b.name?.trim()), {
     message: "Provide a product URL, or both a brand and a model name.",

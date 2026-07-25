@@ -58,6 +58,7 @@ export type ReviewStatus = "pending" | "approved" | "rejected" | "migrated";
  * the single source of authority ordering).
  */
 export type Confidence =
+  | "model_knowledge"
   | "estimated_typical"
   | "typical_for_chipset"
   | "estimated_from_graph"

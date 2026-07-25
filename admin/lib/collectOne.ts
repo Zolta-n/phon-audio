@@ -109,7 +109,9 @@ export async function collectOne(db: Db, discoveredId: string, runId?: string): 
     // 2. Fill remaining nulls from reviews/measurements. Provenance tells us the
     //    source per field (→ measured vs inferred) and cross-check agreement.
     const provenance: EnrichProvenance = {};
-    const enriched = await enrichWithWebSearch(base, { provenance });
+    // Admin staging is human-reviewed, so also pull model-knowledge fills (the
+    // reviewer sees the weakest `model_knowledge` tier and can vet them).
+    const enriched = await enrichWithWebSearch(base, { provenance, modelKnowledge: true });
     const enrichSources = urlsFromNote(enriched.note).filter((u) => u !== productUrl);
     for (const path of specFieldPaths(enriched)) {
       if (!fieldMeta[path]) {

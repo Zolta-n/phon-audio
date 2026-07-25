@@ -68,7 +68,7 @@ Rules:
 - If "gain" or "voltage gain" is mentioned, apply to the relevant outputs.
 - For amplifiers: "output voltage" or "max output" for pre-out/line-out is maxOutputVrms.
 - For speaker amps, outputImpedanceOhm: use a stated figure; if ONLY a damping factor (DF) is given, compute outputImpedanceOhm = nominalImpedance / DF (e.g. 8 / 180 = 0.044) — this is valid.
-- speaker_out ratedMinImpedanceOhm = the LOWEST impedance the amp is rated or stable into (from the lowest power rung, or "stable into X Ω" / "handles 2-ohm dips"), NOT the nominal 8 Ω.
+- speaker_out ratedMinImpedanceOhm = the LOWEST impedance the amp is rated or stable into — set it ONLY from a power rung below the nominal or an explicit "stable into X Ω" / "minimum impedance" statement. If only the nominal rating is known and nothing lower, leave it null; do NOT assume the nominal is the minimum.
 - Convert units: kΩ → ohms (×1000), mV → Vrms (÷1000), A → mA (×1000), dBV → approximate dB/V.
 - Look for measurement data: "measured output impedance", "measured gain", "measured power" etc.
 - If a review mentions both measured and rated specs, prefer the measured value.
@@ -339,7 +339,17 @@ async function extractPatchesFromContent(content: Anthropic.MessageParam["conten
   });
   const textBlock = message.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "{}";
-  return JSON.parse(stripCodeFences(text)) as SpecPatches;
+  const cleaned = stripCodeFences(text);
+  try {
+    return JSON.parse(cleaned) as SpecPatches;
+  } catch {
+    // Defensive: some models prepend a sentence before the JSON despite the
+    // instruction. Recover the outermost {...} object and parse that.
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1)) as SpecPatches;
+    throw new Error("no JSON object in model reply");
+  }
 }
 
 /** Fetch a page's raw HTML (robots + SSRF guarded); "" on any failure. */
@@ -468,6 +478,51 @@ async function enrichFromGraphs(
   }
 }
 
+const MODEL_KNOWLEDGE_PROMPT = `
+You are an audio-gear spec expert. For the SPECIFIC product below, give your best knowledge of the
+listed MISSING spec fields. These are flagged for human verification, so provide your best
+product-specific value rather than leaving gaps.
+
+Output ONLY a JSON object and NOTHING else — no reasoning, no prose, no markdown fences:
+{ "inputs": { "<index>": { "<specField>": value } }, "outputs": { ... } }
+
+- Give values for THIS exact brand + model from its published specs, reviews, and well-known
+  measured behaviour. Base it on this specific model, NOT category averages.
+- Speaker amp: ratedMinImpedanceOhm = the lowest impedance it is rated/stable into; if you know its
+  damping factor, outputImpedanceOhm = 8 / dampingFactor.
+- Units: ohms, Vrms, dB, watts. Omit a field only if you truly have no idea for this product.
+- Return {} only if you know nothing about this product.
+`.trim();
+
+/**
+ * Model-knowledge pass (opt-in). Fills still-missing fields from the model's own
+ * knowledge of the SPECIFIC product — no fetched page — for well-documented specs
+ * that aren't reliably scrapeable (e.g. an amp's rated minimum impedance / damping
+ * factor). Weakest tier (`model_knowledge`) and flagged in the note; the human
+ * review is the safety net against hallucination. Best-effort.
+ */
+async function enrichFromModelKnowledge(
+  component: UIComponent,
+  opts?: { provenance?: EnrichProvenance },
+): Promise<UIComponent> {
+  const missing = findMissingSpecs(component);
+  if (missing.length === 0) return component;
+  const name = `${component.manufacturer ?? ""} ${component.name}`.trim();
+  try {
+    const patches = await extractPatchesFromContent(
+      `${MODEL_KNOWLEDGE_PROMPT}\n\nProduct: ${name} (${component.category})\n\nMissing spec fields:\n${buildMissingDescription(component, missing)}`,
+    );
+    const { component: enriched, filledPaths } = applyFieldPatches(component, patches);
+    if (filledPaths.length === 0) return component;
+    recordProvenance(opts, patches, filledPaths, { confidence: "model_knowledge" });
+    const fields = filledPaths.map((p) => p.split(".").pop()).join(", ");
+    enriched.note = [enriched.note, `${filledPaths.length} spec(s) recalled from AI knowledge — VERIFY: ${fields}.`].filter(Boolean).join(" ");
+    return enriched;
+  } catch {
+    return component;
+  }
+}
+
 /**
  * Search the web for missing specs and enrich the component. When `opts.provenance`
  * is supplied it is populated with per-field source + agreement info the caller
@@ -476,10 +531,12 @@ async function enrichFromGraphs(
  * manufacturer PDF, then digitized measurement graphs — each filling only fields
  * still null after the previous. `opts.pdf`/`opts.graph` default to `true`; public
  * routes pass `false` to skip the slow/expensive PDF + vision passes.
+ * `opts.modelKnowledge` (opt-in) runs a final pass that fills any remaining gaps
+ * from the model's knowledge of the specific product (weakest tier, verify).
  */
 export async function enrichWithWebSearch(
   component: UIComponent,
-  opts?: { provenance?: EnrichProvenance; pdf?: boolean; graph?: boolean },
+  opts?: { provenance?: EnrichProvenance; pdf?: boolean; graph?: boolean; modelKnowledge?: boolean },
 ): Promise<UIComponent> {
   const missing = findMissingSpecs(component);
   if (missing.length === 0) return component;
@@ -497,8 +554,12 @@ export async function enrichWithWebSearch(
     { q: `${name} review measurements`, includeDomains: measurementDomains },
   ];
 
+  let enriched = component;
+  const usedUrls: string[] = [];
+
+  // Pass 1 — web review/measurement text. Skipped (not aborted) when search finds
+  // nothing usable, so the speaker-amp and model-knowledge passes below still run.
   const hitLists = await Promise.all(searches.map((s) => webSearchHits(s.q, 5, { includeDomains: s.includeDomains })));
-  // Deduplicate hits by URL across all searches.
   const seen = new Set<string>();
   const hits: SearchHit[] = [];
   for (const list of hitLists) {
@@ -506,26 +567,21 @@ export async function enrichWithWebSearch(
       if (!seen.has(h.url)) { seen.add(h.url); hits.push(h); }
     }
   }
-  if (hits.length === 0) return component;
-
-  // Prefer the backend's own page text; scrape only hits it couldn't supply.
-  const fetched = await mapWithConcurrency(hits.slice(0, 8), 2, async (h) => {
-    return { url: h.url, text: await hitText(h) };
-  }, 300);
-  const pageTexts: string[] = [];
-  const usedUrls: string[] = [];
-  for (const { url: u, text } of fetched) {
-    if (text.length > 200) {
-      pageTexts.push(`--- Source: ${u} ---\n${text}`);
-      usedUrls.push(u);
+  if (hits.length > 0) {
+    // Prefer the backend's own page text; scrape only hits it couldn't supply.
+    const fetched = await mapWithConcurrency(hits.slice(0, 8), 2, async (h) => {
+      return { url: h.url, text: await hitText(h) };
+    }, 300);
+    const pageTexts: string[] = [];
+    for (const { url: u, text } of fetched) {
+      if (text.length > 200) {
+        pageTexts.push(`--- Source: ${u} ---\n${text}`);
+        usedUrls.push(u);
+      }
     }
-  }
-  if (pageTexts.length === 0) return component;
-
-  // Pass 1 — web review/measurement text.
-  let enriched = component;
-  try {
-    const prompt = `${ENRICH_PROMPT}
+    if (pageTexts.length > 0) {
+      try {
+        const prompt = `${ENRICH_PROMPT}
 
 Component: ${component.manufacturer ?? ""} ${component.name} (${component.category})
 
@@ -535,18 +591,20 @@ ${buildMissingDescription(component, missing)}
 Review/measurement page content:
 ${pageTexts.join("\n\n")}`;
 
-    const patches = await extractPatchesFromContent(prompt);
-    const applied = applyFieldPatches(component, patches);
-    enriched = applied.component;
-    // Web-pass confidence stays URL-derived (measured for bench hosts), so no
-    // override — collectOne resolves it from each field's source URL.
-    recordProvenance(opts, patches, applied.filledPaths, { source: usedUrls[0] });
-    if (applied.filledPaths.length > 0) {
-      enriched.note = [enriched.note, `${applied.filledPaths.length} spec(s) enriched from web reviews (${usedUrls.slice(0, 2).join(", ")}).`]
-        .filter(Boolean).join(" ");
+        const patches = await extractPatchesFromContent(prompt);
+        const applied = applyFieldPatches(enriched, patches);
+        enriched = applied.component;
+        // Web-pass confidence stays URL-derived (measured for bench hosts), so no
+        // override — collectOne resolves it from each field's source URL.
+        recordProvenance(opts, patches, applied.filledPaths, { source: usedUrls[0] });
+        if (applied.filledPaths.length > 0) {
+          enriched.note = [enriched.note, `${applied.filledPaths.length} spec(s) enriched from web reviews (${usedUrls.slice(0, 2).join(", ")}).`]
+            .filter(Boolean).join(" ");
+        }
+      } catch {
+        // Web enrichment is best-effort; carry on with what we have.
+      }
     }
-  } catch {
-    // Web enrichment is best-effort; carry on with what we have.
   }
 
   // Pass 2 — manufacturer PDF (datasheet/service manual). Pass 3 — measurement
@@ -556,6 +614,10 @@ ${pageTexts.join("\n\n")}`;
   if (opts?.pdf !== false) enriched = await enrichFromPdf(enriched, opts);
   // Graphs live on bench-measurement pages — only those are worth re-fetching.
   if (opts?.graph !== false) enriched = await enrichFromGraphs(enriched, usedUrls.filter(isMeasurementUrl), opts);
+
+  // Final, opt-in pass: fill whatever the web couldn't from the model's own
+  // product knowledge (weakest tier — verify in review).
+  if (opts?.modelKnowledge) enriched = await enrichFromModelKnowledge(enriched, opts);
 
   return enriched;
 }
@@ -683,6 +745,15 @@ async function searchAndExtract(manufacturer: string, product: string, originUrl
   ].filter(Boolean).join("\n\n");
 
   const component = await extractComponentWithClaude(inputText);
+
+  // By-name path: we KNOW the requested brand + model, so force them onto the
+  // result. Ambiguous brands ("Musical Fidelity") otherwise let the extractor
+  // drift to unrelated pages (musical theatre), which then corrupts the
+  // downstream enrichment + model-knowledge searches that key off the name.
+  if (!originUrl) {
+    component.manufacturer = manufacturer;
+    component.name = product;
+  }
 
   const sourceList = sources.slice(0, 3).map(s => s.url).join(", ");
   component.note = [
