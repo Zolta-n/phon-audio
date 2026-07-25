@@ -94,7 +94,7 @@ export default function RecollectComponentPage() {
               padding: "12px 16px", marginBottom: "20px", fontSize: "0.85rem",
               color: "#166534", fontFamily: "var(--pa-font-ui)",
             }}>
-              Re-collected fresh — review below and save to update the component. This replaces the current specs, so double-check anything you previously corrected by hand.
+              Re-collected fresh — review below and save to update the component. This replaces the current specs, so double-check anything you previously corrected by hand. Any values recalled from AI knowledge (when the web came up short) are listed in the Notes below — verify those especially.
             </div>
             <ComponentForm initial={component} onSave={handleSave} mode="review" />
           </div>

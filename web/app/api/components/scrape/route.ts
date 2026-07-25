@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     // Enrich with web search if requested (default: true). Public route runs only
     // the cheap passes — the slow/costly PDF + vision-graph passes are admin-only.
     if (body.enrich !== false) {
-      component = await enrichWithWebSearch(component, { pdf: false, graph: false });
+      component = await enrichWithWebSearch(component, { pdf: false, graph: false, modelKnowledge: body.modelKnowledge });
     }
     // Physics-derived fills (gain↔sensitivity, ratedMin from power rungs, …) +
     // DAC chipset baseline — both cheap/deterministic, fill nulls only.

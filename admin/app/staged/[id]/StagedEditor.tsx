@@ -20,6 +20,7 @@ const CONFIDENCE_BADGE: Record<Confidence, string> = {
   estimated_from_graph: "adm-badge-warn",
   typical_for_chipset: "adm-badge-warn",
   estimated_typical: "adm-badge-err",
+  model_knowledge: "adm-badge-err",
 };
 
 type Port = { domain?: string; connector?: string; balanced?: boolean; specs?: Record<string, unknown> };

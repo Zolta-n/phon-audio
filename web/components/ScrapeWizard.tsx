@@ -20,13 +20,14 @@ export default function ScrapeWizard() {
   const [url, setUrl] = useState("");
   const [manufacturer, setManufacturer] = useState("");
   const [model, setModel] = useState("");
+  const [modelKnowledge, setModelKnowledge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scraped, setScraped] = useState<UIComponent | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
 
   const handleScrape = async () => {
     setError(null);
-    let payload: Record<string, string>;
+    let payload: Record<string, string | boolean>;
     if (mode === "url") {
       if (!url.trim()) { setError("Please enter a URL"); return; }
       try { new URL(url); } catch { setError("Invalid URL format"); return; }
@@ -35,6 +36,7 @@ export default function ScrapeWizard() {
       if (!manufacturer.trim() || !model.trim()) { setError("Enter both a brand and a model name"); return; }
       payload = { manufacturer: manufacturer.trim(), name: model.trim() };
     }
+    if (modelKnowledge) payload.modelKnowledge = true;
 
     setStep("loading");
     try {
@@ -209,6 +211,10 @@ export default function ScrapeWizard() {
           </button>
         </div>
       )}
+      <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "14px", fontSize: "0.82rem", color: "var(--pa-muted)", fontFamily: "var(--pa-font-ui)", cursor: "pointer" }}>
+        <input type="checkbox" checked={modelKnowledge} onChange={e => setModelKnowledge(e.target.checked)} />
+        Also fill well-known specs from AI knowledge when the web comes up short (e.g. an amp&apos;s minimum impedance) — always verify these before saving.
+      </label>
       {error && (
         <div style={{
           background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "var(--pa-radius-md)",
