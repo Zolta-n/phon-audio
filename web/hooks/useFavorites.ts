@@ -9,6 +9,10 @@ const CHANGE_EVENT = "pa-favorites-change";
 let cachedJson = "";
 let cachedSet: Set<string> = new Set();
 let currentUserId: string | null = null;
+// The user whose anonymous localStorage favorites have already been merged into
+// their account. Merging only once prevents a just-removed favorite from being
+// re-uploaded (resurrected) by a later hydration.
+let mergedUserId: string | null = null;
 
 function readLocalFavorites(): Set<string> {
   try {
@@ -62,7 +66,8 @@ const emptySet = new Set<string>();
 // clears the local copy now that the account is the source of truth.
 async function hydrateFromAccount(userId: string) {
   const supabase = createClient();
-  const local = readLocalFavorites();
+  // Set early so a toggle made before hydration finishes still persists remotely.
+  currentUserId = userId;
 
   const { data, error } = await supabase
     .from("favorites")
@@ -72,16 +77,21 @@ async function hydrateFromAccount(userId: string) {
   if (error) return;
 
   const remoteIds = new Set((data ?? []).map((row) => row.component_id as string));
-  const toMerge = [...local].filter((id) => !remoteIds.has(id));
 
-  if (toMerge.length > 0) {
-    await supabase
-      .from("favorites")
-      .upsert(toMerge.map((component_id) => ({ user_id: userId, component_id })));
-    toMerge.forEach((id) => remoteIds.add(id));
+  // Carry anonymous (pre-login) favorites into the account ONCE. Doing this on
+  // every hydration would re-upload a favorite the user has since removed.
+  if (mergedUserId !== userId) {
+    const toMerge = [...readLocalFavorites()].filter((id) => !remoteIds.has(id));
+    if (toMerge.length > 0) {
+      await supabase
+        .from("favorites")
+        .upsert(toMerge.map((component_id) => ({ user_id: userId, component_id })));
+      toMerge.forEach((id) => remoteIds.add(id));
+    }
+    mergedUserId = userId;
   }
 
-  currentUserId = userId;
+  // The account is the source of truth once signed in.
   writeLocalFavorites(remoteIds);
 }
 
@@ -105,6 +115,7 @@ export function useFavorites() {
         hydrateFromAccount(session.user.id);
       } else if (event === "SIGNED_OUT") {
         currentUserId = null;
+        mergedUserId = null;
         hydrated.current = false;
         clearLocalFavorites();
       }
@@ -119,20 +130,29 @@ export function useFavorites() {
   );
 
   const toggleFavorite = useCallback((id: string) => {
-    const current = readLocalFavorites();
-    const next = new Set(current);
-    if (next.has(id)) next.delete(id);
+    const removing = readLocalFavorites().has(id);
+    const next = new Set(readLocalFavorites());
+    if (removing) next.delete(id);
     else next.add(id);
-    writeLocalFavorites(next);
+    writeLocalFavorites(next); // optimistic
 
-    if (currentUserId) {
-      const supabase = createClient();
-      if (next.has(id)) {
-        supabase.from("favorites").upsert({ user_id: currentUserId, component_id: id });
-      } else {
-        supabase.from("favorites").delete().eq("user_id", currentUserId).eq("component_id", id);
-      }
-    }
+    const userId = currentUserId;
+    if (!userId) return;
+
+    const supabase = createClient();
+    const write = removing
+      ? supabase.from("favorites").delete().eq("user_id", userId).eq("component_id", id)
+      : supabase.from("favorites").upsert({ user_id: userId, component_id: id });
+
+    Promise.resolve(write).then(({ error }) => {
+      if (!error) return;
+      // Remote write failed — revert the optimistic change so the UI matches
+      // what's actually persisted (otherwise a hydration would resurrect it).
+      const reverted = new Set(readLocalFavorites());
+      if (removing) reverted.add(id);
+      else reverted.delete(id);
+      writeLocalFavorites(reverted);
+    });
   }, []);
 
   return { favorites, isFavorite, toggleFavorite };
