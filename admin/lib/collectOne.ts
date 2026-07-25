@@ -8,6 +8,7 @@ import {
   type EnrichProvenance,
 } from "@/lib/scrapeOne";
 import { deriveSpecs } from "@/lib/deriveSpecs";
+import { chipsetBaseline } from "@/lib/chipsets";
 import { confidenceForUrl } from "@/lib/sources";
 import type { UIComponent } from "@/types";
 import type { createServiceClient } from "./supabase-admin";
@@ -116,10 +117,29 @@ export async function collectOne(db: Db, discoveredId: string, runId?: string): 
         const source = prov?.source ?? enrichSources[0];
         fieldMeta[path] = {
           source,
-          confidence: confidenceForUrl(source),
+          // PDF/graph passes set an explicit tier; web-pass values are weighted
+          // by their source host (measurement → measured, else inferred).
+          confidence: prov?.confidence ?? confidenceForUrl(source),
           status: "verify",
           corroborated: (prov?.agreedSources ?? 1) >= 2,
         };
+      }
+    }
+
+    // 2b. DAC chipset baseline: when the chip is known but its own THD+N /
+    //     dynamic-range aren't, fill from the chip datasheet (typical_for_chipset).
+    const dac = enriched.dac;
+    const baseline = dac ? chipsetBaseline(dac.chipset) : null;
+    if (dac && baseline) {
+      for (const field of ["dynamicRangeDb", "thdPlusNPct"] as const) {
+        if (dac[field] == null && baseline[field] != null) {
+          dac[field] = baseline[field];
+          fieldMeta[`dac.${field}`] = {
+            source: `typical for ${dac.chipset}`,
+            confidence: "typical_for_chipset",
+            status: "verify",
+          };
+        }
       }
     }
 

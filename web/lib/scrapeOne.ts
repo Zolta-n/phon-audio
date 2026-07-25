@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 import type { UIComponent } from "@/types";
 import { safeFetch } from "@/lib/urlGuard";
-import { measurementSourcesFor } from "@/lib/sources";
+import { measurementSourcesFor, isMeasurementUrl, type Confidence } from "@/lib/sources";
+import { findChartImages, extractFromGraphImages } from "@/lib/graphExtract";
 import {
   USER_AGENT,
   SCRAPE_MODEL,
@@ -14,13 +15,22 @@ import {
 } from "@/lib/scrape-shared";
 
 /**
- * Per-field provenance reported by the enrichment pass, keyed by spec path
+ * Per-field provenance reported by an enrichment pass, keyed by spec path
  * (e.g. "outputs.0.gainDb"). `agreedSources` is how many distinct fetched
  * sources stated a consistent value — ≥2 is the cross-check corroboration bar.
+ * `confidence`, when set, overrides the URL-derived tier (PDF datasheet →
+ * `rated`, digitized chart → `estimated_from_graph`).
  */
 export interface EnrichProvenance {
-  [path: string]: { source?: string; agreedSources: number };
+  [path: string]: { source?: string; agreedSources: number; confidence?: Confidence };
 }
+
+/** A patch table returned by the extraction model: port index → field → value. */
+type SpecPatches = {
+  inputs?: Record<string, Record<string, unknown>>;
+  outputs?: Record<string, Record<string, unknown>>;
+  provenance?: Record<string, { source?: string; agreedSources?: number }>;
+};
 
 
 
@@ -107,8 +117,8 @@ export function findMissingSpecs(component: UIComponent): { portType: "inputs" |
 // Sites that block scraping or serve PDFs — skip them regardless of backend.
 const SKIP_DOMAINS = /\b(manualslib|manualzilla|manualshelf|manymanuals|manual\.nz|hifiengine)\b/i;
 
-function isUsableResultUrl(url: string): boolean {
-  return url.startsWith("http") && !url.endsWith(".pdf") && !SKIP_DOMAINS.test(url);
+function isUsableResultUrl(url: string, allowPdf = false): boolean {
+  return url.startsWith("http") && (allowPdf || !url.toLowerCase().endsWith(".pdf")) && !SKIP_DOMAINS.test(url);
 }
 
 /**
@@ -130,7 +140,7 @@ interface SearchHit {
  * cleaned. `includeDomains` biases results toward bench-measurement sources.
  * Returns [] on any failure so search degrades gracefully, never throws.
  */
-async function tavilySearch(query: string, maxResults: number, includeDomains?: string[]): Promise<SearchHit[]> {
+async function tavilySearch(query: string, maxResults: number, includeDomains?: string[], allowPdf = false): Promise<SearchHit[]> {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return [];
   let res: Response;
@@ -159,7 +169,7 @@ async function tavilySearch(query: string, maxResults: number, includeDomains?: 
   const hits: SearchHit[] = [];
   for (const r of data.results ?? []) {
     if (hits.length >= maxResults) break;
-    if (r.url && isUsableResultUrl(r.url)) {
+    if (r.url && isUsableResultUrl(r.url, allowPdf)) {
       hits.push({ url: r.url, content: (r.raw_content || r.content || "").slice(0, 20000) });
     }
   }
@@ -207,8 +217,8 @@ async function duckDuckGoSearch(query: string, maxResults: number): Promise<Sear
  * TAVILY_API_KEY is set (reliable on datacenter/serverless hosts, supplies page
  * text), else falls back to scraping DuckDuckGo. Best-effort — [] on failure.
  */
-async function webSearchHits(query: string, maxResults = 5, opts?: { includeDomains?: string[] }): Promise<SearchHit[]> {
-  if (process.env.TAVILY_API_KEY) return tavilySearch(query, maxResults, opts?.includeDomains);
+async function webSearchHits(query: string, maxResults = 5, opts?: { includeDomains?: string[]; allowPdf?: boolean }): Promise<SearchHit[]> {
+  if (process.env.TAVILY_API_KEY) return tavilySearch(query, maxResults, opts?.includeDomains, opts?.allowPdf);
   return duckDuckGoSearch(query, maxResults);
 }
 
@@ -244,10 +254,216 @@ async function fetchPageText(url: string): Promise<string> {
   }
 }
 
+/** One-line-per-field description of what's still missing, for the model prompt. */
+function buildMissingDescription(component: UIComponent, missing: ReturnType<typeof findMissingSpecs>): string {
+  return missing.map((m) => {
+    const port = (m.portType === "inputs" ? component.inputs : component.outputs)[m.index];
+    const specs = (port?.specs ?? {}) as Record<string, unknown>;
+    return `${m.portType}[${m.index}] (${specs.kind}, ${port?.connector}): missing ${m.field}`;
+  }).join("\n");
+}
+
+/**
+ * Apply a patch table to a component, filling ONLY fields that are currently
+ * null/absent — a later pass (PDF, graph) can never overwrite a value an earlier,
+ * higher-authority pass already sourced. Returns a new component + filled paths.
+ */
+function applyFieldPatches(component: UIComponent, patches: SpecPatches): { component: UIComponent; filledPaths: string[] } {
+  const next = { ...component, inputs: [...component.inputs], outputs: [...component.outputs] };
+  const filledPaths: string[] = [];
+  const apply = (portType: "inputs" | "outputs", table?: Record<string, Record<string, unknown>>) => {
+    if (!table) return;
+    const ports = portType === "inputs" ? next.inputs : next.outputs;
+    for (const [idx, fields] of Object.entries(table)) {
+      const i = parseInt(idx);
+      const port = ports[i];
+      if (!port) continue;
+      const specs = { ...(port.specs ?? {}) } as Record<string, unknown>;
+      let changed = false;
+      for (const [field, value] of Object.entries(fields ?? {})) {
+        if (field !== "kind" && value != null && specs[field] == null) {
+          specs[field] = value;
+          changed = true;
+          filledPaths.push(`${portType}.${i}.${field}`);
+        }
+      }
+      if (changed) ports[i] = { ...port, specs: specs as typeof port.specs };
+    }
+  };
+  apply("inputs", patches.inputs);
+  apply("outputs", patches.outputs);
+  return { component: next, filledPaths };
+}
+
+/**
+ * Record provenance for the fields a pass actually filled. `defaults` supplies a
+ * fallback source and an optional confidence override (PDF/graph passes set the
+ * tier explicitly; the web pass leaves it URL-derived).
+ */
+function recordProvenance(
+  opts: { provenance?: EnrichProvenance } | undefined,
+  patches: SpecPatches,
+  filledPaths: string[],
+  defaults: { source?: string; confidence?: Confidence },
+): void {
+  if (!opts?.provenance) return;
+  const reported = patches.provenance ?? {};
+  for (const path of filledPaths) {
+    const prov = reported[path];
+    opts.provenance[path] = {
+      source: prov?.source ?? defaults.source,
+      agreedSources: Math.max(1, Number(prov?.agreedSources) || 1),
+      confidence: defaults.confidence,
+    };
+  }
+}
+
+/** Call the extraction model over a content payload and parse its patch JSON. */
+async function extractPatchesFromContent(content: Anthropic.MessageParam["content"]): Promise<SpecPatches> {
+  const client = new Anthropic();
+  const message = await client.messages.create({
+    model: SCRAPE_MODEL,
+    max_tokens: 2048,
+    messages: [{ role: "user", content }],
+  });
+  const textBlock = message.content.find((b) => b.type === "text");
+  const text = textBlock?.type === "text" ? textBlock.text : "{}";
+  return JSON.parse(stripCodeFences(text)) as SpecPatches;
+}
+
+/** Fetch a page's raw HTML (robots + SSRF guarded); "" on any failure. */
+async function fetchPageHtml(url: string): Promise<string> {
+  try {
+    if (!(await isAllowedByRobots(url))) return "";
+    const res = await safeFetch(url, { headers: { "User-Agent": USER_AGENT } }, { timeoutMs: 10000 });
+    if (!res.ok) return "";
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("html")) return "";
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
+// Service manuals/datasheets over this size are skipped — the PDF document block
+// caps at 32 MB/request and huge scans blow the token budget for little gain.
+const MAX_PDF_BYTES = 12 * 1024 * 1024;
+
+/** Fetch a PDF as base64 (robots + SSRF guarded, size-capped); null on failure. */
+async function fetchPdfBase64(url: string): Promise<string | null> {
+  try {
+    if (!(await isAllowedByRobots(url))) return null;
+    const res = await safeFetch(url, { headers: { "User-Agent": USER_AGENT } }, { timeoutMs: 15000 });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("pdf") && !url.toLowerCase().endsWith(".pdf")) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > MAX_PDF_BYTES) return null;
+    return buf.toString("base64");
+  } catch {
+    return null;
+  }
+}
+
+const PDF_PROMPT = `
+You are filling in MISSING audio component specs using a manufacturer PDF (service
+manual, datasheet, or white paper). These list full electrical specs the consumer
+page omits. Return ONLY JSON, no prose:
+
+{ "inputs": { "<index>": { "<specField>": value } }, "outputs": { ... },
+  "provenance": { "<inputs|outputs>.<index>.<specField>": { "agreedSources": 1 } } }
+
+Rules: fill only the listed missing fields, and only where the PDF actually states a
+value. Convert units (kΩ→ohms ×1000, mV→Vrms ÷1000). Return {} if nothing found.
+`.trim();
+
+/**
+ * PDF/manual mining. Searches for a datasheet/service manual, fetches it (SSRF +
+ * robots guarded), and extracts still-missing fields via a Claude PDF document
+ * block. Manufacturer-authoritative → tagged `rated`. Best-effort; returns the
+ * component unchanged on any failure. Gated by the caller on remaining nulls.
+ */
+async function enrichFromPdf(
+  component: UIComponent,
+  opts?: { provenance?: EnrichProvenance },
+): Promise<UIComponent> {
+  const missing = findMissingSpecs(component);
+  if (missing.length === 0) return component;
+  const name = `${component.manufacturer ?? ""} ${component.name}`.trim();
+
+  const hits = await webSearchHits(`${name} service manual datasheet white paper specifications`, 6, { allowPdf: true });
+  const pdfUrls = hits.map((h) => h.url).filter((u) => u.toLowerCase().endsWith(".pdf"));
+  if (pdfUrls.length === 0) return component;
+
+  // Fetch the first PDF that comes back within the size cap.
+  let pdfUrl = "";
+  let pdfData: string | null = null;
+  for (const u of pdfUrls.slice(0, 3)) {
+    pdfData = await fetchPdfBase64(u);
+    if (pdfData) { pdfUrl = u; break; }
+  }
+  if (!pdfData) return component;
+
+  try {
+    const patches = await extractPatchesFromContent([
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfData } },
+      { type: "text", text: `${PDF_PROMPT}\n\nComponent: ${name} (${component.category})\n\nMissing spec fields:\n${buildMissingDescription(component, missing)}` },
+    ]);
+    const { component: enriched, filledPaths } = applyFieldPatches(component, patches);
+    if (filledPaths.length === 0) return component;
+    recordProvenance(opts, patches, filledPaths, { source: pdfUrl, confidence: "rated" });
+    enriched.note = [enriched.note, `${filledPaths.length} spec(s) from manufacturer PDF (${pdfUrl}).`].filter(Boolean).join(" ");
+    return enriched;
+  } catch {
+    return component;
+  }
+}
+
+/**
+ * Graph digitization. For measurement-host pages already surfaced, find chart
+ * images (frequency response / impedance / THD) and read approximate key values
+ * off them via a Claude vision call. Values are tagged `estimated_from_graph`.
+ * Best-effort; returns the component unchanged on any failure.
+ */
+async function enrichFromGraphs(
+  component: UIComponent,
+  measurementUrls: string[],
+  opts?: { provenance?: EnrichProvenance },
+): Promise<UIComponent> {
+  const missing = findMissingSpecs(component);
+  if (missing.length === 0 || measurementUrls.length === 0) return component;
+
+  // Collect candidate chart images from the measurement pages' HTML.
+  const htmls = await mapWithConcurrency(measurementUrls.slice(0, 2), 2, async (u) => ({ u, html: await fetchPageHtml(u) }), 300);
+  const imageUrls: string[] = [];
+  const seen = new Set<string>();
+  for (const { u, html } of htmls) {
+    if (!html) continue;
+    for (const img of findChartImages(html, u)) {
+      if (!seen.has(img)) { seen.add(img); imageUrls.push(img); }
+    }
+  }
+  if (imageUrls.length === 0) return component;
+
+  try {
+    const { patches, sourceUrl } = await extractFromGraphImages(component, missing, imageUrls.slice(0, 3));
+    const { component: enriched, filledPaths } = applyFieldPatches(component, patches);
+    if (filledPaths.length === 0) return component;
+    recordProvenance(opts, patches, filledPaths, { source: sourceUrl, confidence: "estimated_from_graph" });
+    enriched.note = [enriched.note, `${filledPaths.length} spec(s) estimated from measurement graphs.`].filter(Boolean).join(" ");
+    return enriched;
+  } catch {
+    return component;
+  }
+}
+
 /**
  * Search the web for missing specs and enrich the component. When `opts.provenance`
  * is supplied it is populated with per-field source + agreement info the caller
- * uses to set confidence tiers and the ≥2-source corroboration flag.
+ * uses to set confidence tiers and the ≥2-source corroboration flag. Runs three
+ * passes, highest-authority first — web review/measurement text, then a
+ * manufacturer PDF, then digitized measurement graphs — each filling only fields
+ * still null after the previous.
  */
 export async function enrichWithWebSearch(
   component: UIComponent,
@@ -294,91 +510,41 @@ export async function enrichWithWebSearch(
   }
   if (pageTexts.length === 0) return component;
 
-  // Build context about what's missing
-  const missingDescription = missing.map(m => {
-    const port = (m.portType === "inputs" ? component.inputs : component.outputs)[m.index];
-    const specs = (port.specs ?? {}) as Record<string, unknown>;
-    return `${m.portType}[${m.index}] (${specs.kind}, ${port.connector}): missing ${m.field}`;
-  }).join("\n");
-
-  const prompt = `${ENRICH_PROMPT}
+  // Pass 1 — web review/measurement text.
+  let enriched = component;
+  try {
+    const prompt = `${ENRICH_PROMPT}
 
 Component: ${component.manufacturer ?? ""} ${component.name} (${component.category})
 
 Missing spec fields:
-${missingDescription}
+${buildMissingDescription(component, missing)}
 
 Review/measurement page content:
 ${pageTexts.join("\n\n")}`;
 
-  try {
-    const client = new Anthropic();
-    const message = await client.messages.create({
-      model: SCRAPE_MODEL,
-      max_tokens: 2048,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const textBlock = message.content.find(b => b.type === "text");
-    const text = textBlock?.type === "text" ? textBlock.text : "{}";
-    const patches = JSON.parse(stripCodeFences(text)) as {
-      inputs?: Record<string, Record<string, unknown>>;
-      outputs?: Record<string, Record<string, unknown>>;
-      provenance?: Record<string, { source?: string; agreedSources?: number }>;
-    };
-
-    // Surface per-field provenance to the caller (confidence + corroboration).
-    if (opts?.provenance && patches.provenance) {
-      for (const [path, prov] of Object.entries(patches.provenance)) {
-        opts.provenance[path] = {
-          source: prov.source,
-          agreedSources: Math.max(1, Number(prov.agreedSources) || 1),
-        };
-      }
+    const patches = await extractPatchesFromContent(prompt);
+    const applied = applyFieldPatches(component, patches);
+    enriched = applied.component;
+    // Web-pass confidence stays URL-derived (measured for bench hosts), so no
+    // override — collectOne resolves it from each field's source URL.
+    recordProvenance(opts, patches, applied.filledPaths, { source: usedUrls[0] });
+    if (applied.filledPaths.length > 0) {
+      enriched.note = [enriched.note, `${applied.filledPaths.length} spec(s) enriched from web reviews (${usedUrls.slice(0, 2).join(", ")}).`]
+        .filter(Boolean).join(" ");
     }
-
-    // Apply patches to the component
-    const enriched = { ...component, inputs: [...component.inputs], outputs: [...component.outputs] };
-
-    if (patches.inputs) {
-      for (const [idx, fields] of Object.entries(patches.inputs)) {
-        const i = parseInt(idx);
-        if (enriched.inputs[i]) {
-          enriched.inputs[i] = {
-            ...enriched.inputs[i],
-            specs: { ...enriched.inputs[i].specs, ...fields } as typeof enriched.inputs[number]["specs"],
-          };
-        }
-      }
-    }
-    if (patches.outputs) {
-      for (const [idx, fields] of Object.entries(patches.outputs)) {
-        const i = parseInt(idx);
-        if (enriched.outputs[i]) {
-          enriched.outputs[i] = {
-            ...enriched.outputs[i],
-            specs: { ...enriched.outputs[i].specs, ...fields } as typeof enriched.outputs[number]["specs"],
-          };
-        }
-      }
-    }
-
-    // Update the note to indicate enrichment
-    const filledCount = Object.values(patches.inputs ?? {}).reduce((n, f) => n + Object.keys(f).length, 0)
-      + Object.values(patches.outputs ?? {}).reduce((n, f) => n + Object.keys(f).length, 0);
-    if (filledCount > 0) {
-      const sources = usedUrls.slice(0, 2).join(", ");
-      enriched.note = [
-        enriched.note,
-        `${filledCount} spec(s) enriched from web reviews (${sources}).`,
-      ].filter(Boolean).join(" ");
-    }
-
-    return enriched;
   } catch {
-    // Enrichment is best-effort; return original on failure
-    return component;
+    // Web enrichment is best-effort; carry on with what we have.
   }
+
+  // Pass 2 — manufacturer PDF (datasheet/service manual). Pass 3 — measurement
+  // graphs. Each is gated internally on fields still missing and never overwrites
+  // an earlier pass's value.
+  enriched = await enrichFromPdf(enriched, opts);
+  // Graphs live on bench-measurement pages — only those are worth re-fetching.
+  enriched = await enrichFromGraphs(enriched, usedUrls.filter(isMeasurementUrl), opts);
+
+  return enriched;
 }
 
 /** Extract a human-readable product name from a URL slug */
@@ -419,6 +585,7 @@ function normalizedToComponent(raw: Record<string, any>): UIComponent {
     category: raw.category ?? "source",
     inputs: raw.inputs ?? [],
     outputs: raw.outputs ?? [],
+    dac: raw.dac ?? undefined,
     note: raw.notes ?? undefined,
     manufacturer: raw.manufacturer ?? undefined,
   };

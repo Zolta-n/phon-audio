@@ -44,6 +44,7 @@ Return a single JSON object matching this TypeScript interface (no prose, no mar
     }
   ],
   "outputs": [ ... same Port structure ... ],
+  "dac": { "chipset": string | null, "dynamicRangeDb": number | null, "thdPlusNPct": number | null } | null,
   "notes": "any relevant caveats"
 }
 
@@ -79,6 +80,13 @@ AMP/OUTPUT RULES:
 - If a line output section mentions both "fixed" and "variable" outputs, create TWO separate line_out ports.
 - The "preamp output" or "pre out" or "variable output" is a line_out port.
 - General specs like "output impedance" that aren't tied to a specific port should be applied to ALL relevant output ports.
+
+DAC RULES:
+- For any component with a D/A stage (category "dac", or anything with digital inputs that outputs analog), populate the top-level "dac" object.
+- "chipset": the DAC chip exactly as named (e.g. "ES9038PRO", "AK4499", "PCM5102A", "CS43198"). null if not stated.
+- "dynamicRangeDb": dynamic range / DNR in dB (prefer the balanced/XLR figure if two are given). null if absent.
+- "thdPlusNPct": THD+N as a PERCENTAGE number, not dB (e.g. "0.00009%" → 0.00009). null if absent or only given in dB.
+- Omit "dac" (use null) for components with no D/A conversion (pure analog amps, speakers, turntables).
 
 CATEGORY RULES:
 - Turntables → "turntable"
