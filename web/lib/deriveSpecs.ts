@@ -71,13 +71,18 @@ export function deriveSpecs(component: ComponentLike): DerivedField[] {
           push("inputSensitivityVrms", vout / Math.pow(10, gain / 20), `from ${gain} dB gain at ${round(vout)} Vrms full output`);
         }
         // An amp rated to deliver power at a low impedance is, by definition,
-        // rated at least that low — the lowest power rung bounds ratedMinImpedanceOhm.
+        // rated at least that low. Only derive when a rung is BELOW the nominal
+        // (the highest rung) — a lone 8 Ω rating is NOT evidence of the minimum,
+        // and assuming so causes false impedance-stability verdicts.
         const rungOhms = (Array.isArray(specs.powerW) ? specs.powerW : [])
           .map((p) => num((p as SpecRecord)?.ohm))
           .filter((o): o is number => o != null && o > 0);
         if (rungOhms.length > 0) {
           const lowest = Math.min(...rungOhms);
-          push("ratedMinImpedanceOhm", lowest, `lowest rated power rung is ${lowest}Ω`);
+          const highest = Math.max(...rungOhms);
+          if (lowest < highest) {
+            push("ratedMinImpedanceOhm", lowest, `lowest rated power rung is ${lowest}Ω`);
+          }
         }
       }
 

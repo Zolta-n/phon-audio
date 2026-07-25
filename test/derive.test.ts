@@ -60,6 +60,15 @@ test("speaker_out: derives ratedMinImpedanceOhm from the lowest power rung", () 
   assert.equal(min!.value, 2);
 });
 
+test("speaker_out: a lone nominal power rung does NOT derive ratedMinImpedanceOhm", () => {
+  // Only an 8Ω rating known → the true minimum is unknown; asserting 8 would
+  // falsely fail sub-8Ω speakers. Must leave it underived (null).
+  const derived = deriveSpecs({
+    outputs: [{ specs: { kind: "speaker_out", powerW: [{ ohm: 8, watts: 220 }] } }],
+  });
+  assert.equal(find(derived, "ratedMinImpedanceOhm"), undefined);
+});
+
 test("speaker_out: does not override a stated ratedMinImpedanceOhm", () => {
   const derived = deriveSpecs({
     outputs: [{ specs: { kind: "speaker_out", ratedMinImpedanceOhm: 4, powerW: [{ ohm: 8, watts: 220 }, { ohm: 2, watts: 750 }] } }],

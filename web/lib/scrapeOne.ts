@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 import type { UIComponent } from "@/types";
 import { safeFetch } from "@/lib/urlGuard";
-import { measurementSourcesFor, isMeasurementUrl, type Confidence } from "@/lib/sources";
+import { measurementSourcesFor, isMeasurementUrl, confidenceForUrl, type Confidence } from "@/lib/sources";
 import { findChartImages, extractFromGraphImages } from "@/lib/graphExtract";
 import {
   USER_AGENT,
@@ -68,7 +68,7 @@ Rules:
 - If "gain" or "voltage gain" is mentioned, apply to the relevant outputs.
 - For amplifiers: "output voltage" or "max output" for pre-out/line-out is maxOutputVrms.
 - For speaker amps, outputImpedanceOhm: use a stated figure; if ONLY a damping factor (DF) is given, compute outputImpedanceOhm = nominalImpedance / DF (e.g. 8 / 180 = 0.044) — this is valid.
-- speaker_out ratedMinImpedanceOhm = the LOWEST impedance the amp is rated or stable into (from the lowest power rung, or "stable into X Ω" / "handles 2-ohm dips"), NOT the nominal 8 Ω.
+- speaker_out ratedMinImpedanceOhm = the LOWEST impedance the amp is rated or stable into — set it ONLY from a power rung below the nominal or an explicit "stable into X Ω" / "minimum impedance" statement. If only the nominal rating is known and nothing lower, leave it null; do NOT assume the nominal is the minimum.
 - Convert units: kΩ → ohms (×1000), mV → Vrms (÷1000), A → mA (×1000), dBV → approximate dB/V.
 - Look for measurement data: "measured output impedance", "measured gain", "measured power" etc.
 - If a review mentions both measured and rated specs, prefer the measured value.
@@ -468,6 +468,118 @@ async function enrichFromGraphs(
   }
 }
 
+const SPEAKER_POWER_PROMPT = `
+From the text, extract this amplifier's speaker-output power ratings and its
+low-impedance capability. Return ONLY JSON, no prose:
+
+{ "powerW": [{"ohm": N, "watts": N}, ...], "ratedMinImpedanceOhm": N | null, "dampingFactor": N | null }
+
+Rules:
+- powerW: EVERY rated continuous power-into-impedance pair stated anywhere in the text
+  (e.g. 220W into 8Ω, 380W into 4Ω, 750W into 2Ω). Include the low-impedance ratings —
+  they are often in a footnote or spec table, not the headline figure.
+- ratedMinImpedanceOhm: the LOWEST impedance the amp is rated or stable into (the lowest
+  power-rung impedance, or a stated "stable into X Ω" / "2-ohm capable"). null if unknown.
+- dampingFactor: the damping factor if stated (a single number). null otherwise.
+- Only values actually present in the text. Return empty/nulls if not found.
+`.trim();
+
+/**
+ * Dedicated speaker-amp power pass. Generic extraction reliably grabs only the
+ * headline power figure (e.g. "220 W into 8 Ω") and misses the low-impedance
+ * ratings that determine `ratedMinImpedanceOhm` — causing false impedance-stability
+ * verdicts. This runs a focused search for the full power table + damping factor,
+ * UNIONS the found rungs into `powerW` (never loses a rung), sets
+ * `ratedMinImpedanceOhm` from the lowest rung, and derives output impedance from
+ * damping factor. Runs only when a `speaker_out` port exists. Best-effort.
+ */
+async function enrichSpeakerAmp(
+  component: UIComponent,
+  opts?: { provenance?: EnrichProvenance },
+): Promise<UIComponent> {
+  const speakerIdx = component.outputs
+    .map((p, i) => ({ kind: (p.specs as Record<string, unknown>)?.kind, i }))
+    .filter((x) => x.kind === "speaker_out")
+    .map((x) => x.i);
+  if (speakerIdx.length === 0) return component;
+
+  const name = `${component.manufacturer ?? ""} ${component.name}`.trim();
+  const hits = await webSearchHits(
+    `${name} amplifier power output watts into 8 ohm 4 ohm 2 ohm minimum impedance damping factor`,
+    5,
+    { includeDomains: measurementSourcesFor(component.category) },
+  );
+  if (hits.length === 0) return component;
+  const fetched = await mapWithConcurrency(hits.slice(0, 6), 2, async (h) => ({ url: h.url, text: await hitText(h) }), 300);
+  const context = fetched.filter((f) => f.text.length > 150).map((f) => `--- ${f.url} ---\n${f.text}`).join("\n\n").slice(0, 15000);
+  if (!context) return component;
+
+  let found: { powerW?: unknown; ratedMinImpedanceOhm?: unknown; dampingFactor?: unknown };
+  try {
+    found = (await extractPatchesFromContent(`${SPEAKER_POWER_PROMPT}\n\nAmplifier: ${name}\n\nText:\n${context}`)) as typeof found;
+  } catch {
+    return component;
+  }
+
+  const next = { ...component, outputs: [...component.outputs] };
+  const df = Number(found.dampingFactor);
+  const sourceUrl = fetched.find((f) => f.text.length > 150)?.url;
+
+  for (const i of speakerIdx) {
+    const port = next.outputs[i];
+    const specs = { ...(port.specs ?? {}) } as Record<string, unknown>;
+
+    // Union power rungs by impedance (keep every rung; found watts win on conflict).
+    const byOhm = new Map<number, { ohm: number; watts: number }>();
+    const add = (arr: unknown) => {
+      if (!Array.isArray(arr)) return;
+      for (const p of arr) {
+        const ohm = Number((p as Record<string, unknown>)?.ohm);
+        const watts = Number((p as Record<string, unknown>)?.watts);
+        if (Number.isFinite(ohm) && ohm > 0 && Number.isFinite(watts) && watts > 0) byOhm.set(ohm, { ohm, watts });
+      }
+    };
+    add(specs.powerW);
+    add(found.powerW);
+    if (byOhm.size > 0) {
+      const merged = [...byOhm.values()].sort((a, b) => b.ohm - a.ohm);
+      specs.powerW = merged;
+      if (opts?.provenance) {
+        opts.provenance[`outputs.${i}.powerW`] = { source: sourceUrl, agreedSources: 1, confidence: confidenceForUrl(sourceUrl) };
+      }
+    }
+
+    // ratedMinImpedanceOhm ONLY from real low-impedance evidence: an explicit
+    // stated minimum, or a power rung below the nominal (highest) rung. A lone
+    // nominal rung is NOT evidence — leaving it null keeps the engine honest
+    // ("data not available") instead of falsely failing sub-nominal speakers.
+    const foundMin = Number(found.ratedMinImpedanceOhm);
+    const explicit = Number.isFinite(foundMin) && foundMin > 0 ? foundMin : undefined;
+    const ohms = Array.isArray(specs.powerW)
+      ? (specs.powerW as { ohm: number }[]).map((r) => r.ohm)
+      : [];
+    const rungMin = ohms.length > 0 && Math.min(...ohms) < Math.max(...ohms) ? Math.min(...ohms) : undefined;
+    const candidates = [explicit, rungMin].filter((x): x is number => x != null);
+    if (candidates.length > 0) {
+      const candidate = Math.min(...candidates);
+      const prev = Number(specs.ratedMinImpedanceOhm);
+      specs.ratedMinImpedanceOhm = Number.isFinite(prev) && prev > 0 ? Math.min(prev, candidate) : candidate;
+      if (opts?.provenance) {
+        opts.provenance[`outputs.${i}.ratedMinImpedanceOhm`] = { source: sourceUrl, agreedSources: 1, confidence: confidenceForUrl(sourceUrl) };
+      }
+    }
+
+    // Output impedance from damping factor (Zout = 8 Ω / DF) when not already known.
+    if (specs.outputImpedanceOhm == null && Number.isFinite(df) && df > 0) {
+      specs.outputImpedanceOhm = Math.round((8 / df) * 1000) / 1000;
+      if (opts?.provenance) opts.provenance[`outputs.${i}.outputImpedanceOhm`] = { source: sourceUrl, agreedSources: 1, confidence: "derived" };
+    }
+
+    next.outputs[i] = { ...port, specs: specs as typeof port.specs };
+  }
+  return next;
+}
+
 /**
  * Search the web for missing specs and enrich the component. When `opts.provenance`
  * is supplied it is populated with per-field source + agreement info the caller
@@ -475,7 +587,8 @@ async function enrichFromGraphs(
  * three passes, highest-authority first — web review/measurement text, then a
  * manufacturer PDF, then digitized measurement graphs — each filling only fields
  * still null after the previous. `opts.pdf`/`opts.graph` default to `true`; public
- * routes pass `false` to skip the slow/expensive PDF + vision passes.
+ * routes pass `false` to skip the slow/expensive PDF + vision passes. Speaker amps
+ * additionally get a dedicated power-table pass (reliable low-impedance capture).
  */
 export async function enrichWithWebSearch(
   component: UIComponent,
@@ -548,6 +661,10 @@ ${pageTexts.join("\n\n")}`;
   } catch {
     // Web enrichment is best-effort; carry on with what we have.
   }
+
+  // Speaker-amp power table: reliably capture low-impedance ratings + rated
+  // minimum + output impedance from damping factor (runs only for speaker amps).
+  enriched = await enrichSpeakerAmp(enriched, opts);
 
   // Pass 2 — manufacturer PDF (datasheet/service manual). Pass 3 — measurement
   // graphs. Each is gated internally on fields still missing and never overwrites
