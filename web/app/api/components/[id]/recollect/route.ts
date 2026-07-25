@@ -1,5 +1,6 @@
-import { enrichWithWebSearch } from "@/lib/scrapeOne";
+import { scrapeByQuery, enrichWithWebSearch } from "@/lib/scrapeOne";
 import { fillDacFromChipset } from "@/lib/chipsets";
+import { applyDerivedSpecs } from "@/lib/deriveSpecs";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { getComponentById } from "@/lib/getComponents";
 import { rateLimit } from "@/lib/rateLimit";
@@ -7,9 +8,11 @@ import { rateLimit } from "@/lib/rateLimit";
 // Same budget as the scrape route — cheap passes only (no PDF/vision).
 export const maxDuration = 60;
 
-// Re-run collection on an EXISTING catalog component with the current tools,
-// filling only fields that are still empty. Returns the enriched component for
-// the client to review and save via PUT — no DB write happens here.
+// Re-collect an EXISTING catalog component from scratch with the current tools:
+// a FRESH by-name collection that produces new spec values (so it can correct a
+// wrong stored value, not just fill gaps). Identity is preserved; only the specs
+// are re-collected. Returns the fresh component for the client to review and save
+// via PUT — no DB write happens here (the review step is the overwrite safety net).
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -28,14 +31,23 @@ export async function POST(
   }
 
   const { id } = await params;
-  const component = await getComponentById(id);
-  if (!component) return Response.json({ error: "Not found" }, { status: 404 });
+  const existing = await getComponentById(id);
+  if (!existing) return Response.json({ error: "Not found" }, { status: 404 });
 
   try {
-    // Fill-missing only: applyFieldPatches is null-guarded, so nothing already
-    // set (incl. human-corrected values) is overwritten. Cheap passes only.
-    const enriched = await enrichWithWebSearch(component, { pdf: false, graph: false });
+    // Fresh collect by brand + model (cheap passes), then physics-derived fills +
+    // chipset baseline — same path as by-name Add New.
+    const fresh = await scrapeByQuery(existing.manufacturer ?? "", existing.name);
+    const enriched = await enrichWithWebSearch(fresh, { pdf: false, graph: false });
+    applyDerivedSpecs(enriched);
     fillDacFromChipset(enriched.dac);
+
+    // Keep the existing identity — only specs are re-collected.
+    enriched.id = existing.id;
+    enriched.name = existing.name;
+    enriched.manufacturer = existing.manufacturer;
+    enriched.category = existing.category;
+
     return Response.json({ component: enriched });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Re-collect failed";

@@ -39,9 +39,9 @@ test("speaker_out: prefers the 8 Ω rating as the sensitivity reference", () => 
 
 test("never overwrites an existing value", () => {
   const derived = deriveSpecs({
-    outputs: [{ specs: { kind: "speaker_out", powerW: [{ ohm: 8, watts: 100 }], gainDb: 26, inputSensitivityVrms: 1.4 } }],
+    outputs: [{ specs: { kind: "speaker_out", powerW: [{ ohm: 8, watts: 100 }], gainDb: 26, inputSensitivityVrms: 1.4, ratedMinImpedanceOhm: 8 } }],
   });
-  assert.equal(derived.length, 0, "nothing should be derived when both fields present");
+  assert.equal(derived.length, 0, "nothing should be derived when all fields present");
 });
 
 test("does nothing without enough inputs", () => {
@@ -49,6 +49,22 @@ test("does nothing without enough inputs", () => {
     outputs: [{ specs: { kind: "speaker_out", gainDb: 26 } }], // no powerW
   });
   assert.equal(derived.length, 0);
+});
+
+test("speaker_out: derives ratedMinImpedanceOhm from the lowest power rung", () => {
+  const derived = deriveSpecs({
+    outputs: [{ specs: { kind: "speaker_out", powerW: [{ ohm: 8, watts: 220 }, { ohm: 4, watts: 380 }, { ohm: 2, watts: 750 }] } }],
+  });
+  const min = find(derived, "ratedMinImpedanceOhm");
+  assert.ok(min, "expected a ratedMinImpedanceOhm derivation");
+  assert.equal(min!.value, 2);
+});
+
+test("speaker_out: does not override a stated ratedMinImpedanceOhm", () => {
+  const derived = deriveSpecs({
+    outputs: [{ specs: { kind: "speaker_out", ratedMinImpedanceOhm: 4, powerW: [{ ohm: 8, watts: 220 }, { ohm: 2, watts: 750 }] } }],
+  });
+  assert.equal(find(derived, "ratedMinImpedanceOhm"), undefined);
 });
 
 test("headphone_out: derives maxVrms from rated power at the strongest load", () => {
