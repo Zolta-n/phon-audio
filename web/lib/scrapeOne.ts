@@ -223,6 +223,16 @@ async function webSearchHits(query: string, maxResults = 5, opts?: { includeDoma
 }
 
 /**
+ * Public search helper: returns `{ url, content }` results for a query, using the
+ * same backend + page-text extraction as enrichment. Used by the batch-enumerate
+ * route to ground model-list generation in real pages. Best-effort — [] on failure.
+ */
+export async function searchWeb(query: string, maxResults = 6): Promise<{ url: string; content: string }[]> {
+  const hits = await webSearchHits(query, maxResults);
+  return Promise.all(hits.map(async (h) => ({ url: h.url, content: await hitText(h) })));
+}
+
+/**
  * Text for a hit: use the backend's own extracted content when it's substantial
  * (no re-fetch needed), else scrape the page as a fallback. Normalizes whitespace.
  */

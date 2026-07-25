@@ -11,7 +11,7 @@ create extension if not exists pg_trgm; -- fuzzy name matching against component
 -- migration audit trail (stats lists the migrated component ids).
 create table if not exists public.admin_scrape_runs (
   id          uuid primary key default gen_random_uuid(),
-  kind        text not null check (kind in ('discovery','collection','migration')),
+  kind        text not null check (kind in ('discovery','collection','migration','batch')),
   status      text not null default 'running'
               check (status in ('running','succeeded','failed','cancelled')),
   params      jsonb not null default '{}',  -- e.g. {"sources":["reddit"],"limit":25}
@@ -20,6 +20,12 @@ create table if not exists public.admin_scrape_runs (
   started_at  timestamptz not null default now(),
   finished_at timestamptz
 );
+
+-- Idempotent: widen the kind CHECK for existing databases (the inline CHECK above
+-- only applies on a fresh create). Adds 'batch' for the Batch mining tab.
+alter table public.admin_scrape_runs drop constraint if exists admin_scrape_runs_kind_check;
+alter table public.admin_scrape_runs add constraint admin_scrape_runs_kind_check
+  check (kind in ('discovery','collection','migration','batch'));
 
 -- Brands surfaced by the discovery pipeline, ranked by community popularity.
 create table if not exists public.discovered_brands (

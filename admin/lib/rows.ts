@@ -3,7 +3,7 @@
 
 import type { ComponentCategory, UIComponent } from "../../web/types";
 
-export type RunKind = "discovery" | "collection" | "migration";
+export type RunKind = "discovery" | "collection" | "migration" | "batch";
 export type RunStatus = "running" | "succeeded" | "failed" | "cancelled";
 
 export interface ScrapeRunRow {
