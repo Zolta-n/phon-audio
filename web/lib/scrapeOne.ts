@@ -9,7 +9,7 @@ import {
   SCRAPE_MODEL,
   extractSpecs,
   extractComponentJson,
-  stripCodeFences,
+  parseJsonObjectReply,
   isAllowedByRobots,
   mapWithConcurrency,
 } from "@/lib/scrape-shared";
@@ -339,17 +339,7 @@ async function extractPatchesFromContent(content: Anthropic.MessageParam["conten
   });
   const textBlock = message.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "{}";
-  const cleaned = stripCodeFences(text);
-  try {
-    return JSON.parse(cleaned) as SpecPatches;
-  } catch {
-    // Defensive: some models prepend a sentence before the JSON despite the
-    // instruction. Recover the outermost {...} object and parse that.
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1)) as SpecPatches;
-    throw new Error("no JSON object in model reply");
-  }
+  return parseJsonObjectReply(text, "extractPatchesFromContent") as SpecPatches;
 }
 
 /** Fetch a page's raw HTML (robots + SSRF guarded); "" on any failure. */

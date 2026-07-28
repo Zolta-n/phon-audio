@@ -151,7 +151,7 @@ export function extractSpecs(html: string): { title: string; specsText: string; 
     }
   });
 
-  const title = $("h1").first().text().trim() || $("title").text().split("|")[0].trim();
+  const title = $("h1").first().text().trim() || ($("title").text().split("|")[0] ?? "").trim();
   const specsText = [...new Set(specChunks)].join("\n\n");
   const fullText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 12000);
 
@@ -161,6 +161,39 @@ export function extractSpecs(html: string): { title: string; specsText: string; 
 /** Strip a single wrapping markdown code fence, if present. */
 export function stripCodeFences(text: string): string {
   return text.replace(/^```[a-z]*\n?/m, "").replace(/\n?```$/m, "").trim();
+}
+
+/**
+ * Parse a model reply that is supposed to be a single JSON object.
+ *
+ * Models sometimes ignore the "JSON only" instruction and either wrap the
+ * object in prose or answer in prose entirely (typically when the product
+ * cannot be identified). Recover the outermost {...} when one exists; when it
+ * does not, raise a message the end user can act on rather than letting a raw
+ * `Unexpected token 'T'` parser error reach the UI.
+ */
+export function parseJsonObjectReply(text: string, context: string): Record<string, unknown> {
+  const cleaned = stripCodeFences(text);
+  try {
+    return JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+      } catch {
+        /* fall through to the readable error below */
+      }
+    }
+    // Keep the actual reply in the server log — it is the only clue to why
+    // extraction failed, and it must not be echoed to the user verbatim.
+    console.error(`[${context}] model did not return JSON. Reply was:`, cleaned.slice(0, 500));
+    throw new Error(
+      "The AI could not identify a product from these sources. Check the brand and " +
+        "model spelling, or use Manual Entry.",
+    );
+  }
 }
 
 /**
@@ -182,7 +215,7 @@ export async function extractComponentJson(
 
   const textBlock = message.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
-  return JSON.parse(stripCodeFences(text)) as Record<string, unknown>;
+  return parseJsonObjectReply(text, "extractComponentJson");
 }
 
 // ─── robots.txt ──────────────────────────────────────────────────────
