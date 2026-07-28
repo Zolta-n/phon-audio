@@ -1,7 +1,12 @@
+import { unstable_rethrow } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { SEED_CATALOG } from "@/lib/seedCatalog";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getViewer, canViewComponent, type Viewer } from "@/lib/entitlements";
 import type { UIComponent } from "@/types";
+
+const COLUMNS =
+  "id, name, category, specs, affiliate_url, image_url, manufacturer, notes, created_by, verified";
 
 export interface ComponentRow {
   id: string;
@@ -12,6 +17,8 @@ export interface ComponentRow {
   image_url: string | null;
   manufacturer: string | null;
   notes: string | null;
+  created_by?: string | null;
+  verified?: boolean | null;
 }
 
 export function rowToComponent(row: ComponentRow): UIComponent {
@@ -27,7 +34,22 @@ export function rowToComponent(row: ComponentRow): UIComponent {
     manufacturer: row.manufacturer ?? undefined,
     affiliateUrl: row.affiliate_url ?? null,
     imageUrl: row.image_url ?? null,
+    pendingReview: row.created_by != null && row.verified !== true,
   };
+}
+
+/**
+ * PostgREST `or=` filter for what `viewer` may see: curated rows
+ * (created_by IS NULL), admin-approved rows, and the viewer's own pending
+ * submissions. Returns null for admins, who see everything.
+ *
+ * Keep in sync with canViewComponent() in lib/entitlements.ts.
+ */
+function visibilityFilter(viewer: Viewer): string | null {
+  if (viewer.admin) return null;
+  const clauses = ["created_by.is.null", "verified.is.true"];
+  if (viewer.user) clauses.push(`created_by.eq.${viewer.user.id}`);
+  return clauses.join(",");
 }
 
 /** Fetch a single component by id (seed-catalog fallback when Supabase is unset). */
@@ -39,12 +61,22 @@ export async function getComponentById(id: string): Promise<UIComponent | null> 
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
       .from("components")
-      .select("id, name, category, specs, affiliate_url, image_url, manufacturer, notes")
+      .select(COLUMNS)
       .eq("id", id)
       .single();
     if (error || !data) return null;
+
+    const viewer = await getViewer();
+    if (!canViewComponent(viewer, { created_by: data.created_by, verified: data.verified })) {
+      return null;
+    }
     return rowToComponent(data);
-  } catch {
+  } catch (err) {
+    // Let Next's own control-flow errors (cookies() bailing out of static
+    // render, notFound(), redirect()) through instead of reporting them as
+    // lookup failures.
+    unstable_rethrow(err);
+    console.error(`[getComponentById] lookup failed for "${id}":`, err);
     return null;
   }
 }
@@ -54,17 +86,26 @@ export async function getComponents(): Promise<UIComponent[]> {
     return SEED_CATALOG;
   }
   try {
+    const viewer = await getViewer();
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("components")
-      .select("id, name, category, specs, affiliate_url, image_url, manufacturer, notes")
+      .select(COLUMNS)
       // Hide admin-deactivated (soft-deleted) components from the public catalog.
-      .neq("active", false)
-      .order("category")
-      .order("name");
+      .neq("active", false);
+
+    const filter = visibilityFilter(viewer);
+    if (filter) query = query.or(filter);
+
+    const { data, error } = await query.order("category").order("name");
     if (error) throw error;
     return (data ?? []).map(rowToComponent);
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    // Never fail silently here: a swallowed error looks identical to a working
+    // app serving the 12-item seed catalog, which has masked real outages
+    // (a paused Supabase project, a missing column) for days at a time.
+    console.error("[getComponents] catalog query failed, serving seed catalog:", err);
     return SEED_CATALOG;
   }
 }

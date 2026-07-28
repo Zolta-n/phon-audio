@@ -40,6 +40,9 @@ export interface UIComponent {
   manufacturer?: string;
   affiliateUrl?: string | null;
   imageUrl?: string | null;
+  /** Submitted by a user and still awaiting admin review — visible only to
+   *  its submitter (and admins) until approved. */
+  pendingReview?: boolean;
 }
 
 /** A single node in the user's chain */

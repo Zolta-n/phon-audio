@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase-admin";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { getComponentById } from "@/lib/getComponents";
+import { getViewer, canEditComponent } from "@/lib/entitlements";
 import { componentUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
@@ -17,11 +17,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authClient = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const viewer = await getViewer();
+  if (!viewer.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: body, error: parseError } = await parseBody(req, componentUpdateSchema);
   if (parseError) return parseError;
@@ -34,11 +31,17 @@ export async function PUT(
 
     const { data: existing, error: fetchError } = await supabase
       .from("components")
-      .select("specs")
+      .select("specs, created_by, verified")
       .eq("id", id)
       .single();
     if (fetchError || !existing) {
       return Response.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Only admins may edit curated or already-approved rows; a submitter may
+    // keep editing their own component while it awaits review.
+    if (!canEditComponent(viewer, existing)) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Build update object with only provided fields

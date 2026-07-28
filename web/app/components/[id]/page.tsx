@@ -3,6 +3,8 @@ import { CATEGORY_LABELS } from "@/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getComponentById } from "@/lib/getComponents";
+import { getViewer, canEditComponent } from "@/lib/entitlements";
+import { createServiceClient } from "@/lib/supabase-admin";
 
 /** Impact descriptions for missing specs */
 const UNKNOWN_IMPACT: Record<string, string> = {
@@ -111,11 +113,36 @@ export default async function ComponentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const component = await getComponentById(id);
+  const [component, viewer] = await Promise.all([getComponentById(id), getViewer()]);
   if (!component) notFound();
+
+  // getComponentById already refused rows this viewer may not see, so reaching
+  // here with pendingReview means it is their own submission (or they are admin).
+  const { data: row } = await createServiceClient()
+    .from("components")
+    .select("created_by, verified")
+    .eq("id", id)
+    .single();
+  const canEdit = !!row && canEditComponent(viewer, row);
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
+      {component.pendingReview && (
+        <div
+          className="mb-6 rounded-lg border px-4 py-3 text-sm"
+          style={{
+            borderColor: "var(--pa-status-warn-border, #d9a706)",
+            background: "var(--pa-status-warn-bg, #fdf6e3)",
+            color: "var(--pa-text)",
+          }}
+        >
+          <strong>Awaiting review.</strong>{" "}
+          {viewer.admin
+            ? "This user submission is not public yet — approve it in the admin review queue."
+            : "Only you can see this component. It becomes visible to everyone once an editor approves it."}
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <nav className="text-sm text-pa-muted mb-6">
         <Link href="/components" className="hover:text-pa-accent-deep underline-offset-2 hover:underline">Components</Link>
@@ -199,18 +226,22 @@ export default async function ComponentPage({
         >
           Add to chain &rarr;
         </Link>
-        <Link
-          href={`/components/${component.id}/edit`}
-          className="pa-btn pa-btn-secondary"
-        >
-          Edit specs
-        </Link>
-        <Link
-          href={`/components/${component.id}/recollect`}
-          className="pa-btn pa-btn-secondary"
-        >
-          Re-collect
-        </Link>
+        {canEdit && (
+          <Link
+            href={`/components/${component.id}/edit`}
+            className="pa-btn pa-btn-secondary"
+          >
+            Edit specs
+          </Link>
+        )}
+        {canEdit && viewer.canSubmit && (
+          <Link
+            href={`/components/${component.id}/recollect`}
+            className="pa-btn pa-btn-secondary"
+          >
+            Re-collect
+          </Link>
+        )}
         <Link
           href="/components"
           className="pa-btn pa-btn-ghost"

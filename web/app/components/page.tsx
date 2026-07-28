@@ -1,8 +1,9 @@
 import { getComponents } from "@/lib/getComponents";
+import { getViewer } from "@/lib/entitlements";
 import ComponentSearch from "@/components/ComponentSearch";
 
 export default async function ComponentsPage() {
-  const catalog = await getComponents();
+  const [catalog, viewer] = await Promise.all([getComponents(), getViewer()]);
   const brandCount = new Set(catalog.map((c) => c.manufacturer ?? "Other")).size;
 
   return (
@@ -23,14 +24,15 @@ export default async function ComponentsPage() {
             Components
           </h1>
           <p style={{ fontSize: "1.02rem", color: "var(--pa-lede)", margin: 0, fontStyle: "italic" }}>
-            {catalog.length} components across {brandCount} brands — or add your own.
+            {catalog.length} components across {brandCount} brands
+            {viewer.canSubmit ? " — or add your own." : "."}
           </p>
         </div>
       </div>
 
       {/* Content */}
       <div className="pa-container" style={{ padding: "36px 56px 64px", boxSizing: "border-box" }}>
-        <ComponentSearch catalog={catalog} />
+        <ComponentSearch catalog={catalog} canSubmit={viewer.canSubmit} />
       </div>
     </div>
   );

@@ -133,3 +133,62 @@ create policy "favorites_owner_all" on public.favorites
   with check (auth.uid() = user_id);
 
 create index if not exists favorites_user_id_idx on public.favorites (user_id);
+
+-- ---------------------------------------------------------------------------
+-- Catalog governance (2026-07) — user submissions are quarantined until an
+-- admin reviews them, and submitting requires a paid entitlement.
+-- Safe to re-run on an existing database.
+-- ---------------------------------------------------------------------------
+
+-- Who submitted a component. NULL = curated (admin-seeded or admin-added);
+-- these are the rows that were already public before this migration, so the
+-- existing catalog stays visible untouched.
+alter table public.components
+  add column if not exists created_by uuid references auth.users(id) on delete set null;
+
+create index if not exists components_created_by_idx on public.components (created_by);
+
+-- Per-user entitlement. `tier` drives whether a user may submit components at
+-- all; a billing webhook writes this column once payments are wired up.
+create table if not exists public.profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  tier       text not null default 'free',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.profiles
+  drop constraint if exists profiles_tier_check;
+alter table public.profiles
+  add constraint profiles_tier_check check (tier in ('free', 'paid'));
+
+alter table public.profiles enable row level security;
+
+-- A user may read their own profile; only the service key may write it, so a
+-- user cannot promote themselves to 'paid'.
+drop policy if exists "profiles_owner_read" on public.profiles;
+create policy "profiles_owner_read" on public.profiles
+  for select using (auth.uid() = id);
+
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+-- Give every existing and future auth user a free-tier profile row.
+insert into public.profiles (id)
+  select id from auth.users
+  on conflict (id) do nothing;
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id) values (new.id) on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();

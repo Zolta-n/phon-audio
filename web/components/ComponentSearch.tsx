@@ -8,7 +8,14 @@ import ComponentCard from "./ComponentCard";
 
 const BRAND_LIMIT = 5;
 
-export default function ComponentSearch({ catalog }: { catalog: UIComponent[] }) {
+export default function ComponentSearch({
+  catalog,
+  canSubmit = false,
+}: {
+  catalog: UIComponent[];
+  /** Entitled to add components — the add entry points are hidden otherwise. */
+  canSubmit?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ComponentCategory | "all">("all");
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -78,9 +85,11 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
           className="pa-input"
           style={{ flex: 1, width: "auto", padding: "14px 20px" }}
         />
-        <Link href="/components/add" className="pa-btn pa-btn-primary" style={{ padding: "14px 26px", fontSize: "0.68rem", whiteSpace: "nowrap" }}>
-          + Add Component
-        </Link>
+        {canSubmit && (
+          <Link href="/components/add" className="pa-btn pa-btn-primary" style={{ padding: "14px 26px", fontSize: "0.68rem", whiteSpace: "nowrap" }}>
+            + Add Component
+          </Link>
+        )}
       </div>
 
       {/* Category pills + Favorites */}
@@ -244,7 +253,9 @@ export default function ComponentSearch({ catalog }: { catalog: UIComponent[] })
           <div style={{ fontSize: "0.9rem", fontStyle: "italic" }}>
             {showFavoritesOnly
               ? "Click the heart on any component to add it to your favorites"
-              : <>Try a different search or{" "}<Link href="/components/add" style={{ color: "var(--pa-accent2)" }}>add a new component</Link></>
+              : canSubmit
+                ? <>Try a different search or{" "}<Link href="/components/add" style={{ color: "var(--pa-accent2)" }}>add a new component</Link></>
+                : "Try a different search"
             }
           </div>
         </div>
