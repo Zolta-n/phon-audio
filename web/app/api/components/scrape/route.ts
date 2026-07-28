@@ -1,7 +1,7 @@
 import { scrapeUrl, scrapeByQuery, enrichWithWebSearch } from "@/lib/scrapeOne";
 import { fillDacFromChipset } from "@/lib/chipsets";
 import { applyDerivedSpecs } from "@/lib/deriveSpecs";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { getViewer } from "@/lib/entitlements";
 import { parseBody, scrapeBodySchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
 import { assertPublicUrl, UrlGuardError } from "@/lib/urlGuard";
@@ -10,14 +10,18 @@ import { assertPublicUrl, UrlGuardError } from "@/lib/urlGuard";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const viewer = await getViewer();
+  if (!viewer.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  // Every call fans out into page fetches, search queries and LLM requests, all
+  // billed to us — entitlement gates the spend, the rate limit bounds it.
+  if (!viewer.canSubmit) {
+    return Response.json(
+      { error: "Collecting component specs requires a paid plan", code: "upgrade_required" },
+      { status: 403 },
+    );
+  }
 
-  // Each scrape fans out into page fetches + LLM calls — keep it bounded per user.
-  if (!rateLimit(`scrape:${user.id}`, 5, 5 * 60_000)) {
+  if (!rateLimit(`scrape:${viewer.user.id}`, 5, 5 * 60_000)) {
     return Response.json(
       { error: "Too many scrape requests — try again in a few minutes" },
       { status: 429 },

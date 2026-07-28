@@ -4,9 +4,18 @@ import { requireAdminApi } from "../../../../lib/adminAuth";
 import { createServiceClient } from "../../../../lib/supabase-admin";
 import { rateLimit } from "../../../../lib/rateLimit";
 
-const patchSchema = z.object({ active: z.boolean() });
+const patchSchema = z
+  .object({
+    active: z.boolean().optional(),
+    // Approving a user submission: verified = true is what makes it public
+    // (see the catalog visibility rule in web/lib/getComponents.ts).
+    verified: z.boolean().optional(),
+  })
+  .refine((v) => v.active !== undefined || v.verified !== undefined, {
+    message: "Provide at least one of `active` or `verified`",
+  });
 
-/** Deactivate (soft delete) or reactivate a production catalog component. */
+/** Deactivate/reactivate, or approve/unapprove, a production catalog component. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { user, error: authError } = await requireAdminApi();
   if (authError) return authError;
@@ -19,12 +28,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params;
   const db = createServiceClient();
-  const { error: updateError } = await db
-    .from("components")
-    .update({ active: data.active, updated_at: new Date().toISOString() })
-    .eq("id", id);
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.active !== undefined) update.active = data.active;
+  if (data.verified !== undefined) update.verified = data.verified;
+
+  const { error: updateError } = await db.from("components").update(update).eq("id", id);
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
-  return Response.json({ id, active: data.active });
+  return Response.json({ id, ...data });
 }
 
 /** Hard-delete a component. Fails if it's referenced by a saved chain (no cascade

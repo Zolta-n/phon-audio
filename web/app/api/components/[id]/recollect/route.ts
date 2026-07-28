@@ -1,8 +1,9 @@
 import { scrapeByQuery, enrichWithWebSearch } from "@/lib/scrapeOne";
 import { fillDacFromChipset } from "@/lib/chipsets";
 import { applyDerivedSpecs } from "@/lib/deriveSpecs";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-admin";
 import { getComponentById } from "@/lib/getComponents";
+import { getViewer, canEditComponent } from "@/lib/entitlements";
 import { rateLimit } from "@/lib/rateLimit";
 
 // Same budget as the scrape route — cheap passes only (no PDF/vision).
@@ -17,20 +18,37 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const viewer = await getViewer();
+  if (!viewer.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!viewer.canSubmit) {
+    return Response.json(
+      { error: "Re-collecting specs requires a paid plan", code: "upgrade_required" },
+      { status: 403 },
+    );
+  }
 
-  if (!rateLimit(`recollect:${user.id}`, 5, 5 * 60_000)) {
+  const { id } = await params;
+
+  // Check edit rights before spending on collection: the result is saved via
+  // PUT, which enforces the same rule, so collecting first would burn LLM and
+  // search budget on a write that is going to be refused anyway.
+  const { data: row } = await createServiceClient()
+    .from("components")
+    .select("created_by, verified")
+    .eq("id", id)
+    .single();
+  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!canEditComponent(viewer, row)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!rateLimit(`recollect:${viewer.user.id}`, 5, 5 * 60_000)) {
     return Response.json(
       { error: "Too many re-collect requests — try again in a few minutes" },
       { status: 429 },
     );
   }
 
-  const { id } = await params;
   const existing = await getComponentById(id);
   if (!existing) return Response.json({ error: "Not found" }, { status: 404 });
 
