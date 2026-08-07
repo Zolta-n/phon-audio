@@ -304,6 +304,67 @@ body {
     background: radial-gradient(ellipse 40% 90% at 15% 50%, rgba(217, 119, 6, 0.18), transparent 70%);
   }
 
+  /* Long-form prose for legal / reference pages. Keeps the serif body face and
+     warm palette, with a measure narrow enough to stay readable. */
+  .pa-prose {
+    font-family: var(--pa-font-serif);
+    font-size: 1rem;
+    line-height: 1.85;
+    color: var(--pa-text);
+  }
+  .pa-prose h2 {
+    font-family: var(--pa-font-display);
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--pa-text);
+    margin: 44px 0 14px;
+  }
+  .pa-prose h3 {
+    font-family: var(--pa-font-display);
+    font-size: 1.12rem;
+    font-weight: 500;
+    color: var(--pa-text);
+    margin: 28px 0 10px;
+  }
+  .pa-prose p,
+  .pa-prose ul,
+  .pa-prose ol {
+    margin: 0 0 16px;
+  }
+  .pa-prose ul,
+  .pa-prose ol {
+    padding-left: 1.3em;
+  }
+  .pa-prose li {
+    margin-bottom: 8px;
+  }
+  .pa-prose a {
+    color: var(--pa-accent2);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .pa-prose strong {
+    font-weight: 600;
+  }
+  .pa-prose dt {
+    font-weight: 600;
+    margin-top: 14px;
+  }
+  .pa-prose dd {
+    margin: 0 0 8px;
+    color: var(--pa-muted);
+  }
+  /* Callout for the statements that must be conspicuous (e.g. the Amazon
+     Associates disclosure and the no-warranty notice). */
+  .pa-notice {
+    border-left: 3px solid var(--pa-accent);
+    background: var(--pa-inset, rgba(217, 119, 6, 0.06));
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    font-family: var(--pa-font-serif);
+    line-height: 1.7;
+  }
+
   .pa-badge {
     font-family: var(--pa-font-ui);
     font-size: 0.56rem;

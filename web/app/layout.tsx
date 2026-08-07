@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Lora } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -30,18 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <Navbar />
         <main className="flex-1">{children}</main>
-        <footer style={{
-          background: "var(--pa-dark)",
-          color: "rgba(253,246,236,0.35)",
-          padding: "36px",
-          textAlign: "center",
-          fontSize: "0.72rem",
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          fontFamily: "var(--pa-font-ui)",
-        }}>
-          Phon<span style={{ color: "rgba(217,119,6,0.7)" }}>.</span>Audio — High-fidelity signal chain design © 2026
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );
